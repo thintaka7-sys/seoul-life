@@ -6,8 +6,29 @@ export type SaveObject = Record<string, unknown>
 export type Migration = (data: SaveObject) => SaveObject
 export type MigrationTable = Readonly<Record<number, Migration>>
 
-/** 本番の移行表。v1 が最初の形式なので、まだ空 */
-export const MIGRATIONS: MigrationTable = {}
+function isObj(v: unknown): v is SaveObject {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+/** 本番の移行表 */
+export const MIGRATIONS: MigrationTable = {
+  // v1（Phase 0）→ v2（Phase 1）：いた場所だけを引き継ぎ、進行・学習記録・経験値は空から始める
+  1: (d) => {
+    const progress = isObj(d['progress']) ? d['progress'] : {}
+    return {
+      version: 2,
+      createdAt: d['createdAt'],
+      updatedAt: d['updatedAt'],
+      progress: {
+        currentLocationId: progress['currentLocationId'] ?? null,
+        completedEvents: [],
+        activeEvent: null,
+      },
+      learning: { words: {}, grammar: {}, conversations: {} },
+      stats: { xp: 0 },
+    }
+  },
+}
 
 export type MigrateResult =
   | { ok: true; data: SaveObject; from: number }

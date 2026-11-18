@@ -71,15 +71,20 @@ function isQuotaError(e: unknown): boolean {
   return e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')
 }
 
-export function saveGame(storage: KeyValueStorage | null, data: SaveData): SaveResult {
+/** 1つのキーに書き込む。例外は投げず、結果を返す */
+export function writeItem(storage: KeyValueStorage | null, key: string, value: string): SaveResult {
   if (storage === null) return { ok: false, reason: 'unavailable', detail: 'このブラウザでは保存できません' }
   try {
-    storage.setItem(SAVE_KEY, JSON.stringify(data))
+    storage.setItem(key, value)
     return { ok: true }
   } catch (e) {
     if (isQuotaError(e)) return { ok: false, reason: 'quota', detail: '保存容量がいっぱいです' }
     return { ok: false, reason: 'unknown', detail: String(e) }
   }
+}
+
+export function saveGame(storage: KeyValueStorage | null, data: SaveData): SaveResult {
+  return writeItem(storage, SAVE_KEY, JSON.stringify(data))
 }
 
 /** 退避データのキーの一覧（古い順） */

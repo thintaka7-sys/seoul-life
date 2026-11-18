@@ -76,7 +76,7 @@ describe('つづきから', () => {
   })
 
   it('施設の中で終えていたら、その施設から再開する', () => {
-    const save = { ...createNewSave(T0), progress: { currentLocationId: 'cafe' } }
+    const save = { ...createNewSave(T0), progress: { ...createNewSave(T0).progress, currentLocationId: 'cafe' } }
     const s = createInitialState({ kind: 'ok', data: save, raw: '', migratedFrom: null }, null)
     expect(reducer(s, { type: 'continue' }).scene).toEqual({ name: 'location', locationId: 'cafe' })
   })
@@ -84,7 +84,7 @@ describe('つづきから', () => {
   it('マップで終えていた、または施設がなくなっていたら、マップから再開する', () => {
     const onMap = createInitialState({ kind: 'ok', data: createNewSave(T0), raw: '', migratedFrom: null }, null)
     expect(reducer(onMap, { type: 'continue' }).scene).toEqual({ name: 'main' })
-    const removed = { ...createNewSave(T0), progress: { currentLocationId: 'old_shop' } }
+    const removed = { ...createNewSave(T0), progress: { ...createNewSave(T0).progress, currentLocationId: 'old_shop' } }
     const s = createInitialState({ kind: 'ok', data: removed, raw: '', migratedFrom: null }, null)
     expect(reducer(s, { type: 'continue' }).scene).toEqual({ name: 'main' })
   })
