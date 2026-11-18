@@ -1,0 +1,47 @@
+[
+  {
+    "id": "grammar_002",
+    "title": "주세요",
+    "level": 1,
+    "explanation": "ほしい物の名前の後ろにつけて「〜をください」と頼む表現です。お店で注文するときによく使います。「〜を」にあたる助詞（을 / 를）は付けても正しいですが、話し言葉ではよく省かれます。",
+    "examples": [
+      {
+        "korean": "아메리카노 주세요.",
+        "pronunciation": "アメリカノ ジュセヨ",
+        "japanese": "アメリカーノをください。"
+      },
+      {
+        "korean": "물 주세요.",
+        "pronunciation": "ムル ジュセヨ",
+        "japanese": "水をください。"
+      },
+      {
+        "korean": "이거 주세요.",
+        "pronunciation": "イゴ ジュセヨ",
+        "japanese": "これをください。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-18）"
+  },
+  {
+    "id": "grammar_003",
+    "title": "한 잔 / 두 잔（数＋単位）",
+    "level": 1,
+    "explanation": "「〜杯」は 잔 で数えます。하나（1つ）、둘（2つ）は、後ろに 잔 などの単位が付くと、한、두 に形が変わります。「아메리카노 한 잔」のように、物の名前 → 数 → 単位 の順に並べます。",
+    "examples": [
+      {
+        "korean": "아메리카노 한 잔 주세요.",
+        "pronunciation": "アメリカノ ハン ジャン ジュセヨ",
+        "japanese": "アメリカーノを1杯ください。"
+      },
+      {
+        "korean": "커피 두 잔 주세요.",
+        "pronunciation": "コピ ドゥ ジャン ジュセヨ",
+        "japanese": "コーヒーを2杯ください。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-18）"
+  }
+]

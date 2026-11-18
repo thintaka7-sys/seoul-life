@@ -1,0 +1,174 @@
+[
+  {
+    "id": "cafe_001",
+    "chapter": 3,
+    "location": "cafe",
+    "character": "cafe_staff",
+    "lines": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "어서 오세요!",
+        "pronunciation": "オソ オセヨ",
+        "japanese": "いらっしゃいませ！"
+      }
+    ],
+    "choices": [
+      {
+        "korean": "안녕하세요.",
+        "pronunciation": "アンニョンハセヨ",
+        "japanese": "こんにちは。",
+        "correct": true
+      },
+      {
+        "korean": "안녕히 계세요.",
+        "pronunciation": "アンニョンヒ ゲセヨ",
+        "japanese": "さようなら。（その場に残る人に）",
+        "correct": false
+      },
+      {
+        "korean": "아니요.",
+        "pronunciation": "アニヨ",
+        "japanese": "いいえ。",
+        "correct": false
+      }
+    ],
+    "freeAnswer": {
+      "prompt": "こんにちは",
+      "answers": [
+        "안녕하세요."
+      ]
+    },
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-18）"
+  },
+  {
+    "id": "cafe_002",
+    "chapter": 3,
+    "location": "cafe",
+    "character": "cafe_staff",
+    "lines": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "뭐 드릴까요?",
+        "pronunciation": "ムォ ドゥリルッカヨ",
+        "japanese": "何になさいますか？"
+      }
+    ],
+    "choices": [
+      {
+        "korean": "아메리카노 주세요.",
+        "pronunciation": "アメリカノ ジュセヨ",
+        "japanese": "アメリカーノをください。",
+        "correct": true
+      },
+      {
+        "korean": "녹차 주세요.",
+        "pronunciation": "ノクチャ ジュセヨ",
+        "japanese": "緑茶をください。",
+        "correct": true
+      },
+      {
+        "korean": "안녕히 계세요.",
+        "pronunciation": "アンニョンヒ ゲセヨ",
+        "japanese": "さようなら。（その場に残る人に）",
+        "correct": false
+      }
+    ],
+    "freeAnswer": {
+      "prompt": "アメリカーノを1杯ください",
+      "answers": [
+        "아메리카노 한 잔 주세요.",
+        "아메리카노 하나 주세요."
+      ]
+    },
+    "reviewed": true,
+    "notes": "選ぶ問題は、好きな飲み物を選べるよう正解を2つにした。書く問題は数（1杯）まで言えるかを確かめる。아메리카노 하나 주세요 も店でよく使う自然な言い方／確認：ChatGPT（2026-11-18）"
+  },
+  {
+    "id": "cafe_003",
+    "chapter": 3,
+    "location": "cafe",
+    "character": "cafe_staff",
+    "lines": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "여기 있습니다.",
+        "pronunciation": "ヨギ イッスムニダ",
+        "japanese": "はい、どうぞ。"
+      }
+    ],
+    "choices": [
+      {
+        "korean": "감사합니다.",
+        "pronunciation": "カムサハムニダ",
+        "japanese": "ありがとうございます。",
+        "correct": true
+      },
+      {
+        "korean": "고맙습니다.",
+        "pronunciation": "コマプスムニダ",
+        "japanese": "ありがとうございます。",
+        "correct": true
+      },
+      {
+        "korean": "어서 오세요.",
+        "pronunciation": "オソ オセヨ",
+        "japanese": "いらっしゃいませ。",
+        "correct": false
+      }
+    ],
+    "freeAnswer": {
+      "prompt": "ありがとうございます",
+      "answers": [
+        "감사합니다.",
+        "고맙습니다.",
+        "감사해요.",
+        "고마워요."
+      ]
+    },
+    "reviewed": true,
+    "notes": "감사해요・고마워요 も自然な丁寧語なので、書く問題の正解に含めた／確認：ChatGPT（2026-11-18）"
+  },
+  {
+    "id": "cafe_004",
+    "chapter": 3,
+    "location": "cafe",
+    "character": "cafe_staff",
+    "lines": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "감사합니다. 안녕히 가세요.",
+        "pronunciation": "カムサハムニダ アンニョンヒ ガセヨ",
+        "japanese": "ありがとうございました。さようなら。"
+      }
+    ],
+    "choices": [
+      {
+        "korean": "안녕히 계세요.",
+        "pronunciation": "アンニョンヒ ゲセヨ",
+        "japanese": "さようなら。（その場に残る人に）",
+        "correct": true
+      },
+      {
+        "korean": "안녕히 가세요.",
+        "pronunciation": "アンニョンヒ ガセヨ",
+        "japanese": "さようなら。（立ち去る人に）",
+        "correct": false
+      },
+      {
+        "korean": "어서 오세요.",
+        "pronunciation": "オソ オセヨ",
+        "japanese": "いらっしゃいませ。",
+        "correct": false
+      }
+    ],
+    "freeAnswer": {
+      "prompt": "さようなら（店を出るときに、店員さんへ）",
+      "answers": [
+        "안녕히 계세요."
+      ]
+    },
+    "reviewed": true,
+    "notes": "店を出る自分が、店に残る店員に言うので 안녕히 계세요 が正解。안녕히 가세요 は初心者がよく間違えるため、あえて選択肢に入れた（grammar_001）／確認：ChatGPT（2026-11-18）"
+  }
+]
