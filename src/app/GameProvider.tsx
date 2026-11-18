@@ -2,14 +2,19 @@ import { useEffect, useReducer, useRef, type ReactNode } from 'react'
 import { content } from '../data'
 import type { SaveData } from '../storage/saveData'
 import { saveGame } from '../storage/saveStore'
+import { saveSettings, type Settings } from '../storage/settings'
 import type { BootResult } from './boot'
 import { GameContext } from './GameContext'
 import { createGameReducer, createInitialState } from './gameState'
 
-const gameReducer = createGameReducer(new Set(content.locations.map((l) => l.id)))
+const gameReducer = createGameReducer({
+  events: content.events,
+  balance: content.balance,
+  locationIds: new Set(content.locations.map((l) => l.id)),
+})
 
 function initState(boot: BootResult) {
-  return createInitialState(boot.load, boot.backupKey)
+  return createInitialState(boot.load, boot.backupKey, boot.settings.settings)
 }
 
 export function GameProvider({ boot, children }: { boot: BootResult; children: ReactNode }) {
@@ -17,6 +22,7 @@ export function GameProvider({ boot, children }: { boot: BootResult; children: R
 
   // 読み込んだままのデータ（移行していないもの）は書き直さない
   const lastSaved = useRef<SaveData | null>(boot.load.kind === 'ok' && boot.load.migratedFrom === null ? boot.load.data : null)
+  const lastSettings = useRef<Settings>(boot.settings.settings)
 
   // セーブデータが変わったら自動で保存する
   useEffect(() => {
@@ -26,6 +32,14 @@ export function GameProvider({ boot, children }: { boot: BootResult; children: R
     if (result.ok) dispatch({ type: 'saveSucceeded' })
     else dispatch({ type: 'saveFailed', message: result.detail })
   }, [state.save, boot.storage])
+
+  // 設定が変わったら保存する
+  useEffect(() => {
+    if (state.settings === lastSettings.current || boot.storage === null) return
+    lastSettings.current = state.settings
+    const result = saveSettings(boot.storage, state.settings)
+    if (!result.ok) dispatch({ type: 'saveFailed', message: `設定を保存できませんでした（${result.detail}）` })
+  }, [state.settings, boot.storage])
 
   return <GameContext.Provider value={{ state, dispatch }}>{children}</GameContext.Provider>
 }

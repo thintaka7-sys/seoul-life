@@ -1,12 +1,14 @@
-// 起動時のセーブデータの読み込み。React の描画より前に1回だけ実行する。
+// 起動時のセーブデータと設定の読み込み。React の描画より前に1回だけ実行する。
 
 import { backupRawSave, loadSave, type KeyValueStorage, type LoadResult } from '../storage/saveStore'
+import { loadSettings, type SettingsLoadResult } from '../storage/settings'
 
 export interface BootResult {
   storage: KeyValueStorage | null
   load: LoadResult
   /** 元のデータを退避したキー。退避が不要、または失敗した場合は null */
   backupKey: string | null
+  settings: SettingsLoadResult
 }
 
 export function boot(storage: KeyValueStorage | null, now: Date): BootResult {
@@ -18,5 +20,7 @@ export function boot(storage: KeyValueStorage | null, now: Date): BootResult {
     // 移行したデータは、移行後の形式で上書き保存する前に移行前の形を残しておく
     if (load.kind === 'ok' && load.migratedFrom !== null) backupKey = backupRawSave(storage, load.raw, 'pre-migration', now)
   }
-  return { storage, load, backupKey }
+  const settings = loadSettings(storage)
+  if (settings.kind === 'repaired') console.warn(`[設定] ${settings.detail}`)
+  return { storage, load, backupKey, settings }
 }

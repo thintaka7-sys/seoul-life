@@ -1,92 +1,195 @@
 import { describe, expect, it } from 'vitest'
+import { content } from '../data'
+import type { GameEvent } from '../data/types'
 import { createNewSave } from '../storage/saveData'
 import { SAVE_KEY, loadSave } from '../storage/saveStore'
+import { DEFAULT_SETTINGS } from '../storage/settings'
 import { MemoryStorage } from '../storage/testing'
 import { boot } from './boot'
-import { createGameReducer, createInitialState, type GameState } from './gameState'
+import { createGameReducer, createInitialState, type GameAction, type GameState } from './gameState'
 
 const T0 = '2026-11-18T10:00:00.000Z'
 const T1 = '2026-11-18T10:05:00.000Z'
-const reducer = createGameReducer(new Set(['home', 'cafe']))
 
-function titleWithoutSave(): GameState {
-  return createInitialState({ kind: 'empty' }, null)
+const reducer = createGameReducer({
+  events: content.events,
+  balance: content.balance,
+  locationIds: new Set(content.locations.map((l) => l.id)),
+})
+
+function run(state: GameState, ...actions: GameAction[]): GameState {
+  return actions.reduce(reducer, state)
 }
 
-describe('画面遷移', () => {
-  it('タイトル → はじめから → マップ → 施設 → 会話 → 施設 → マップ → タイトル', () => {
-    let s = titleWithoutSave()
-    expect(s.scene).toEqual({ name: 'title' })
+function titleWithoutSave(): GameState {
+  return createInitialState({ kind: 'empty' }, null, DEFAULT_SETTINGS)
+}
 
-    s = reducer(s, { type: 'startNew', now: T0 })
-    expect(s.scene).toEqual({ name: 'main' })
-    expect(s.save).toEqual(createNewSave(T0))
+function eventById(id: string): GameEvent {
+  const e = content.events.find((x) => x.id === id)
+  if (e === undefined) throw new Error(id)
+  return e
+}
 
-    s = reducer(s, { type: 'goToLocation', locationId: 'cafe', now: T1 })
-    expect(s.scene).toEqual({ name: 'location', locationId: 'cafe' })
-    expect(s.save?.progress.currentLocationId).toBe('cafe')
-    expect(s.save?.updatedAt).toBe(T1)
+/** 進めているイベントの段階を、種類に合った操作で1つ終える */
+function completeCurrentStep(state: GameState, method: 'choice' | 'write' = 'choice'): GameState {
+  if (state.run === null) throw new Error('イベント中ではありません')
+  const step = eventById(state.run.eventId).steps[state.run.step]
+  switch (step?.type) {
+    case 'learn':
+      return reducer(state, { type: 'learnDone', now: T1 })
+    case 'conversation':
+      return reducer(state, { type: 'conversationDone', method, now: T1 })
+    default:
+      return reducer(state, { type: 'stepDone', now: T1 })
+  }
+}
 
-    s = reducer(s, { type: 'talk', conversationId: 'cafe_901' })
-    expect(s.scene).toEqual({ name: 'conversation', locationId: 'cafe', conversationId: 'cafe_901' })
+function playWholeEvent(state: GameState, eventId: string): GameState {
+  let s = reducer(state, { type: 'startEvent', eventId, now: T1 })
+  expect(s.scene.name).toBe('event')
+  for (let i = 0; i < 50 && s.run !== null; i++) s = completeCurrentStep(s)
+  expect(s.run).toBeNull()
+  return s
+}
 
-    s = reducer(s, { type: 'endConversation' })
-    expect(s.scene).toEqual({ name: 'location', locationId: 'cafe' })
+describe('最初の1日を通して遊ぶ', () => {
+  it('はじめから → 自宅のイベント → マップ → カフェのイベント → 自宅で図鑑 → 1日の終わり', () => {
+    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
 
-    s = reducer(s, { type: 'backToMap', now: T1 })
-    expect(s.scene).toEqual({ name: 'main' })
-    expect(s.save?.progress.currentLocationId).toBeNull()
+    s = playWholeEvent(s, 'event_001')
+    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
+    expect(s.save?.progress.completedEvents).toEqual(['event_001'])
 
-    s = reducer(s, { type: 'backToTitle' })
-    expect(s.scene).toEqual({ name: 'title' })
+    // カフェのイベントは、マップからカフェへ行って始める
+    s = run(s, { type: 'backToMap', now: T1 }, { type: 'goToLocation', locationId: 'cafe', now: T1 })
+    s = playWholeEvent(s, 'event_002')
+    s = run(s, { type: 'backToMap', now: T1 }, { type: 'goToLocation', locationId: 'home', now: T1 })
+    s = playWholeEvent(s, 'event_003')
+
+    expect(s.save?.progress.completedEvents).toEqual(['event_001', 'event_002', 'event_003'])
+    expect(s.save?.progress.activeEvent).toBeNull()
+    // すべての単語・文法が図鑑に入っている
+    expect(Object.keys(s.save?.learning.words ?? {}).sort()).toEqual(content.vocabulary.map((v) => v.id).sort())
+    expect(Object.keys(s.save?.learning.grammar ?? {}).sort()).toEqual(content.grammar.map((g) => g.id).sort())
+    // 経験値：単語 × learnWord ＋ 会話（選ぶ）× conversationChoice ＋ イベント × eventComplete
+    const { xp } = content.balance
+    expect(s.save?.stats.xp).toBe(content.vocabulary.length * xp.learnWord + content.conversations.length * xp.conversationChoice + 3 * xp.eventComplete)
   })
 
-  it('タイトル ⇄ 設定', () => {
-    let s = reducer(titleWithoutSave(), { type: 'openSettings' })
-    expect(s.scene).toEqual({ name: 'settings' })
-    s = reducer(s, { type: 'closeSettings' })
-    expect(s.scene).toEqual({ name: 'title' })
-  })
-
-  it('存在しない施設には移動しない', () => {
+  it('まだ行けない施設には移動しない', () => {
     const s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    expect(reducer(s, { type: 'goToLocation', locationId: 'park', now: T1 })).toBe(s)
     expect(reducer(s, { type: 'goToLocation', locationId: 'school', now: T1 })).toBe(s)
   })
 
-  it('施設の外からは会話を始めない', () => {
+  it('前提を終えていないイベントは始められない', () => {
     const s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
-    expect(reducer(s, { type: 'talk', conversationId: 'cafe_901' })).toBe(s)
+    expect(reducer(s, { type: 'startEvent', eventId: 'event_002', now: T1 })).toBe(s)
   })
 
-  it('画面遷移だけではセーブデータを作り直さない（保存回数を増やさない）', () => {
-    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
-    s = reducer(s, { type: 'goToLocation', locationId: 'cafe', now: T1 })
-    const save = s.save
-    s = reducer(s, { type: 'talk', conversationId: 'cafe_901' })
-    s = reducer(s, { type: 'endConversation' })
-    s = reducer(s, { type: 'backToTitle' })
-    expect(s.save).toBe(save)
+  it('段階の種類と違う操作は無視する', () => {
+    const s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    // event_001 の最初は message
+    expect(reducer(s, { type: 'learnDone', now: T1 })).toBe(s)
+    expect(reducer(s, { type: 'conversationDone', method: 'choice', now: T1 })).toBe(s)
   })
 })
 
-describe('つづきから', () => {
-  it('セーブデータがなければ何もしない', () => {
+describe('途中で閉じて再開する', () => {
+  it('イベントの途中で再読み込みしても、つづきから同じ段階で再開する', () => {
+    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    s = completeCurrentStep(completeCurrentStep(s))
+    expect(s.run).toEqual({ eventId: 'event_001', step: 2, replay: false })
+
+    // 再読み込み：保存されているセーブデータから起動し直す
+    const storage = new MemoryStorage()
+    storage.setItem(SAVE_KEY, JSON.stringify(s.save))
+    const b = boot(storage, new Date(T1))
+    const resumed = reducer(createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS), { type: 'continue' })
+    expect(resumed.scene).toEqual({ name: 'event', locationId: 'home' })
+    expect(resumed.run).toEqual({ eventId: 'event_001', step: 2, replay: false })
+  })
+
+  it('イベントを途中でやめても、施設で同じイベントの続きから始まる', () => {
+    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    s = completeCurrentStep(s)
+    s = reducer(s, { type: 'leaveEvent' })
+    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
+    s = reducer(s, { type: 'startEvent', eventId: 'event_001', now: T1 })
+    expect(s.run?.step).toBe(1)
+  })
+
+  it('施設やマップで終えていたら、その場所から再開する', () => {
+    const atCafe = { ...createNewSave(T0), progress: { ...createNewSave(T0).progress, currentLocationId: 'cafe' } }
+    const s = createInitialState({ kind: 'ok', data: atCafe, raw: '', migratedFrom: null }, null, DEFAULT_SETTINGS)
+    expect(reducer(s, { type: 'continue' }).scene).toEqual({ name: 'location', locationId: 'cafe' })
+    const onMap = createInitialState({ kind: 'ok', data: createNewSave(T0), raw: '', migratedFrom: null }, null, DEFAULT_SETTINGS)
+    expect(reducer(onMap, { type: 'continue' }).scene).toEqual({ name: 'main' })
+  })
+
+  it('セーブデータがなければ、つづきからは何もしない', () => {
     const s = titleWithoutSave()
     expect(reducer(s, { type: 'continue' })).toBe(s)
   })
+})
 
-  it('施設の中で終えていたら、その施設から再開する', () => {
-    const save = { ...createNewSave(T0), progress: { ...createNewSave(T0).progress, currentLocationId: 'cafe' } }
-    const s = createInitialState({ kind: 'ok', data: save, raw: '', migratedFrom: null }, null)
-    expect(reducer(s, { type: 'continue' }).scene).toEqual({ name: 'location', locationId: 'cafe' })
+describe('遊び直しと経験値', () => {
+  it('終えたイベントは遊び直せるが、経験値も記録も増えない', () => {
+    let s = playWholeEvent(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), 'event_001')
+    const before = s.save
+    s = playWholeEvent(s, 'event_001')
+    expect(s.save).toBe(before)
   })
 
-  it('マップで終えていた、または施設がなくなっていたら、マップから再開する', () => {
-    const onMap = createInitialState({ kind: 'ok', data: createNewSave(T0), raw: '', migratedFrom: null }, null)
-    expect(reducer(onMap, { type: 'continue' }).scene).toEqual({ name: 'main' })
-    const removed = { ...createNewSave(T0), progress: { ...createNewSave(T0).progress, currentLocationId: 'old_shop' } }
-    const s = createInitialState({ kind: 'ok', data: removed, raw: '', migratedFrom: null }, null)
-    expect(reducer(s, { type: 'continue' }).scene).toEqual({ name: 'main' })
+  it('書いて正解すると、選ぶより多い経験値が付き、知らせが出る', () => {
+    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    s = completeCurrentStep(completeCurrentStep(s)) // message, learn
+    const xpBefore = s.save?.stats.xp ?? 0
+    s = completeCurrentStep(s, 'write') // home_001 を書いて正解
+    expect((s.save?.stats.xp ?? 0) - xpBefore).toBe(content.balance.xp.conversationWrite)
+    expect(s.reward).toMatchObject({ xp: content.balance.xp.conversationWrite })
+    expect(reducer(s, { type: 'dismissReward' }).reward).toBeNull()
+  })
+
+  it('「答えを見る」で進んでも、先へは進めるが経験値は付かない', () => {
+    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    s = completeCurrentStep(completeCurrentStep(s))
+    const xpBefore = s.save?.stats.xp
+    const stepBefore = s.run?.step ?? 0
+    s = reducer(s, { type: 'conversationDone', method: 'revealed', now: T1 })
+    expect(s.save?.stats.xp).toBe(xpBefore)
+    expect(s.run?.step).toBe(stepBefore + 1)
+  })
+})
+
+describe('設定・図鑑・戻る', () => {
+  it('設定と図鑑は、開いた画面に戻る', () => {
+    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    s = reducer(s, { type: 'openSettings' })
+    expect(s.scene).toMatchObject({ name: 'settings', back: { name: 'location', locationId: 'home' } })
+    s = reducer(s, { type: 'closeSettings' })
+    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
+    s = run(s, { type: 'openDictionary' }, { type: 'closeDictionary' })
+    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
+  })
+
+  it('設定を変えると状態に反映する', () => {
+    const s = reducer(titleWithoutSave(), { type: 'changeSettings', settings: { ...DEFAULT_SETTINGS, furigana: 'off' } })
+    expect(s.settings.furigana).toBe('off')
+  })
+
+  it('ブラウザの「戻る」は画面内の戻るボタンと同じ動きをする', () => {
+    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    s = reducer(s, { type: 'startEvent', eventId: 'event_001', now: T1 })
+    s = reducer(s, { type: 'back', now: T1 }) // イベント → 施設
+    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
+    s = reducer(s, { type: 'back', now: T1 }) // 施設 → マップ
+    expect(s.scene).toEqual({ name: 'main' })
+    s = reducer(s, { type: 'back', now: T1 }) // マップ → タイトル
+    expect(s.scene).toEqual({ name: 'title' })
+    expect(reducer(s, { type: 'back', now: T1 })).toBe(s) // タイトルでは何もしない
   })
 })
 
@@ -100,9 +203,9 @@ describe('保存の失敗の表示', () => {
 })
 
 describe('起動（boot と createInitialState）', () => {
-  it('セーブデータがなければタイトルから、つづきからは選べない', () => {
+  it('セーブデータがなければタイトルから', () => {
     const b = boot(new MemoryStorage(), new Date(T0))
-    const s = createInitialState(b.load, b.backupKey)
+    const s = createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS)
     expect(s.scene).toEqual({ name: 'title' })
     expect(s.save).toBeNull()
     expect(s.storageAvailable).toBe(true)
@@ -110,7 +213,7 @@ describe('起動（boot と createInitialState）', () => {
 
   it('保存できない環境では storageAvailable が false', () => {
     const b = boot(null, new Date(T0))
-    expect(createInitialState(b.load, b.backupKey).storageAvailable).toBe(false)
+    expect(createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS).storageAvailable).toBe(false)
   })
 
   it('壊れたデータは退避してからエラー画面を出し、元のキーも残す', () => {
@@ -121,13 +224,20 @@ describe('起動（boot と createInitialState）', () => {
     expect(storage.getItem(b.backupKey ?? '')).toBe('{broken')
     expect(storage.getItem(SAVE_KEY)).toBe('{broken')
 
-    const s = createInitialState(b.load, b.backupKey)
+    const s = createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS)
     expect(s.scene).toMatchObject({ name: 'saveError', reason: 'parse_error', backupKey: b.backupKey })
-    expect(s.save).toBeNull()
-
-    // 新しく始めると、新しいデータで遊べる（退避したデータは残っている）
     const started = reducer(s, { type: 'startNew', now: T1 })
-    expect(started.save).toEqual(createNewSave(T1))
+    expect(started.save?.version).toBe(2)
+  })
+
+  it('v1 のデータは移行前の形を退避してから読み込む', () => {
+    const storage = new MemoryStorage()
+    const v1 = JSON.stringify({ version: 1, createdAt: T0, updatedAt: T0, progress: { currentLocationId: 'cafe' } })
+    storage.setItem(SAVE_KEY, v1)
+    const b = boot(storage, new Date(T1))
+    expect(b.backupKey).toMatch(/pre-migration$/)
+    expect(storage.getItem(b.backupKey ?? '')).toBe(v1)
+    expect(createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS).save?.progress.currentLocationId).toBe('cafe')
   })
 
   it('正常なデータは読み込まれ、退避はしない', () => {
@@ -135,7 +245,7 @@ describe('起動（boot と createInitialState）', () => {
     storage.setItem(SAVE_KEY, JSON.stringify(createNewSave(T0)))
     const b = boot(storage, new Date(T1))
     expect(b.backupKey).toBeNull()
-    expect(createInitialState(b.load, b.backupKey).save).toEqual(createNewSave(T0))
+    expect(createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS).save).toEqual(createNewSave(T0))
     expect(loadSave(storage).kind).toBe('ok')
   })
 })
