@@ -1,13 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Notice } from '../components/Notice'
-import { ConversationPage } from '../pages/ConversationPage'
+import { RewardToast } from '../components/RewardToast'
+import { DictionaryPage } from '../pages/DictionaryPage'
+import { EventPage } from '../pages/event/EventPage'
 import { LocationPage } from '../pages/LocationPage'
 import { MainPage } from '../pages/MainPage'
 import { SaveErrorPage } from '../pages/SaveErrorPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { TitlePage } from '../pages/TitlePage'
-import { useGame } from './GameContext'
-import type { Scene } from './gameState'
+import { nowIso, useGame } from './GameContext'
+import { backTarget, type GameState, type Scene } from './gameState'
 
 function SceneView({ scene }: { scene: Scene }) {
   switch (scene.name) {
@@ -19,20 +21,56 @@ function SceneView({ scene }: { scene: Scene }) {
       return <MainPage />
     case 'location':
       return <LocationPage locationId={scene.locationId} />
-    case 'conversation':
-      return <ConversationPage conversationId={scene.conversationId} />
+    case 'event':
+      return <EventPage />
+    case 'dictionary':
+      return <DictionaryPage />
     case 'saveError':
       return <SaveErrorPage reason={scene.reason} detail={scene.detail} backupKey={scene.backupKey} />
   }
 }
 
-export function App() {
-  const { state } = useGame()
+/**
+ * ブラウザ（Android）の「戻る」を、画面内の「戻る」と同じ動きにする。
+ * 戻れる画面にいる間は履歴に1つ印を積んでおき、「戻る」でその印が消えたら、ゲーム内で1つ戻って印を積み直す。
+ * タイトル画面では印を積まないので、「戻る」でそのままサイトを離れられる。
+ */
+function useBrowserBack(state: GameState, onBack: () => void) {
+  const armed = useRef(false)
+  const canGoBack = backTarget(state) !== null
+  const onBackRef = useRef(onBack)
 
-  // 画面が切り替わったら先頭に戻す
+  useEffect(() => {
+    onBackRef.current = onBack
+  }, [onBack])
+
+  useEffect(() => {
+    if (canGoBack && !armed.current) {
+      window.history.pushState({ seoulLife: true }, '')
+      armed.current = true
+    }
+  }, [canGoBack, state.scene])
+
+  useEffect(() => {
+    const handler = () => {
+      if (!armed.current) return
+      armed.current = false
+      onBackRef.current()
+    }
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [])
+}
+
+export function App() {
+  const { state, dispatch } = useGame()
+
+  useBrowserBack(state, () => dispatch({ type: 'back', now: nowIso() }))
+
+  // 画面が切り替わったら先頭に戻す（イベントの段階が進んだときも）
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [state.scene])
+  }, [state.scene, state.run?.step])
 
   return (
     <div className="app">
@@ -45,6 +83,7 @@ export function App() {
         </div>
       )}
       <SceneView scene={state.scene} />
+      <RewardToast />
     </div>
   )
 }

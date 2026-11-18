@@ -34,3 +34,15 @@ export function conversationsAt(locationId: string) {
 export function findConversation(id: string) {
   return content.conversations.find((c) => c.id === id)
 }
+
+export function findVocab(id: string) {
+  return content.vocabulary.find((v) => v.id === id)
+}
+
+export function findGrammar(id: string) {
+  return content.grammar.find((g) => g.id === id)
+}
+
+export function findGameEvent(id: string) {
+  return content.events.find((e) => e.id === id)
+}
