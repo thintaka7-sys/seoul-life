@@ -1,0 +1,12 @@
+{
+  "xp": {
+    "learnWord": 2,
+    "conversationChoice": 10,
+    "conversationWrite": 15,
+    "eventComplete": 20
+  },
+  "furiganaAlwaysUntilChapter": 3,
+  "initialLocations": ["home", "cafe"],
+  "startLocation": "home",
+  "writeAttemptsBeforeReveal": 2
+}

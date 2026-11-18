@@ -42,6 +42,7 @@ export const ID_PATTERNS = {
   vocabulary: /^vocab_\d{3,}$/,
   grammar: /^grammar_\d{3,}$/,
   conversation: /^[a-z][a-z0-9_]*_\d{3,}$/,
+  event: /^event_\d{3,}$/,
   key: /^[a-z][a-z0-9_]*$/,
 } as const
 
@@ -60,17 +61,22 @@ export interface Vocab extends ContentBase {
   korean: string
   /** 正解として認める別表記 */
   alternatives?: string[]
+  /** 見出し語の読み（カタカナ） */
   pronunciation: string
   japanese: string
   partOfSpeech: PartOfSpeech
   category: VocabCategory
   level: number
   example?: string
+  /** 例文の読み（カタカナ。韓国語と同じ位置で空白を入れる） */
+  examplePronunciation?: string
   exampleJapanese?: string
 }
 
 export interface GrammarExample {
   korean: string
+  /** 読み（カタカナ。韓国語と同じ位置で空白を入れる） */
+  pronunciation: string
   japanese: string
   /** 正解として認める別表記 */
   alternatives?: string[]
@@ -88,11 +94,15 @@ export interface ConversationLine {
   /** キャラクターID、または主人公なら "player" */
   speaker: string
   korean: string
+  /** 読み（カタカナ。韓国語と同じ位置で空白を入れる） */
+  pronunciation: string
   japanese: string
 }
 
 export interface ConversationChoice {
   korean: string
+  /** 読み（カタカナ。韓国語と同じ位置で空白を入れる） */
+  pronunciation: string
   japanese: string
   correct: boolean
 }
@@ -104,7 +114,7 @@ export interface FreeAnswer {
   answers: string[]
 }
 
-/** 会話（GAME_SPEC 11-3） */
+/** 会話（GAME_SPEC 11-3）。1つの会話は「台詞 → プレイヤーの返事」の1往復 */
 export interface Conversation extends ContentBase {
   chapter: number
   /** 施設ID */
@@ -114,6 +124,37 @@ export interface Conversation extends ContentBase {
   lines: ConversationLine[]
   choices: ConversationChoice[]
   freeAnswer?: FreeAnswer
+}
+
+/** イベントの段階 */
+export type EventStep =
+  /** 日本語の案内文を表示する（韓国語は入れない） */
+  | { type: 'message'; textJa: string }
+  /** 単語カード・文法カードで覚える */
+  | { type: 'learn'; vocabulary: string[]; grammar: string[] }
+  /** 会話を1つ行う */
+  | { type: 'conversation'; id: string }
+  /** 図鑑を開いて見返す */
+  | { type: 'dictionary'; textJa: string }
+  /** 1日の終わりの画面を出す */
+  | { type: 'dayEnd'; textJa: string }
+
+export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'dictionary', 'dayEnd'] as const
+
+/** イベント：どの施設で、何を、どの順に行うか */
+export interface GameEvent {
+  id: string
+  chapter: number
+  /** 施設ID */
+  location: string
+  /** 先に終えておくイベントのID */
+  requires: string[]
+  /** 目標として表示する日本語の文（韓国語は入れない） */
+  objectiveJa: string
+  /** 施設の画面に出すボタンの文字（韓国語は入れない） */
+  actionJa: string
+  steps: EventStep[]
+  notes?: string
 }
 
 /** 施設（ゲームデータ。韓国語を含まないので reviewed は持たない） */
@@ -126,6 +167,24 @@ export interface Location {
 export interface Character {
   id: string
   roleJa: string
+}
+
+/** ゲームの調整用の数値（src/data/game/balance.json） */
+export interface Balance {
+  xp: {
+    learnWord: number
+    conversationChoice: number
+    conversationWrite: number
+    eventComplete: number
+  }
+  /** フリガナを「おすすめ」設定でいつも表示する最後の章 */
+  furiganaAlwaysUntilChapter: number
+  /** 最初から行ける施設 */
+  initialLocations: string[]
+  /** 「はじめから」で最初にいる施設 */
+  startLocation: string
+  /** 書く問題で、何回間違えたら「答えを見る」を出すか */
+  writeAttemptsBeforeReveal: number
 }
 
 /** 検証で見つかった問題 */

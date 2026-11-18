@@ -3,15 +3,19 @@
 // 問題のあるデータは除外し、問題の一覧（ValidationIssue）を返す。例外は投げない。
 
 import {
+  EVENT_STEP_TYPES,
   ID_PATTERNS,
   PARTS_OF_SPEECH,
   PLAYER_SPEAKER_ID,
   VOCAB_CATEGORIES,
+  type Balance,
   type Character,
   type Conversation,
   type ConversationChoice,
   type ConversationLine,
+  type EventStep,
   type FreeAnswer,
+  type GameEvent,
   type Grammar,
   type GrammarExample,
   type Location,
@@ -30,9 +34,17 @@ interface FieldError {
 export interface ReferenceContext {
   locationIds: ReadonlySet<string>
   characterIds: ReadonlySet<string>
+  vocabularyIds: ReadonlySet<string>
+  grammarIds: ReadonlySet<string>
+  /** 会話ID → 施設ID */
+  conversationLocations: ReadonlyMap<string, string>
 }
 
-export type ContentKind = 'vocabulary' | 'grammar' | 'conversations' | 'locations' | 'characters'
+export function emptyReferenceContext(): ReferenceContext {
+  return { locationIds: new Set(), characterIds: new Set(), vocabularyIds: new Set(), grammarIds: new Set(), conversationLocations: new Map() }
+}
+
+export type ContentKind = 'vocabulary' | 'grammar' | 'conversations' | 'events' | 'locations' | 'characters'
 
 const MAX_CHAPTER = 10
 
@@ -190,6 +202,63 @@ function objArray(o: Obj, key: string, base: string, errs: FieldError[], min: nu
   return result
 }
 
+// ---------- 読み（カタカナ）と日本語の文 ----------
+
+const READING_PATTERN = /^[ァ-ヺー]+( [ァ-ヺー]+)*$/
+const PUNCTUATION_ONLY = /^[\p{P}\p{S}]+$/u
+const HANGUL = /[ᄀ-ᇿ㄰-㆏ꥠ-꥿가-힯ힰ-퟿]/
+
+/** 韓国語を空白で区切った数（句読点だけの区切りは数えない） */
+export function koreanChunkCount(korean: string): number {
+  return korean
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t !== '' && !PUNCTUATION_ONLY.test(t)).length
+}
+
+/**
+ * 読みの項目を確かめる。カタカナと半角スペースだけで、韓国語と区切りの数が一致すること。
+ * korean が読めていない（undefined）ときは、区切りの数は確かめない。
+ */
+function reading(o: Obj, key: string, base: string, errs: FieldError[], korean: string | undefined): string | undefined {
+  const v = text(o, key, base, errs)
+  if (v === undefined) return undefined
+  const path = joinPath(base, key)
+  if (!READING_PATTERN.test(v)) {
+    errs.push({ path, message: '読みはカタカナと半角スペースだけで書いてください（句読点・ひらがな・全角スペース、先頭や末尾の空白、続けた空白は使えません）' })
+    return undefined
+  }
+  if (korean !== undefined) {
+    const expected = koreanChunkCount(korean)
+    const actual = v.split(' ').length
+    if (expected !== actual) {
+      errs.push({ path, message: `韓国語の区切り（${expected}個）と読みの区切り（${actual}個）の数が違います。韓国語と同じ位置で空白を入れてください` })
+      return undefined
+    }
+  }
+  return v
+}
+
+/** 日本語の文（案内文など）。韓国語を入れないルールなので、ハングルがあればエラー */
+function japaneseText(o: Obj, key: string, base: string, errs: FieldError[]): string | undefined {
+  const v = text(o, key, base, errs)
+  if (v !== undefined && HANGUL.test(v)) {
+    errs.push({ path: joinPath(base, key), message: '日本語の文にハングルは入れられません（韓国語が必要な場合は教材として依頼してください）' })
+    return undefined
+  }
+  return v
+}
+
+function idList(o: Obj, key: string, base: string, errs: FieldError[], known: ReadonlySet<string>, label: string, optional: boolean): string[] | undefined {
+  const list = textArray(o, key, base, errs, { optional, min: 0 })
+  if (list === undefined) return undefined
+  const path = joinPath(base, key)
+  for (const id of list) {
+    if (!known.has(id)) errs.push({ path, message: `存在しない${label}です：${id}` })
+  }
+  return list
+}
+
 function idField(o: Obj, pattern: RegExp, example: string, errs: FieldError[]): string | undefined {
   const v = text(o, 'id', '', errs)
   if (v === undefined) return undefined
@@ -212,6 +281,7 @@ const VOCAB_KEYS = [
   'category',
   'level',
   'example',
+  'examplePronunciation',
   'exampleJapanese',
   'reviewed',
   'notes',
@@ -222,18 +292,26 @@ function parseVocab(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Vocab |
   const id = idField(o, ID_PATTERNS.vocabulary, 'vocab_001', errs)
   const korean = text(o, 'korean', '', errs)
   const alternatives = textArray(o, 'alternatives', '', errs, { optional: true, min: 1 })
-  const pronunciation = text(o, 'pronunciation', '', errs)
+  const pronunciation = reading(o, 'pronunciation', '', errs, korean)
   const japanese = text(o, 'japanese', '', errs)
   const partOfSpeech = oneOf(o, 'partOfSpeech', '', errs, PARTS_OF_SPEECH)
   const category = oneOf(o, 'category', '', errs, VOCAB_CATEGORIES)
   const level = integer(o, 'level', '', errs, 1)
-  const example = optionalText(o, 'example', '', errs)
-  const exampleJapanese = optionalText(o, 'exampleJapanese', '', errs)
   const reviewed = bool(o, 'reviewed', '', errs)
   const notes = optionalText(o, 'notes', '', errs)
 
-  if ((o['example'] === undefined) !== (o['exampleJapanese'] === undefined)) {
-    errs.push({ path: 'example', message: 'example と exampleJapanese は両方書くか、両方省いてください' })
+  // 例文は「韓国語・読み・日本語訳」の3つをそろえて書くか、そろえて省く
+  const exampleKeys = ['example', 'examplePronunciation', 'exampleJapanese'] as const
+  const present = exampleKeys.filter((k) => o[k] !== undefined)
+  let example: string | undefined
+  let examplePronunciation: string | undefined
+  let exampleJapanese: string | undefined
+  if (present.length > 0 && present.length < exampleKeys.length) {
+    errs.push({ path: 'example', message: 'example・examplePronunciation・exampleJapanese は3つそろえて書くか、3つとも省いてください' })
+  } else if (present.length === exampleKeys.length) {
+    example = text(o, 'example', '', errs)
+    examplePronunciation = reading(o, 'examplePronunciation', '', errs, example)
+    exampleJapanese = text(o, 'exampleJapanese', '', errs)
   }
   if (korean !== undefined && alternatives?.includes(korean)) {
     errs.push({ path: 'alternatives', message: 'korean と同じ文字列は alternatives に入れないでください' })
@@ -254,14 +332,17 @@ function parseVocab(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Vocab |
   }
   const vocab: Vocab = { id, korean, pronunciation, japanese, partOfSpeech, category, level, reviewed }
   if (alternatives !== undefined) vocab.alternatives = alternatives
-  if (example !== undefined) vocab.example = example
-  if (exampleJapanese !== undefined) vocab.exampleJapanese = exampleJapanese
+  if (example !== undefined && examplePronunciation !== undefined && exampleJapanese !== undefined) {
+    vocab.example = example
+    vocab.examplePronunciation = examplePronunciation
+    vocab.exampleJapanese = exampleJapanese
+  }
   if (notes !== undefined) vocab.notes = notes
   return vocab
 }
 
 const GRAMMAR_KEYS = ['id', 'title', 'level', 'explanation', 'examples', 'reviewed', 'notes'] as const
-const GRAMMAR_EXAMPLE_KEYS = ['korean', 'japanese', 'alternatives'] as const
+const GRAMMAR_EXAMPLE_KEYS = ['korean', 'pronunciation', 'japanese', 'alternatives'] as const
 
 function parseGrammar(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Grammar | undefined {
   checkKnownKeys(o, GRAMMAR_KEYS, '', errs)
@@ -276,13 +357,14 @@ function parseGrammar(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Gramm
   for (const { value, path } of objArray(o, 'examples', '', errs, 1) ?? []) {
     checkKnownKeys(value, GRAMMAR_EXAMPLE_KEYS, path, errs)
     const korean = text(value, 'korean', path, errs)
+    const pronunciation = reading(value, 'pronunciation', path, errs, korean)
     const japanese = text(value, 'japanese', path, errs)
     const alternatives = textArray(value, 'alternatives', path, errs, { optional: true, min: 1 })
     if (korean !== undefined && alternatives?.includes(korean)) {
       errs.push({ path: joinPath(path, 'alternatives'), message: 'korean と同じ文字列は alternatives に入れないでください' })
     }
-    if (korean === undefined || japanese === undefined) continue
-    const ex: GrammarExample = { korean, japanese }
+    if (korean === undefined || pronunciation === undefined || japanese === undefined) continue
+    const ex: GrammarExample = { korean, pronunciation, japanese }
     if (alternatives !== undefined) ex.alternatives = alternatives
     examples.push(ex)
   }
@@ -296,8 +378,8 @@ function parseGrammar(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Gramm
 }
 
 const CONVERSATION_KEYS = ['id', 'chapter', 'location', 'character', 'lines', 'choices', 'freeAnswer', 'reviewed', 'notes'] as const
-const LINE_KEYS = ['speaker', 'korean', 'japanese'] as const
-const CHOICE_KEYS = ['korean', 'japanese', 'correct'] as const
+const LINE_KEYS = ['speaker', 'korean', 'pronunciation', 'japanese'] as const
+const CHOICE_KEYS = ['korean', 'pronunciation', 'japanese', 'correct'] as const
 const FREE_ANSWER_KEYS = ['prompt', 'answers'] as const
 
 function parseConversation(o: Obj, ctx: ReferenceContext, errs: FieldError[]): Conversation | undefined {
@@ -315,8 +397,11 @@ function parseConversation(o: Obj, ctx: ReferenceContext, errs: FieldError[]): C
     checkKnownKeys(value, LINE_KEYS, path, errs)
     const speaker = reference(value, 'speaker', path, errs, speakerIds, '話者ID')
     const korean = text(value, 'korean', path, errs)
+    const pronunciation = reading(value, 'pronunciation', path, errs, korean)
     const japanese = text(value, 'japanese', path, errs)
-    if (speaker !== undefined && korean !== undefined && japanese !== undefined) lines.push({ speaker, korean, japanese })
+    if (speaker !== undefined && korean !== undefined && pronunciation !== undefined && japanese !== undefined) {
+      lines.push({ speaker, korean, pronunciation, japanese })
+    }
   }
 
   const choices: ConversationChoice[] = []
@@ -324,11 +409,15 @@ function parseConversation(o: Obj, ctx: ReferenceContext, errs: FieldError[]): C
   for (const { value, path } of choiceItems ?? []) {
     checkKnownKeys(value, CHOICE_KEYS, path, errs)
     const korean = text(value, 'korean', path, errs)
+    const pronunciation = reading(value, 'pronunciation', path, errs, korean)
     const japanese = text(value, 'japanese', path, errs)
     const correct = bool(value, 'correct', path, errs)
-    if (korean !== undefined && japanese !== undefined && correct !== undefined) choices.push({ korean, japanese, correct })
+    if (korean !== undefined && pronunciation !== undefined && japanese !== undefined && correct !== undefined) {
+      choices.push({ korean, pronunciation, japanese, correct })
+    }
   }
-  if (choiceItems !== undefined && choiceItems.length > 0 && choices.length === choiceItems.length && !choices.some((c) => c.correct)) {
+  const allChoicesBoolean = choiceItems?.every(({ value }) => typeof value['correct'] === 'boolean') ?? false
+  if (choiceItems !== undefined && choiceItems.length > 0 && allChoicesBoolean && !choiceItems.some(({ value }) => value['correct'] === true)) {
     errs.push({ path: 'choices', message: '"correct": true の選択肢を1つ以上入れてください' })
   }
   if (new Set(choices.map((c) => c.korean)).size !== choices.length) {
@@ -374,6 +463,85 @@ function parseCharacter(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Cha
   return { id, roleJa }
 }
 
+const EVENT_KEYS = ['id', 'chapter', 'location', 'requires', 'objectiveJa', 'actionJa', 'steps', 'notes'] as const
+const STEP_KEYS: Record<EventStep['type'], readonly string[]> = {
+  message: ['type', 'textJa'],
+  learn: ['type', 'vocabulary', 'grammar'],
+  conversation: ['type', 'id'],
+  dictionary: ['type', 'textJa'],
+  dayEnd: ['type', 'textJa'],
+}
+
+function parseStep(value: Obj, path: string, eventLocation: string | undefined, ctx: ReferenceContext, errs: FieldError[]): EventStep | undefined {
+  const type = oneOf(value, 'type', path, errs, EVENT_STEP_TYPES)
+  if (type === undefined) return undefined
+  checkKnownKeys(value, STEP_KEYS[type], path, errs)
+  switch (type) {
+    case 'message':
+    case 'dictionary':
+    case 'dayEnd': {
+      const textJa = japaneseText(value, 'textJa', path, errs)
+      return textJa === undefined ? undefined : { type, textJa }
+    }
+    case 'learn': {
+      const vocabulary = idList(value, 'vocabulary', path, errs, ctx.vocabularyIds, '単語ID', true) ?? []
+      const grammar = idList(value, 'grammar', path, errs, ctx.grammarIds, '文法ID', true) ?? []
+      if (vocabulary.length + grammar.length === 0) {
+        errs.push({ path, message: 'vocabulary か grammar に、1つ以上のIDを入れてください' })
+        return undefined
+      }
+      return { type, vocabulary, grammar }
+    }
+    case 'conversation': {
+      const id = text(value, 'id', path, errs)
+      if (id === undefined) return undefined
+      const convLocation = ctx.conversationLocations.get(id)
+      if (convLocation === undefined) {
+        errs.push({ path: joinPath(path, 'id'), message: `存在しない会話IDです：${id}` })
+        return undefined
+      }
+      if (eventLocation !== undefined && convLocation !== eventLocation) {
+        errs.push({ path: joinPath(path, 'id'), message: `会話 ${id} の施設（${convLocation}）が、イベントの施設（${eventLocation}）と違います` })
+        return undefined
+      }
+      return { type, id }
+    }
+  }
+}
+
+function parseEvent(o: Obj, ctx: ReferenceContext, errs: FieldError[]): GameEvent | undefined {
+  checkKnownKeys(o, EVENT_KEYS, '', errs)
+  const id = idField(o, ID_PATTERNS.event, 'event_001', errs)
+  const chapter = integer(o, 'chapter', '', errs, 1, MAX_CHAPTER)
+  const location = reference(o, 'location', '', errs, ctx.locationIds, '施設ID')
+  // requires は全イベントを読んだ後で確かめる（loadContent）。ここでは形だけ
+  const requires = textArray(o, 'requires', '', errs, { optional: false, min: 0 })
+  const objectiveJa = japaneseText(o, 'objectiveJa', '', errs)
+  const actionJa = japaneseText(o, 'actionJa', '', errs)
+  const notes = optionalText(o, 'notes', '', errs)
+
+  const steps: EventStep[] = []
+  for (const { value, path } of objArray(o, 'steps', '', errs, 1) ?? []) {
+    const step = parseStep(value, path, location, ctx, errs)
+    if (step !== undefined) steps.push(step)
+  }
+  const conversationIds = steps.flatMap((s) => (s.type === 'conversation' ? [s.id] : []))
+  if (new Set(conversationIds).size !== conversationIds.length) {
+    errs.push({ path: 'steps', message: '同じ会話を1つのイベントの中で2回使っています' })
+  }
+
+  if (errs.length > 0 || id === undefined || chapter === undefined || location === undefined || requires === undefined || objectiveJa === undefined || actionJa === undefined) {
+    return undefined
+  }
+  if (requires.includes(id)) {
+    errs.push({ path: 'requires', message: '自分自身を前提にはできません' })
+    return undefined
+  }
+  const event: GameEvent = { id, chapter, location, requires, objectiveJa, actionJa, steps }
+  if (notes !== undefined) event.notes = notes
+  return event
+}
+
 // ---------- ファイル単位の検証 ----------
 
 type ItemParser<T> = (o: Obj, ctx: ReferenceContext, errs: FieldError[]) => T | undefined
@@ -407,6 +575,7 @@ const PARSERS = {
   vocabulary: parseVocab,
   grammar: parseGrammar,
   conversations: parseConversation,
+  events: parseEvent,
   locations: parseLocation,
   characters: parseCharacter,
 } as const
@@ -415,6 +584,7 @@ interface KindItem {
   vocabulary: Vocab
   grammar: Grammar
   conversations: Conversation
+  events: GameEvent
   locations: Location
   characters: Character
 }
@@ -435,17 +605,154 @@ export interface ContentInput {
   vocabulary: FileMap
   grammar: FileMap
   conversations: FileMap
+  events: FileMap
   locations: FileMap
   characters: FileMap
+  /** ゲームの調整用の数値。ファイルは1つだけ置く */
+  balance: FileMap
 }
 
 export interface LoadedContent {
   vocabulary: Vocab[]
   grammar: Grammar[]
   conversations: Conversation[]
+  /** ファイル内の順番どおり。同じ施設で行えるイベントが複数あれば、先のものから行う */
+  events: GameEvent[]
   locations: Location[]
   characters: Character[]
+  balance: Balance
   issues: ValidationIssue[]
+}
+
+/** balance.json が読めなかったときに使う値（ゲームを止めないため） */
+export const DEFAULT_BALANCE: Balance = {
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20 },
+  furiganaAlwaysUntilChapter: 3,
+  initialLocations: ['home', 'cafe'],
+  startLocation: 'home',
+  writeAttemptsBeforeReveal: 2,
+}
+
+const BALANCE_KEYS = ['xp', 'furiganaAlwaysUntilChapter', 'initialLocations', 'startLocation', 'writeAttemptsBeforeReveal'] as const
+const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete'] as const
+
+function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Balance | undefined {
+  if (!isObj(raw)) {
+    errs.push({ path: '', message: 'オブジェクト（{ }）にしてください' })
+    return undefined
+  }
+  checkKnownKeys(raw, BALANCE_KEYS, '', errs)
+  const rawXp = raw['xp']
+  const xp: Partial<Balance['xp']> = {}
+  if (!isObj(rawXp)) {
+    errs.push({ path: 'xp', message: 'オブジェクト（{ }）にしてください' })
+  } else {
+    checkKnownKeys(rawXp, XP_KEYS, 'xp', errs)
+    for (const key of XP_KEYS) xp[key] = integer(rawXp, key, 'xp', errs, 0)
+  }
+  const furiganaAlwaysUntilChapter = integer(raw, 'furiganaAlwaysUntilChapter', '', errs, 0, MAX_CHAPTER)
+  const initialLocations = idList(raw, 'initialLocations', '', errs, ctx.locationIds, '施設ID', false)
+  const startLocation = reference(raw, 'startLocation', '', errs, ctx.locationIds, '施設ID')
+  const writeAttemptsBeforeReveal = integer(raw, 'writeAttemptsBeforeReveal', '', errs, 1)
+  if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
+    errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
+  }
+  const { learnWord, conversationChoice, conversationWrite, eventComplete } = xp
+  if (
+    errs.length > 0 ||
+    learnWord === undefined ||
+    conversationChoice === undefined ||
+    conversationWrite === undefined ||
+    eventComplete === undefined ||
+    furiganaAlwaysUntilChapter === undefined ||
+    initialLocations === undefined ||
+    startLocation === undefined ||
+    writeAttemptsBeforeReveal === undefined
+  ) {
+    return undefined
+  }
+  return {
+    xp: { learnWord, conversationChoice, conversationWrite, eventComplete },
+    furiganaAlwaysUntilChapter,
+    initialLocations,
+    startLocation,
+    writeAttemptsBeforeReveal,
+  }
+}
+
+function loadBalance(files: FileMap, ctx: ReferenceContext, issues: ValidationIssue[]): Balance {
+  const names = Object.keys(files).sort()
+  const [file] = names
+  if (file === undefined || names.length !== 1) {
+    issues.push({ file: 'game/', index: null, id: null, path: '', message: `balance.json はちょうど1つ置いてください（${names.length}個あります）。既定の値を使います` })
+    return DEFAULT_BALANCE
+  }
+  const errs: FieldError[] = []
+  const balance = parseBalance(files[file], ctx, errs)
+  for (const e of errs) issues.push({ file, index: null, id: null, path: e.path, message: e.message })
+  if (balance === undefined) {
+    issues.push({ file, index: null, id: null, path: '', message: '読めなかったため、既定の値を使います' })
+    return DEFAULT_BALANCE
+  }
+  return balance
+}
+
+/**
+ * イベントの前提（requires）を確かめる。存在しない・読めなかったイベントを前提にしているもの、
+ * 前提が循環しているものは除外する。除外によって前提が欠けたイベントも順に除外する。
+ */
+function resolveEventRequirements(events: GameEvent[], issues: ValidationIssue[], fileOf: ReadonlyMap<string, string>): GameEvent[] {
+  let remaining = events
+  for (;;) {
+    const ids = new Set(remaining.map((e) => e.id))
+    const next = remaining.filter((e) => {
+      const missing = e.requires.filter((r) => !ids.has(r))
+      if (missing.length === 0) return true
+      issues.push({ file: fileOf.get(e.id) ?? '', index: null, id: e.id, path: 'requires', message: `前提のイベントがありません（または読み込めません）：${missing.join(', ')}` })
+      return false
+    })
+    if (next.length === remaining.length) break
+    remaining = next
+  }
+
+  // 循環の検出：前提をたどって自分に戻るイベントを除外する
+  const byId = new Map(remaining.map((e) => [e.id, e]))
+  const inCycle = new Set<string>()
+  for (const start of remaining) {
+    const stack = [...start.requires]
+    const seen = new Set<string>()
+    while (stack.length > 0) {
+      const id = stack.pop()
+      if (id === undefined || seen.has(id)) continue
+      if (id === start.id) {
+        inCycle.add(start.id)
+        break
+      }
+      seen.add(id)
+      stack.push(...(byId.get(id)?.requires ?? []))
+    }
+  }
+  for (const id of inCycle) {
+    issues.push({ file: fileOf.get(id) ?? '', index: null, id, path: 'requires', message: '前提のイベントが循環しています' })
+  }
+  remaining = remaining.filter((e) => !inCycle.has(e.id))
+  // 循環を除いたことで前提が欠けたものも除く
+  return inCycle.size > 0 ? resolveEventRequirements(remaining, issues, fileOf) : remaining
+}
+
+/** 同じ会話が複数のイベントで使われていないか（後から出てきたイベントを除外する） */
+function checkConversationReuse(events: GameEvent[], issues: ValidationIssue[], fileOf: ReadonlyMap<string, string>): GameEvent[] {
+  const usedBy = new Map<string, string>()
+  return events.filter((e) => {
+    const conv = e.steps.flatMap((s) => (s.type === 'conversation' ? [s.id] : []))
+    const clash = conv.find((c) => usedBy.has(c))
+    if (clash !== undefined) {
+      issues.push({ file: fileOf.get(e.id) ?? '', index: null, id: e.id, path: 'steps', message: `会話 ${clash} は、すでにイベント ${usedBy.get(clash)} で使われています` })
+      return false
+    }
+    for (const c of conv) usedBy.set(c, e.id)
+    return true
+  })
 }
 
 function validateKind<K extends ContentKind>(
@@ -472,25 +779,37 @@ function validateKind<K extends ContentKind>(
   return items
 }
 
-/** 施設・キャラクター・教材をまとめて検証する。問題のあるデータは除外して返す */
+/** 施設・キャラクター・教材・イベント・調整値をまとめて検証する。問題のあるデータは除外して返す */
 export function loadContent(input: ContentInput): LoadedContent {
   const issues: ValidationIssue[] = []
-  const emptyCtx: ReferenceContext = { locationIds: new Set(), characterIds: new Set() }
+  const emptyCtx = emptyReferenceContext()
 
   const locations = validateKind('locations', input.locations, emptyCtx, new Map(), issues)
   const characters = validateKind('characters', input.characters, emptyCtx, new Map(), issues)
-  const ctx: ReferenceContext = {
+  const baseCtx: ReferenceContext = {
+    ...emptyCtx,
     locationIds: new Set(locations.map((l) => l.id)),
     characterIds: new Set(characters.map((c) => c.id)),
   }
 
   // 教材のIDは種類をまたいで一意にする（学習記録が ID だけで参照するため）
   const contentIds = new Map<string, string>()
-  const vocabulary = validateKind('vocabulary', input.vocabulary, ctx, contentIds, issues)
-  const grammar = validateKind('grammar', input.grammar, ctx, contentIds, issues)
-  const conversations = validateKind('conversations', input.conversations, ctx, contentIds, issues)
+  const vocabulary = validateKind('vocabulary', input.vocabulary, baseCtx, contentIds, issues)
+  const grammar = validateKind('grammar', input.grammar, baseCtx, contentIds, issues)
+  const conversations = validateKind('conversations', input.conversations, baseCtx, contentIds, issues)
 
-  return { vocabulary, grammar, conversations, locations, characters, issues }
+  const ctx: ReferenceContext = {
+    ...baseCtx,
+    vocabularyIds: new Set(vocabulary.map((v) => v.id)),
+    grammarIds: new Set(grammar.map((g) => g.id)),
+    conversationLocations: new Map(conversations.map((c) => [c.id, c.location])),
+  }
+  const eventFiles = new Map<string, string>()
+  const parsedEvents = validateKind('events', input.events, ctx, eventFiles, issues)
+  const events = checkConversationReuse(resolveEventRequirements(parsedEvents, issues, eventFiles), issues, eventFiles)
+  const balance = loadBalance(input.balance, ctx, issues)
+
+  return { vocabulary, grammar, conversations, events, locations, characters, balance, issues }
 }
 
 /** 問題を1行の文章にする（コンソール表示用） */

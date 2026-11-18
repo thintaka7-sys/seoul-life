@@ -8,8 +8,10 @@ export const content: LoadedContent = loadContent({
   vocabulary: import.meta.glob<unknown>('./vocabulary/*.json', { eager: true, import: 'default' }),
   grammar: import.meta.glob<unknown>('./grammar/*.json', { eager: true, import: 'default' }),
   conversations: import.meta.glob<unknown>('./scenarios/*.json', { eager: true, import: 'default' }),
+  events: import.meta.glob<unknown>('./events/*.json', { eager: true, import: 'default' }),
   locations: import.meta.glob<unknown>('./locations/*.json', { eager: true, import: 'default' }),
   characters: import.meta.glob<unknown>('./characters/*.json', { eager: true, import: 'default' }),
+  balance: import.meta.glob<unknown>('./game/balance.json', { eager: true, import: 'default' }),
 })
 
 if (content.issues.length > 0) {
