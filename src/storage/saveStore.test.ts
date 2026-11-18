@@ -136,6 +136,14 @@ describe('退避（backupRawSave）', () => {
     expect(storage.getItem('other-app:key')).toBe('keep')
   })
 
+  it('同じ内容がすでに退避されていれば、新しく書かずにそのキーを返す', () => {
+    const storage = new MemoryStorage()
+    const first = backupRawSave(storage, 'broken', 'corrupt', new Date(NOW))
+    const second = backupRawSave(storage, 'broken', 'corrupt', new Date('2026-11-19T00:00:00.000Z'))
+    expect(second).toBe(first)
+    expect(listBackupKeys(storage)).toHaveLength(1)
+  })
+
   it('書き込めない場合は null を返し、例外を投げない', () => {
     const storage = new MemoryStorage()
     storage.failOnSet = quotaError()

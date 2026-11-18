@@ -102,6 +102,14 @@ export function listBackupKeys(storage: KeyValueStorage): string[] {
  * 元のキー（SAVE_KEY）には触らない。退避先のキーを返し、失敗したら null。
  */
 export function backupRawSave(storage: KeyValueStorage, raw: string, label: 'corrupt' | 'pre-migration', now: Date): string | null {
+  // 壊れたデータのまま再読み込みを繰り返しても、同じ内容を何度も退避して古い退避データを押し出さないようにする
+  for (const existing of listBackupKeys(storage)) {
+    try {
+      if (storage.getItem(existing) === raw) return existing
+    } catch {
+      break
+    }
+  }
   const key = `${BACKUP_KEY_PREFIX}${now.toISOString()}:${label}`
   try {
     storage.setItem(key, raw)
