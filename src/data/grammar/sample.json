@@ -1,0 +1,13 @@
+[
+  {
+    "id": "grammar_901",
+    "title": "이에요 / 예요",
+    "level": 1,
+    "explanation": "名詞の後につけて「～です」と表す表現です。",
+    "examples": [
+      { "korean": "저는 학생이에요.", "japanese": "私は学生です。" }
+    ],
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（GAME_SPEC 11-2の例）。本番の教材が届いたら削除する"
+  }
+]

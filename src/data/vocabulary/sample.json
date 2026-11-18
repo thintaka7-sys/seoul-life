@@ -1,0 +1,26 @@
+[
+  {
+    "id": "vocab_901",
+    "korean": "안녕하세요",
+    "pronunciation": "アンニョンハセヨ",
+    "japanese": "こんにちは",
+    "partOfSpeech": "greeting",
+    "category": "greeting",
+    "level": 1,
+    "example": "안녕하세요. 저는 유키예요.",
+    "exampleJapanese": "こんにちは。私はユキです。",
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code作成）。本番の教材が届いたら削除する"
+  },
+  {
+    "id": "vocab_902",
+    "korean": "커피",
+    "pronunciation": "コピ",
+    "japanese": "コーヒー",
+    "partOfSpeech": "noun",
+    "category": "drink",
+    "level": 1,
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code作成）。本番の教材が届いたら削除する"
+  }
+]

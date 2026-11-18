@@ -1,0 +1,8 @@
+[
+  { "id": "home", "nameJa": "自宅" },
+  { "id": "cafe", "nameJa": "カフェ" },
+  { "id": "convenience_store", "nameJa": "コンビニ" },
+  { "id": "bookstore", "nameJa": "本屋" },
+  { "id": "park", "nameJa": "公園" },
+  { "id": "station", "nameJa": "駅" }
+]
