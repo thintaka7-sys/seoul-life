@@ -8,6 +8,10 @@ import { LearnStep } from './LearnStep'
 function DayEnd({ textJa }: { textJa: string }) {
   const { state, dispatch } = useGame()
   const words = Object.keys(state.save?.learning.words ?? {}).length
+  // イベントを終えたときの経験値は「閉じる」の後で付くため、初めて終えるときは先に足して見せる
+  const run = state.run
+  const firstFinish = run !== null && !run.replay && state.save?.progress.completedEvents.includes(run.eventId) === false
+  const xp = (state.save?.stats.xp ?? 0) + (firstFinish ? content.balance.xp.eventComplete : 0)
   return (
     <div className="day-end">
       <p className="day-end__title">{textJa}</p>
@@ -20,7 +24,7 @@ function DayEnd({ textJa }: { textJa: string }) {
         </div>
         <div>
           <dt>経験値</dt>
-          <dd>{state.save?.stats.xp ?? 0}</dd>
+          <dd>{xp}</dd>
         </div>
       </dl>
       <Button variant="primary" onClick={() => dispatch({ type: 'stepDone', now: nowIso() })}>

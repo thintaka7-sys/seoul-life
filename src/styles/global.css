@@ -449,11 +449,12 @@ rt {
   color: var(--color-muted);
 }
 
+/* 下に出すとキーボードや画面下のボタンに重なるため、上に出す */
 .toast-area {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  top: max(12px, env(safe-area-inset-top));
   display: flex;
   justify-content: center;
   pointer-events: none;
