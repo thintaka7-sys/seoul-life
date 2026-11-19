@@ -1627,3 +1627,53 @@ rt {
 .preview--typing .link-button {
   white-space: nowrap;
 }
+
+/* ---------- コラム（韓国生活の小ネタ） ---------- */
+
+.column-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.column-card__label {
+  align-self: flex-start;
+  margin: 0;
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: #2f7d6d;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.column-card__title {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.column-card__text {
+  margin: 0;
+}
+
+.column-card__korean {
+  padding: 10px 12px;
+  border-left: 4px solid #2f7d6d;
+  border-radius: 8px;
+  background: #eef7f4;
+}
+
+.column-card__korean .ko-text {
+  font-size: 1.2rem;
+}
+
+.column-card__ja {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.column-card > .button {
+  margin-top: 4px;
+}
