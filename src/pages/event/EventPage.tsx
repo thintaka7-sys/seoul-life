@@ -1,39 +1,11 @@
 import { useGame, nowIso } from '../../app/GameContext'
 import { Button } from '../../components/Button'
-import { content, findColumn, findConversation, findGameEvent, findLocation } from '../../data'
+import { findColumn, findConversation, findGameEvent, findLocation } from '../../data'
 import { DictionaryList } from '../DictionaryPage'
 import { ColumnStep } from './ColumnStep'
 import { ConversationStep } from './ConversationStep'
+import { DayEndStep } from './DayEndStep'
 import { LearnStep } from './LearnStep'
-
-function DayEnd({ textJa }: { textJa: string }) {
-  const { state, dispatch } = useGame()
-  const words = Object.keys(state.save?.learning.words ?? {}).length
-  // イベントを終えたときの経験値は「閉じる」の後で付くため、初めて終えるときは先に足して見せる
-  const run = state.run
-  const firstFinish = run !== null && !run.replay && state.save?.progress.completedEvents.includes(run.eventId) === false
-  const xp = (state.save?.stats.xp ?? 0) + (firstFinish ? content.balance.xp.eventComplete : 0)
-  return (
-    <div className="day-end">
-      <p className="day-end__title">{textJa}</p>
-      <dl className="stats">
-        <div>
-          <dt>覚えた単語</dt>
-          <dd>
-            {words} / {content.vocabulary.length} 語
-          </dd>
-        </div>
-        <div>
-          <dt>経験値</dt>
-          <dd>{xp}</dd>
-        </div>
-      </dl>
-      <Button variant="primary" onClick={() => dispatch({ type: 'stepDone', now: nowIso() })}>
-        閉じる
-      </Button>
-    </div>
-  )
-}
 
 /** イベントの段階を1つずつ表示する画面 */
 export function EventPage() {
@@ -96,7 +68,7 @@ export function EventPage() {
       )
       break
     case 'dayEnd':
-      body = <DayEnd textJa={step.textJa} />
+      body = <DayEndStep key={stepKey} textJa={step.textJa} eventId={event.id} />
       break
   }
 
@@ -120,7 +92,11 @@ export function EventPage() {
         </div>
       </header>
       <progress className="event-progress" max={event.steps.length} value={run.step} aria-label="イベントの進み具合" />
-      <div className="screen__body">{step.type === 'conversation' ? body : <div className="panel">{body}</div>}</div>
+      <div className="screen__body">
+        <div key={stepKey} className="step-enter">
+          {step.type === 'conversation' ? body : <div className="panel">{body}</div>}
+        </div>
+      </div>
     </main>
   )
 }

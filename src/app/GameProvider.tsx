@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useRef, type ReactNode } from 'react'
+import { setSfxEnabled } from '../audio/sfx'
 import { content } from '../data'
 import type { SaveData } from '../storage/saveData'
 import { saveGame } from '../storage/saveStore'
@@ -32,6 +33,11 @@ export function GameProvider({ boot, children }: { boot: BootResult; children: R
     if (result.ok) dispatch({ type: 'saveSucceeded' })
     else dispatch({ type: 'saveFailed', message: result.detail })
   }, [state.save, boot.storage])
+
+  // 効果音のオン・オフを反映する
+  useEffect(() => {
+    setSfxEnabled(state.settings.soundEffects)
+  }, [state.settings.soundEffects])
 
   // 設定が変わったら保存する
   useEffect(() => {

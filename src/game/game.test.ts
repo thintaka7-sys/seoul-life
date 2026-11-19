@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Balance, GameEvent } from '../data/types'
 import { createNewSave, type SaveData } from '../storage/saveData'
-import { allEventsCompleted, completedEventsAt, nextEvent, nextEventAt } from './events/events'
+import { allEventsCompleted, completedEventsAt, conversationsOf, eventsOfDay, nextEvent, nextEventAt, vocabularyOf } from './events/events'
 import { advanceEvent, clearConversationTurn, learnItems, startEvent } from './progression/progression'
 
 const T0 = '2026-11-18T10:00:00.000Z'
@@ -121,5 +121,28 @@ describe('進行と経験値', () => {
   it('「答えを見る」で進んだ会話には経験値も記録も付けない', () => {
     const save = createNewSave(T0)
     expect(clearConversationTurn(save, 'cafe_001', 0, 'revealed', balance, T1)).toEqual({ save, reward: { xp: 0, newWords: 0 } })
+  })
+})
+
+describe('1日のまとめ', () => {
+  const day = (id: string, steps: GameEvent['steps']): GameEvent => ({ ...ev(id, 'home', []), steps })
+  const list = [
+    day('event_001', [{ type: 'learn', vocabulary: ['vocab_001', 'vocab_002'], grammar: [] }, { type: 'conversation', id: 'home_001' }]),
+    day('event_002', [{ type: 'learn', vocabulary: ['vocab_002', 'vocab_003'], grammar: ['grammar_001'] }]),
+    day('event_003', [{ type: 'dayEnd', textJa: '1日目おわり' }]),
+    day('event_004', [{ type: 'learn', vocabulary: ['vocab_004'], grammar: [] }, { type: 'conversation', id: 'cafe_005' }]),
+    day('event_005', [{ type: 'dayEnd', textJa: '2日目おわり' }]),
+  ]
+
+  it('その日のイベントは、前の1日の終わりの次から', () => {
+    expect(eventsOfDay(list, 'event_003').map((e) => e.id)).toEqual(['event_001', 'event_002', 'event_003'])
+    expect(eventsOfDay(list, 'event_005').map((e) => e.id)).toEqual(['event_004', 'event_005'])
+    expect(eventsOfDay(list, 'event_999')).toEqual([])
+  })
+
+  it('その日に覚えた単語（重複なし）と会話', () => {
+    const today = eventsOfDay(list, 'event_003')
+    expect(vocabularyOf(today)).toEqual(['vocab_001', 'vocab_002', 'vocab_003'])
+    expect(conversationsOf(today)).toEqual(['home_001'])
   })
 })

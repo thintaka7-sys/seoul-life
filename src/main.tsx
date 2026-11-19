@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import { boot } from './app/boot'
 import { GameProvider } from './app/GameProvider'
+import { initSfx } from './audio/sfx'
 import { initSpeech } from './audio/speech'
 import { getBrowserStorage } from './storage/browserStorage'
 import './styles/global.css'
@@ -14,6 +15,7 @@ if (rootElement === null) throw new Error('#root が見つかりません')
 const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 const bootResult = boot(getBrowserStorage(), new Date(), prefersReducedMotion)
 initSpeech()
+initSfx()
 
 createRoot(rootElement).render(
   <StrictMode>

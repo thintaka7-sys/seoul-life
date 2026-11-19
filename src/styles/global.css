@@ -1430,3 +1430,200 @@ rt {
 [data-effects='reduced'] .dialogue__next-mark {
   animation: none;
 }
+
+/* ---------- 画面の切り替え・経験値・1日の終わり ---------- */
+
+.screen {
+  animation: fade-in 260ms ease-out;
+}
+
+.step-enter {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: step-in var(--duration-move) ease-out;
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* 経験値の知らせ：画面の上の方（見出しより下）に浮かべ、上へ消える */
+.toast-area {
+  top: calc(max(12px, env(safe-area-inset-top)) + 72px);
+}
+
+.toast {
+  align-items: baseline;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #ffcf5c, #ff9b52);
+  color: #3a2200;
+  animation: toast-float 2200ms ease-out forwards;
+}
+
+.toast__plus {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.toast__words {
+  font-size: 0.9rem;
+}
+
+@keyframes toast-float {
+  0% {
+    opacity: 0;
+    translate: 0 16px;
+    scale: 0.8;
+  }
+  12% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1.06;
+  }
+  20% {
+    scale: 1;
+  }
+  80% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -24px;
+  }
+}
+
+@keyframes toast-fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  85% {
+    opacity: 1;
+  }
+}
+
+.hud__xp-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.day-end {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.day-end__label {
+  align-self: center;
+  margin: 0;
+  padding: 2px 14px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.stats__item {
+  animation: stat-in 420ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 280ms + 200ms);
+}
+
+.stats__item strong {
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes stat-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+.day-words {
+  text-align: left;
+}
+
+.day-words__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.day-words__word {
+  display: inline-flex;
+  flex-direction: column;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+}
+
+.day-words__word [lang='ko'] {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.day-words__ja {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.preview--typing {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--tap-min);
+}
+
+.preview--typing .link-button {
+  min-height: var(--tap-min);
+}
+
+/* 演出が控えめ：動きはフェードだけ、順番の待ち時間もなくす */
+[data-effects='reduced'] .step-enter {
+  animation-name: fade-in;
+}
+
+[data-effects='reduced'] .toast {
+  animation-name: toast-fade;
+}
+
+[data-effects='reduced'] .stats__item {
+  animation-name: fade-in;
+  animation-delay: 0ms;
+}
+
+/* 設定の見出しを枠の線の上ではなく枠の中に置く（背景の絵の上でも読めるように） */
+.field legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.field legend + * {
+  clear: both;
+}
+
+.preview--typing .link-button {
+  white-space: nowrap;
+}

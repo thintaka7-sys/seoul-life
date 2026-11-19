@@ -33,6 +33,11 @@ function SceneView({ scene }: { scene: Scene }) {
   }
 }
 
+/** 画面ごとの印（変わったら画面を作り直し、切り替えの演出を出す） */
+function sceneKey(scene: Scene): string {
+  return scene.name === 'location' || scene.name === 'event' ? `${scene.name}:${scene.locationId}` : scene.name
+}
+
 /** 画面の後ろに敷く絵（タイトルとマップは街のマップ、施設とイベントはその施設の背景。設定・図鑑は開く前の画面のもの） */
 function backdropFor(scene: Scene): ImageAsset | undefined {
   switch (scene.name) {
@@ -105,7 +110,7 @@ export function App() {
           {state.saveFailure !== null && <Notice tone="warn">保存に失敗しました：{state.saveFailure}</Notice>}
         </div>
       )}
-      <SceneView scene={state.scene} />
+      <SceneView key={sceneKey(state.scene)} scene={state.scene} />
       <RewardToast />
     </div>
   )

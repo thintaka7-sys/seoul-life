@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { useGame, nowIso } from '../../app/GameContext'
+import { playSfx } from '../../audio/sfx'
 import { useFuriganaDisplay } from '../../app/hooks'
 import { AnswerInput } from '../../components/AnswerInput'
 import { Button } from '../../components/Button'
@@ -150,8 +151,16 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
   const answer = s.answer
   const answeredTurn = s.turn
   useEffect(() => {
-    if (answer !== null) dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method, now: nowIso() })
+    if (answer === null) return
+    if (answer.method !== 'revealed') playSfx('correct')
+    dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method, now: nowIso() })
   }, [answer, answeredTurn, dispatch])
+
+  // 間違えたら音で知らせる（往復が変わると数は0に戻る）
+  const misses = s.wrongChoices.length + s.writeMisses
+  useEffect(() => {
+    if (misses > 0) playSfx('wrong')
+  }, [misses])
 
   const writing = phase === 'answer' && s.mode === 'write'
   const advance = () => (phase === 'end' ? dispatch({ type: 'conversationDone', now: nowIso() }) : send({ type: 'next' }))

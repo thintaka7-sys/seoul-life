@@ -38,3 +38,25 @@ export function completedEventsAt(events: readonly GameEvent[], progress: Progre
 export function allEventsCompleted(events: readonly GameEvent[], progress: Progress): boolean {
   return events.every((e) => progress.completedEvents.includes(e.id))
 }
+
+/**
+ * その日のイベント（1日の終わりの画面を出したイベントの次から、eventId のイベントまで。データの順）。
+ * 1日の終わりの画面で、その日に覚えた単語や会話をまとめるのに使う。
+ */
+export function eventsOfDay(events: readonly GameEvent[], eventId: string): GameEvent[] {
+  const end = events.findIndex((e) => e.id === eventId)
+  if (end < 0) return []
+  let start = end
+  while (start > 0 && !(events[start - 1]?.steps.some((s) => s.type === 'dayEnd') ?? false)) start--
+  return events.slice(start, end + 1)
+}
+
+/** イベントの中で覚える単語のID（重複なし、出てくる順） */
+export function vocabularyOf(events: readonly GameEvent[]): string[] {
+  return [...new Set(events.flatMap((e) => e.steps.flatMap((s) => (s.type === 'learn' ? s.vocabulary : []))))]
+}
+
+/** イベントの中で行う会話のID（出てくる順） */
+export function conversationsOf(events: readonly GameEvent[]): string[] {
+  return events.flatMap((e) => e.steps.flatMap((s) => (s.type === 'conversation' ? [s.id] : [])))
+}
