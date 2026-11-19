@@ -942,6 +942,30 @@ rt {
   padding: 10px 14px;
 }
 
+/* 図鑑の「覚えた単語：n / n 語」。背景の絵の上では読みやすいよう板に載せる（BUG-001）。
+   イベントの中（すでに板の上）では、板を重ねない */
+.dict-count {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.app--backdrop .dict-count {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--color-glass);
+  box-shadow: var(--shadow-panel);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.app--backdrop .panel .dict-count {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .app--backdrop .screen__footer {
   border-top: none;
 }

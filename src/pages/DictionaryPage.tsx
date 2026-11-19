@@ -41,7 +41,7 @@ export function DictionaryList() {
 
   return (
     <>
-      <p className="muted">
+      <p className="dict-count">
         覚えた単語：{learned.length} / {content.vocabulary.length} 語
       </p>
       <SpeechNotice />
