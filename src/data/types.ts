@@ -49,6 +49,9 @@ export const ID_PATTERNS = {
   conversation: /^[a-z][a-z0-9_]*_\d{3,}$/,
   column: /^column_\d{3,}$/,
   event: /^event_\d{3,}$/,
+  hangulLesson: /^hangul_\d{3,}$/,
+  hangulWord: /^hword_\d{3,}$/,
+  listening: /^listen_\d{3,}$/,
   key: /^[a-z][a-z0-9_]*$/,
 } as const
 
@@ -160,6 +163,113 @@ export interface Column extends ContentBase {
   /** 見出し（ハングルは入れない） */
   titleJa: string
   blocks: ColumnBlock[]
+}
+
+// ---------- ハングル学習（GAME_SPEC 4-1） ----------
+
+/**
+ * ハングルのレッスンの種類。
+ * - letters：文字（母音・子音・複合母音など）を覚える
+ * - batchim：パッチム（代表音ごとのグループ）を覚える
+ * - soundChange：音の変化（連音化など）を覚える
+ * - reading：習った文字で、教材の単語を読む
+ */
+export const HANGUL_LESSON_KINDS = ['letters', 'batchim', 'soundChange', 'reading'] as const
+export type HangulLessonKind = (typeof HANGUL_LESSON_KINDS)[number]
+
+/** 聞かせる音節（字母を単体で読み上げると字母の名前で読まれるため、音節で聞かせる） */
+export interface HangulSound {
+  /** 1音節（例：가） */
+  korean: string
+  /** 読み（カタカナ） */
+  pronunciation: string
+}
+
+/** 文字のレッスンで覚える1文字 */
+export interface HangulLetter {
+  /** 字母（例：ㄱ、ㅏ） */
+  jamo: string
+  /** 聞かせる音節（1つ目がいちばん大事な音）。子音は母音を付けて、母音は ㅇ を付けて書く */
+  sounds: HangulSound[]
+  /** 発音のこつ（日本語。説明のために字母・ハングルを入れてよい） */
+  tipJa: string
+  /** まぎらわしい字母（聞いて選ぶ問題で、選択肢に混ぜる） */
+  confusableWith?: string[]
+}
+
+/** パッチムの代表音ごとのグループ */
+export interface HangulFinal {
+  /** 代表音（ㄱ ㄴ ㄷ ㄹ ㅁ ㅂ ㅇ のどれか） */
+  sound: string
+  /** この音になるパッチムの字母（二重パッチムを含めてよい） */
+  letters: string[]
+  /** 聞かせる音節（パッチムのある1音節。例：악） */
+  sounds: HangulSound[]
+  tipJa: string
+}
+
+/** 音の変化の例 */
+export interface SoundChangeExample {
+  /** 書いた形（例：음악） */
+  korean: string
+  /** 発音どおりにハングルで書いた形（例：으막） */
+  spoken: string
+  /** 読み（カタカナ。korean と同じ位置で空白を入れる） */
+  pronunciation: string
+  japanese: string
+}
+
+/** 音の変化のルール */
+export interface SoundChangeRule {
+  /** ルールの名前（例：連音化） */
+  titleJa: string
+  explanationJa: string
+  examples: SoundChangeExample[]
+}
+
+/** 読む練習の単語（図鑑には入れない） */
+export interface HangulWord {
+  id: string
+  korean: string
+  pronunciation: string
+  japanese: string
+}
+
+/**
+ * ハングルのレッスン。種類（kind）に合わせて letters・finals・rules のどれかを書く。
+ * 読み込んだ後は、書かなかった配列は空（[]）にそろえる。
+ */
+export interface HangulLesson extends ContentBase {
+  /** 並び順（1から。おすすめの順番で、習った文字の範囲の判定にも使う） */
+  order: number
+  kind: HangulLessonKind
+  /** レッスンの名前（日本語。ハングルは入れない） */
+  titleJa: string
+  /** 導入の説明（日本語。段落ごと。説明のために字母・ハングルを入れてよい） */
+  introJa: string[]
+  letters: HangulLetter[]
+  finals: HangulFinal[]
+  rules: SoundChangeRule[]
+  words: HangulWord[]
+  /** 読む練習に使う、教材の単語のID（reading のレッスンだけ） */
+  vocabulary: string[]
+}
+
+// ---------- リスニング（GAME_SPEC 4-5） ----------
+
+/** 聞いて選ぶ文（正解の文と、まぎらわしい文） */
+export interface ListeningOption {
+  korean: string
+  pronunciation: string
+  japanese: string
+}
+
+/** 「聞いて正しい文を選ぶ」問題 */
+export interface ListeningSentence extends ContentBase, ListeningOption {
+  /** このイベントを終えたら出題する */
+  afterEvent: string
+  /** まぎらわしい文（選択肢に混ぜる） */
+  distractors: ListeningOption[]
 }
 
 /** イベントの段階 */

@@ -7,6 +7,7 @@ import {
   EVENT_STEP_TYPES,
   SCENE_BACKGROUNDS,
   EXPRESSIONS,
+  HANGUL_LESSON_KINDS,
   ID_PATTERNS,
   PARTS_OF_SPEECH,
   PLAYER_SPEAKER_ID,
@@ -26,11 +27,32 @@ import {
   type GameEvent,
   type Grammar,
   type GrammarExample,
+  type HangulFinal,
+  type HangulLesson,
+  type HangulLessonKind,
+  type HangulLetter,
+  type HangulSound,
+  type HangulWord,
+  type ListeningOption,
+  type ListeningSentence,
   type Location,
   type MapArea,
   type ValidationIssue,
+  type SoundChangeExample,
+  type SoundChangeRule,
   type Vocab,
 } from './types'
+import { normalizeAnswer } from '../learning/judge/judgeAnswer'
+import {
+  FINAL_CONSONANTS,
+  LETTER_JAMO,
+  REPRESENTATIVE_FINALS,
+  containsIsolatedJamo,
+  isVowel,
+  splitSyllable,
+  unlearnedJamo,
+  type Syllable,
+} from '../learning/hangul/jamo'
 
 type Obj = Record<string, unknown>
 
@@ -48,6 +70,8 @@ export interface ReferenceContext {
   /** 会話ID → 施設ID */
   conversationLocations: ReadonlyMap<string, string>
   columnIds: ReadonlySet<string>
+  /** 読み込めたイベントのID（前提の確認を終えたもの） */
+  eventIds: ReadonlySet<string>
 }
 
 export function emptyReferenceContext(): ReferenceContext {
@@ -58,10 +82,11 @@ export function emptyReferenceContext(): ReferenceContext {
     grammarIds: new Set(),
     conversationLocations: new Map(),
     columnIds: new Set(),
+    eventIds: new Set(),
   }
 }
 
-export type ContentKind = 'vocabulary' | 'grammar' | 'conversations' | 'columns' | 'events' | 'locations' | 'characters'
+export type ContentKind = 'vocabulary' | 'grammar' | 'conversations' | 'columns' | 'events' | 'locations' | 'characters' | 'hangulLessons' | 'listening'
 
 const MAX_CHAPTER = 10
 
@@ -735,6 +760,252 @@ function parseEvent(o: Obj, ctx: ReferenceContext, errs: FieldError[]): GameEven
   return event
 }
 
+// ---------- ハングルのレッスン ----------
+
+/** 韓国語の文（字母を単体で書いていないこと） */
+function koreanText(o: Obj, key: string, base: string, errs: FieldError[]): string | undefined {
+  const v = text(o, key, base, errs)
+  if (v !== undefined && containsIsolatedJamo(v)) {
+    errs.push({ path: joinPath(base, key), message: '字母（ㄱ・ㅏ など）を単体で書かず、音節（가 など）に組み立てて書いてください' })
+    return undefined
+  }
+  return v
+}
+
+/** 字母1つ（allowed のどれか） */
+function jamoField(o: Obj, key: string, base: string, errs: FieldError[], allowed: readonly string[], label: string): string | undefined {
+  const v = text(o, key, base, errs)
+  if (v === undefined) return undefined
+  if (!allowed.includes(v)) {
+    errs.push({ path: joinPath(base, key), message: `${label}を1つ書いてください（使える字母：${allowed.join(' ')}）` })
+    return undefined
+  }
+  return v
+}
+
+function jamoArray(o: Obj, key: string, base: string, errs: FieldError[], allowed: readonly string[], label: string, optional: boolean): string[] | undefined {
+  const list = textArray(o, key, base, errs, { optional, min: 1 })
+  if (list === undefined) return undefined
+  const wrong = list.filter((j) => !allowed.includes(j))
+  if (wrong.length > 0) {
+    errs.push({ path: joinPath(base, key), message: `${label}ではありません：${wrong.join(' ')}（使える字母：${allowed.join(' ')}）` })
+    return undefined
+  }
+  return list
+}
+
+const SOUND_KEYS = ['korean', 'pronunciation'] as const
+
+/**
+ * 聞かせる音節（sounds）。どれも1音節で、check が null を返すこと（null 以外はエラーの理由）。
+ * 読みはカタカナで、区切りなし。
+ */
+function parseSounds(o: Obj, base: string, errs: FieldError[], check: (s: Syllable) => string | null): HangulSound[] {
+  const sounds: HangulSound[] = []
+  for (const { value, path } of objArray(o, 'sounds', base, errs, 1) ?? []) {
+    checkKnownKeys(value, SOUND_KEYS, path, errs)
+    const korean = koreanText(value, 'korean', path, errs)
+    const pronunciation = reading(value, 'pronunciation', path, errs, korean)
+    if (korean === undefined || pronunciation === undefined) continue
+    const syllable = splitSyllable(korean)
+    if (syllable === null) {
+      errs.push({ path: joinPath(path, 'korean'), message: '1つの音節（例：가）にしてください' })
+      continue
+    }
+    const problem = check(syllable)
+    if (problem !== null) {
+      errs.push({ path: joinPath(path, 'korean'), message: problem })
+      continue
+    }
+    sounds.push({ korean, pronunciation })
+  }
+  if (new Set(sounds.map((s) => s.korean)).size !== sounds.length) {
+    errs.push({ path: joinPath(base, 'sounds'), message: '同じ音節が重複しています' })
+  }
+  return sounds
+}
+
+const LETTER_KEYS = ['jamo', 'sounds', 'tipJa', 'confusableWith'] as const
+
+function parseLetters(o: Obj, errs: FieldError[]): HangulLetter[] {
+  const letters: HangulLetter[] = []
+  for (const { value, path } of objArray(o, 'letters', '', errs, 1) ?? []) {
+    checkKnownKeys(value, LETTER_KEYS, path, errs)
+    const jamo = jamoField(value, 'jamo', path, errs, LETTER_JAMO, '子音か母音の字母')
+    const sounds = parseSounds(value, path, errs, (s) => {
+      if (s.final !== null) return 'パッチムのない音節にしてください'
+      if (jamo === undefined) return null
+      if (isVowel(jamo)) return s.medial === jamo ? null : `母音 ${jamo} の音節にしてください（文頭に ㅇ を付けた形など）`
+      return s.initial === jamo ? null : `子音 ${jamo} で始まる音節にしてください`
+    })
+    const tipJa = text(value, 'tipJa', path, errs)
+    const confusableWith = jamoArray(value, 'confusableWith', path, errs, LETTER_JAMO, '子音か母音の字母', true)
+    if (jamo !== undefined && confusableWith?.includes(jamo)) {
+      errs.push({ path: joinPath(path, 'confusableWith'), message: '自分自身（jamo と同じ字母）は入れないでください' })
+    }
+    if (jamo === undefined || tipJa === undefined) continue
+    const letter: HangulLetter = { jamo, sounds, tipJa }
+    if (confusableWith !== undefined) letter.confusableWith = confusableWith
+    letters.push(letter)
+  }
+  if (new Set(letters.map((l) => l.jamo)).size !== letters.length) {
+    errs.push({ path: 'letters', message: '同じ字母が重複しています' })
+  }
+  return letters
+}
+
+const FINAL_KEYS = ['sound', 'letters', 'sounds', 'tipJa'] as const
+
+function parseFinals(o: Obj, errs: FieldError[]): HangulFinal[] {
+  const finals: HangulFinal[] = []
+  for (const { value, path } of objArray(o, 'finals', '', errs, 1) ?? []) {
+    checkKnownKeys(value, FINAL_KEYS, path, errs)
+    const sound = jamoField(value, 'sound', path, errs, REPRESENTATIVE_FINALS, 'パッチムの代表音')
+    const letters = jamoArray(value, 'letters', path, errs, FINAL_CONSONANTS, 'パッチムになる字母', false)
+    const sounds = parseSounds(value, path, errs, (s) => {
+      if (s.final === null) return 'パッチムのある音節にしてください（例：악）'
+      if (letters === undefined) return null
+      return letters.includes(s.final) ? null : `パッチムが letters のどれか（${letters.join(' ')}）の音節にしてください`
+    })
+    const tipJa = text(value, 'tipJa', path, errs)
+    if (sound === undefined || letters === undefined || tipJa === undefined) continue
+    finals.push({ sound, letters, sounds, tipJa })
+  }
+  if (new Set(finals.map((f) => f.sound)).size !== finals.length) {
+    errs.push({ path: 'finals', message: '同じ代表音のグループが重複しています' })
+  }
+  const allLetters = finals.flatMap((f) => f.letters)
+  if (new Set(allLetters).size !== allLetters.length) {
+    errs.push({ path: 'finals', message: '同じパッチムの字母が、複数のグループに入っています' })
+  }
+  return finals
+}
+
+const RULE_KEYS = ['titleJa', 'explanationJa', 'examples'] as const
+const RULE_EXAMPLE_KEYS = ['korean', 'spoken', 'pronunciation', 'japanese'] as const
+
+function parseRules(o: Obj, errs: FieldError[]): SoundChangeRule[] {
+  const rules: SoundChangeRule[] = []
+  for (const { value, path } of objArray(o, 'rules', '', errs, 1) ?? []) {
+    checkKnownKeys(value, RULE_KEYS, path, errs)
+    const titleJa = japaneseText(value, 'titleJa', path, errs)
+    const explanationJa = text(value, 'explanationJa', path, errs)
+    const examples: SoundChangeExample[] = []
+    for (const { value: ex, path: exPath } of objArray(value, 'examples', path, errs, 1) ?? []) {
+      checkKnownKeys(ex, RULE_EXAMPLE_KEYS, exPath, errs)
+      const korean = koreanText(ex, 'korean', exPath, errs)
+      const spoken = koreanText(ex, 'spoken', exPath, errs)
+      const pronunciation = reading(ex, 'pronunciation', exPath, errs, korean)
+      const japanese = text(ex, 'japanese', exPath, errs)
+      if (korean !== undefined && spoken !== undefined && koreanChunkCount(korean) !== koreanChunkCount(spoken)) {
+        errs.push({ path: joinPath(exPath, 'spoken'), message: 'korean と同じ位置で空白を入れてください（区切りの数が違います）' })
+      }
+      if (korean !== undefined && spoken !== undefined && pronunciation !== undefined && japanese !== undefined) {
+        examples.push({ korean, spoken, pronunciation, japanese })
+      }
+    }
+    if (titleJa !== undefined && explanationJa !== undefined) rules.push({ titleJa, explanationJa, examples })
+  }
+  return rules
+}
+
+const WORD_KEYS = ['id', 'korean', 'pronunciation', 'japanese'] as const
+
+function parseWords(o: Obj, errs: FieldError[], min: number): HangulWord[] {
+  const words: HangulWord[] = []
+  for (const { value, path } of objArray(o, 'words', '', errs, min) ?? []) {
+    checkKnownKeys(value, WORD_KEYS, path, errs)
+    const id = text(value, 'id', path, errs)
+    if (id !== undefined && !ID_PATTERNS.hangulWord.test(id)) errs.push({ path: joinPath(path, 'id'), message: 'IDの形式が違います（例：hword_001）' })
+    const korean = koreanText(value, 'korean', path, errs)
+    const pronunciation = reading(value, 'pronunciation', path, errs, korean)
+    const japanese = text(value, 'japanese', path, errs)
+    if (id !== undefined && korean !== undefined && pronunciation !== undefined && japanese !== undefined) words.push({ id, korean, pronunciation, japanese })
+  }
+  if (new Set(words.map((w) => w.id)).size !== words.length) errs.push({ path: 'words', message: '同じIDの単語が重複しています' })
+  if (new Set(words.map((w) => w.korean)).size !== words.length) errs.push({ path: 'words', message: '同じ韓国語の単語が重複しています' })
+  return words
+}
+
+const HANGUL_LESSON_KEYS = ['id', 'order', 'kind', 'titleJa', 'introJa', 'letters', 'finals', 'rules', 'words', 'vocabulary', 'reviewed', 'notes'] as const
+
+/** レッスンの種類ごとに書く項目。required は必須、optional は任意。どちらにもない項目は書けない */
+const HANGUL_SECTIONS: Record<HangulLessonKind, { required: readonly string[]; optional: readonly string[] }> = {
+  letters: { required: ['letters', 'words'], optional: [] },
+  batchim: { required: ['finals', 'words'], optional: [] },
+  soundChange: { required: ['rules'], optional: ['words'] },
+  reading: { required: [], optional: ['words', 'vocabulary'] },
+}
+const HANGUL_SECTION_KEYS = ['letters', 'finals', 'rules', 'words', 'vocabulary'] as const
+
+function parseHangulLesson(o: Obj, ctx: ReferenceContext, errs: FieldError[]): HangulLesson | undefined {
+  checkKnownKeys(o, HANGUL_LESSON_KEYS, '', errs)
+  const id = idField(o, ID_PATTERNS.hangulLesson, 'hangul_001', errs)
+  const order = integer(o, 'order', '', errs, 1)
+  const kind = oneOf(o, 'kind', '', errs, HANGUL_LESSON_KINDS)
+  const titleJa = japaneseText(o, 'titleJa', '', errs)
+  const introJa = textArray(o, 'introJa', '', errs, { optional: false, min: 1 })
+  const reviewed = bool(o, 'reviewed', '', errs)
+  const notes = optionalText(o, 'notes', '', errs)
+  if (kind === undefined) return undefined
+
+  const sections = HANGUL_SECTIONS[kind]
+  for (const key of HANGUL_SECTION_KEYS) {
+    if (o[key] !== undefined && !sections.required.includes(key) && !sections.optional.includes(key)) {
+      errs.push({ path: key, message: `kind が "${kind}" のレッスンには ${key} は書けません（書ける項目：${[...sections.required, ...sections.optional].join(', ') || 'なし'}）` })
+    }
+  }
+  const has = (key: string) => sections.required.includes(key) || (sections.optional.includes(key) && o[key] !== undefined)
+  const letters = has('letters') ? parseLetters(o, errs) : []
+  const finals = has('finals') ? parseFinals(o, errs) : []
+  const rules = has('rules') ? parseRules(o, errs) : []
+  const words = has('words') ? parseWords(o, errs, 1) : []
+  const vocabulary = has('vocabulary') ? (idList(o, 'vocabulary', '', errs, ctx.vocabularyIds, '単語ID', false) ?? []) : []
+  if (kind === 'reading' && o['words'] === undefined && o['vocabulary'] === undefined) {
+    errs.push({ path: 'words', message: 'reading のレッスンには、words か vocabulary の少なくとも一方を書いてください' })
+  }
+
+  if (errs.length > 0 || id === undefined || order === undefined || titleJa === undefined || introJa === undefined || reviewed === undefined) return undefined
+  const lesson: HangulLesson = { id, order, kind, titleJa, introJa, letters, finals, rules, words, vocabulary, reviewed }
+  if (notes !== undefined) lesson.notes = notes
+  return lesson
+}
+
+// ---------- リスニングの文 ----------
+
+const LISTENING_KEYS = ['id', 'afterEvent', 'korean', 'pronunciation', 'japanese', 'distractors', 'reviewed', 'notes'] as const
+const LISTENING_OPTION_KEYS = ['korean', 'pronunciation', 'japanese'] as const
+
+function parseListening(o: Obj, ctx: ReferenceContext, errs: FieldError[]): ListeningSentence | undefined {
+  checkKnownKeys(o, LISTENING_KEYS, '', errs)
+  const id = idField(o, ID_PATTERNS.listening, 'listen_001', errs)
+  const afterEvent = reference(o, 'afterEvent', '', errs, ctx.eventIds, 'イベントID')
+  const korean = koreanText(o, 'korean', '', errs)
+  const pronunciation = reading(o, 'pronunciation', '', errs, korean)
+  const japanese = text(o, 'japanese', '', errs)
+  const reviewed = bool(o, 'reviewed', '', errs)
+  const notes = optionalText(o, 'notes', '', errs)
+  const distractors: ListeningOption[] = []
+  for (const { value, path } of objArray(o, 'distractors', '', errs, 1) ?? []) {
+    checkKnownKeys(value, LISTENING_OPTION_KEYS, path, errs)
+    const k = koreanText(value, 'korean', path, errs)
+    const p = reading(value, 'pronunciation', path, errs, k)
+    const j = text(value, 'japanese', path, errs)
+    if (k !== undefined && p !== undefined && j !== undefined) distractors.push({ korean: k, pronunciation: p, japanese: j })
+  }
+  // 空白（分かち書き）や句読点の違いだけの文は、聞いても区別できないので選択肢にできない
+  const keys = [korean, ...distractors.map((d) => d.korean)].filter((k) => k !== undefined).map((k) => normalizeAnswer(k).replace(/ /g, ''))
+  if (new Set(keys).size !== keys.length) {
+    errs.push({ path: 'distractors', message: '正解の文と同じ文（空白・句読点の違いだけのものを含む）や、重複した文があります' })
+  }
+  if (errs.length > 0 || id === undefined || afterEvent === undefined || korean === undefined || pronunciation === undefined || japanese === undefined || reviewed === undefined) {
+    return undefined
+  }
+  const sentence: ListeningSentence = { id, afterEvent, korean, pronunciation, japanese, distractors, reviewed }
+  if (notes !== undefined) sentence.notes = notes
+  return sentence
+}
+
 // ---------- ファイル単位の検証 ----------
 
 type ItemParser<T> = (o: Obj, ctx: ReferenceContext, errs: FieldError[]) => T | undefined
@@ -772,6 +1043,8 @@ const PARSERS = {
   events: parseEvent,
   locations: parseLocation,
   characters: parseCharacter,
+  hangulLessons: parseHangulLesson,
+  listening: parseListening,
 } as const
 
 interface KindItem {
@@ -782,6 +1055,8 @@ interface KindItem {
   events: GameEvent
   locations: Location
   characters: Character
+  hangulLessons: HangulLesson
+  listening: ListeningSentence
 }
 
 /** 1ファイル分を検証する。ファイル内の構造と参照だけを確かめ、ファイルをまたぐIDの重複は loadContent で確かめる */
@@ -804,6 +1079,8 @@ export interface ContentInput {
   events: FileMap
   locations: FileMap
   characters: FileMap
+  hangulLessons: FileMap
+  listening: FileMap
   /** ゲームの調整用の数値。ファイルは1つだけ置く */
   balance: FileMap
 }
@@ -817,6 +1094,9 @@ export interface LoadedContent {
   events: GameEvent[]
   locations: Location[]
   characters: Character[]
+  /** order の順に並べたもの */
+  hangulLessons: HangulLesson[]
+  listening: ListeningSentence[]
   balance: Balance
   issues: ValidationIssue[]
 }
@@ -976,6 +1256,91 @@ function validateKind<K extends ContentKind>(
   return items
 }
 
+/**
+ * ハングルのレッスンをまたいだ確認。問題のあるレッスンは除外し、残りを order の順に並べて返す。
+ * - order・字母・パッチムの字母・代表音が、ほかのレッスンと重複していないか（後から出てきた方を除外）
+ * - 読む練習の単語のIDが、ほかの教材と重複していないか
+ * - 聞かせる音節・単語・音の変化の例・教材の単語が、そのレッスンまでに習った文字だけで書けているか
+ *   （パッチムは、パッチムのレッスンより後でだけ使える。文頭の ㅇ はいつでも使える）
+ */
+function checkHangulCurriculum(lessons: HangulLesson[], vocabulary: Vocab[], contentIds: Map<string, string>, issues: ValidationIssue[]): HangulLesson[] {
+  const fileOf = (lesson: HangulLesson) => contentIds.get(lesson.id) ?? ''
+  const issue = (lesson: HangulLesson, path: string, message: string) => issues.push({ file: fileOf(lesson), index: null, id: lesson.id, path, message })
+
+  const sorted = [...lessons].sort((a, b) => a.order - b.order)
+  const orderOwner = new Map<number, string>()
+  const letterOwner = new Map<string, string>()
+  const finalOwner = new Map<string, string>()
+  const soundOwner = new Map<string, string>()
+  const unique = sorted.filter((lesson) => {
+    const clash = (owners: Map<string, string>, keys: string[], label: string) => {
+      const found = keys.find((k) => owners.has(k))
+      if (found !== undefined) issue(lesson, '', `${label} ${found} は、すでにレッスン ${owners.get(found)} にあります。後から出てきた方を除外しました`)
+      return found !== undefined
+    }
+    const ownerOfOrder = orderOwner.get(lesson.order)
+    if (ownerOfOrder !== undefined) {
+      issue(lesson, 'order', `order ${lesson.order} は、すでにレッスン ${ownerOfOrder} で使われています。後から出てきた方を除外しました`)
+      return false
+    }
+    const letters = lesson.letters.map((l) => l.jamo)
+    const finals = lesson.finals.flatMap((f) => f.letters)
+    const sounds = lesson.finals.map((f) => f.sound)
+    if (clash(letterOwner, letters, '字母') || clash(finalOwner, finals, 'パッチムの字母') || clash(soundOwner, sounds, '代表音')) return false
+    orderOwner.set(lesson.order, lesson.id)
+    for (const k of letters) letterOwner.set(k, lesson.id)
+    for (const k of finals) finalOwner.set(k, lesson.id)
+    for (const k of sounds) soundOwner.set(k, lesson.id)
+    return true
+  })
+
+  const vocabById = new Map(vocabulary.map((v) => [v.id, v]))
+  const knownLetters = new Set<string>()
+  const knownFinals = new Set<string>()
+  return unique.filter((lesson) => {
+    for (const l of lesson.letters) knownLetters.add(l.jamo)
+    for (const f of lesson.finals) for (const k of f.letters) knownFinals.add(k)
+    const known = { letters: knownLetters, finals: knownFinals }
+
+    const texts: { path: string; korean: string }[] = [
+      ...lesson.letters.flatMap((l, i) => l.sounds.map((s, j) => ({ path: `letters[${i}].sounds[${j}].korean`, korean: s.korean }))),
+      ...lesson.finals.flatMap((f, i) => f.sounds.map((s, j) => ({ path: `finals[${i}].sounds[${j}].korean`, korean: s.korean }))),
+      ...lesson.words.map((w, i) => ({ path: `words[${i}].korean`, korean: w.korean })),
+      ...lesson.rules.flatMap((r, i) => r.examples.map((e, j) => ({ path: `rules[${i}].examples[${j}].korean`, korean: e.korean }))),
+      ...lesson.vocabulary.flatMap((id) => {
+        const v = vocabById.get(id)
+        return v === undefined ? [] : [{ path: `vocabulary（${id}）`, korean: v.korean }]
+      }),
+    ]
+    let ok = true
+    for (const { path, korean } of texts) {
+      const missing = unlearnedJamo(korean, known)
+      if (missing.letters.length > 0) {
+        issue(lesson, path, `「${korean}」に、このレッスンまでに習っていない字母があります：${missing.letters.join(' ')}`)
+        ok = false
+      }
+      if (missing.finals.length > 0) {
+        const message =
+          knownFinals.size === 0
+            ? `「${korean}」はパッチムのある言葉です。パッチムのレッスンより後のレッスンで使ってください`
+            : `「${korean}」に、パッチムのレッスンで習っていないパッチムがあります：${missing.finals.join(' ')}（finals の letters に入れてください）`
+        issue(lesson, path, message)
+        ok = false
+      }
+    }
+    for (const [i, w] of lesson.words.entries()) {
+      const owner = contentIds.get(w.id)
+      if (owner !== undefined) {
+        issue(lesson, `words[${i}].id`, `IDが重複しています（最初の定義：${owner}）`)
+        ok = false
+      } else {
+        contentIds.set(w.id, fileOf(lesson))
+      }
+    }
+    return ok
+  })
+}
+
 /** 施設・キャラクター・教材・イベント・調整値をまとめて検証する。問題のあるデータは除外して返す */
 export function loadContent(input: ContentInput): LoadedContent {
   const issues: ValidationIssue[] = []
@@ -1006,9 +1371,12 @@ export function loadContent(input: ContentInput): LoadedContent {
   const eventFiles = new Map<string, string>()
   const parsedEvents = validateKind('events', input.events, ctx, eventFiles, issues)
   const events = checkConversationReuse(resolveEventRequirements(parsedEvents, issues, eventFiles), issues, eventFiles)
+  const parsedLessons = validateKind('hangulLessons', input.hangulLessons, ctx, contentIds, issues)
+  const hangulLessons = checkHangulCurriculum(parsedLessons, vocabulary, contentIds, issues)
+  const listening = validateKind('listening', input.listening, { ...ctx, eventIds: new Set(events.map((e) => e.id)) }, contentIds, issues)
   const balance = loadBalance(input.balance, ctx, issues)
 
-  return { vocabulary, grammar, conversations, columns, events, locations, characters, balance, issues }
+  return { vocabulary, grammar, conversations, columns, events, locations, characters, hangulLessons, listening, balance, issues }
 }
 
 /** 問題を1行の文章にする（コンソール表示用） */

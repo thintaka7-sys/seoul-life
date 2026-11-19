@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
-import { EVENT_STEP_TYPES, EXPRESSIONS, PARTS_OF_SPEECH, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_CATEGORIES } from './types'
+import { EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, PARTS_OF_SPEECH, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_CATEGORIES } from './types'
 import { formatIssue, loadContent } from './validate'
 
 const docPath = fileURLToPath(new URL('../../docs/CONTENT_FORMAT.md', import.meta.url))
@@ -42,9 +42,9 @@ const sorted = (xs: Iterable<string>) => [...xs].sort()
 
 describe('docs/CONTENT_FORMAT.md の見本', () => {
   const samples = extractSamples(doc)
-  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events'] as const
+  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening'] as const
 
-  it('単語・文法・会話・コラム・イベントの見本がそろっている', () => {
+  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文の見本がそろっている', () => {
     expect(sorted(samples.keys())).toEqual(sorted(kinds))
   })
 
@@ -55,6 +55,8 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
       conversations: { 'sample-conversations': samples.get('conversations') },
       columns: { 'sample-columns': samples.get('columns') },
       events: { 'sample-events': samples.get('events') },
+      hangulLessons: { 'sample-hangulLessons': samples.get('hangulLessons') },
+      listening: { 'sample-listening': samples.get('listening') },
       // 施設・キャラクター・調整値は実際のデータを使う
       locations: { 'locations.json': content.locations },
       characters: { 'characters.json': content.characters },
@@ -66,6 +68,9 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
     expect(result.conversations.length).toBeGreaterThan(0)
     expect(result.columns.length).toBeGreaterThan(0)
     expect(result.events.length).toBeGreaterThan(0)
+    // 見本のレッスンは、すべての種類（10-8）を含む
+    expect(sorted(new Set(result.hangulLessons.map((l) => l.kind)))).toEqual(sorted(HANGUL_LESSON_KINDS))
+    expect(result.listening.length).toBeGreaterThan(0)
   })
 
   it('見本のIDは仮データ用の900番台を使っていない', () => {
@@ -102,6 +107,10 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
 
   it('場面の背景のID（10-7）がプログラムと一致する', () => {
     expect(sorted(keysInSection(doc, '### 10-7.'))).toEqual(sorted(SCENE_BACKGROUNDS))
+  })
+
+  it('ハングルのレッスンの種類（10-8）がプログラムと一致する', () => {
+    expect(sorted(keysInSection(doc, '### 10-8.'))).toEqual(sorted(HANGUL_LESSON_KINDS))
   })
 
   it('表情（10-6）がプログラムと一致する', () => {

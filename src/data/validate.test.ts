@@ -415,6 +415,8 @@ const base: ContentInput = {
   conversations: { 's.json': [validConversation] },
   columns: { 'k.json': [validColumn] },
   events: { 'e.json': [validEvent] },
+  hangulLessons: {},
+  listening: {},
   balance: { 'balance.json': validBalance },
 }
 
@@ -556,5 +558,244 @@ describe('balance の検証', () => {
   it('ファイルがなければ既定の値を使う', () => {
     const result = loadContent({ ...base, balance: {} })
     expect(result.balance).toEqual(DEFAULT_BALANCE)
+  })
+})
+
+// ---------- ハングルのレッスン ----------
+
+const vowelLesson = {
+  id: 'hangul_001',
+  order: 1,
+  kind: 'letters',
+  titleJa: '基本の母音（1）',
+  introJa: ['母音の文字です。ㅇ を付けて書きます。'],
+  letters: [
+    { jamo: 'ㅏ', sounds: [{ korean: '아', pronunciation: 'ア' }], tipJa: '口を大きく開けて「ア」' },
+    { jamo: 'ㅓ', sounds: [{ korean: '어', pronunciation: 'オ' }], tipJa: '口を大きく開けて「オ」', confusableWith: ['ㅗ'] },
+    { jamo: 'ㅗ', sounds: [{ korean: '오', pronunciation: 'オ' }], tipJa: '唇を丸めて「オ」', confusableWith: ['ㅓ'] },
+    { jamo: 'ㅣ', sounds: [{ korean: '이', pronunciation: 'イ' }], tipJa: '「イ」' },
+  ],
+  words: [
+    { id: 'hword_001', korean: '아이', pronunciation: 'アイ', japanese: '子ども' },
+    { id: 'hword_002', korean: '오이', pronunciation: 'オイ', japanese: 'きゅうり' },
+  ],
+  reviewed: false,
+}
+
+const consonantLesson = {
+  id: 'hangul_002',
+  order: 2,
+  kind: 'letters',
+  titleJa: '基本の子音（1）',
+  introJa: ['子音の文字です。'],
+  letters: [
+    { jamo: 'ㄱ', sounds: [{ korean: '가', pronunciation: 'カ' }, { korean: '고', pronunciation: 'コ' }], tipJa: '語頭はカ、語中はガ' },
+    { jamo: 'ㅋ', sounds: [{ korean: '커', pronunciation: 'コ' }], tipJa: '息を強く出す' },
+    { jamo: 'ㅍ', sounds: [{ korean: '피', pronunciation: 'ピ' }], tipJa: '息を強く出す' },
+  ],
+  words: [{ id: 'hword_003', korean: '고기', pronunciation: 'コギ', japanese: '肉' }],
+  reviewed: false,
+}
+
+const batchimLesson = {
+  id: 'hangul_003',
+  order: 3,
+  kind: 'batchim',
+  titleJa: 'パッチム',
+  introJa: ['音節の下に付く子音です。'],
+  finals: [{ sound: 'ㄱ', letters: ['ㄱ', 'ㅋ', 'ㄲ'], sounds: [{ korean: '악', pronunciation: 'アク' }], tipJa: '「ク」を飲み込む' }],
+  words: [{ id: 'hword_004', korean: '각', pronunciation: 'カク', japanese: '角' }],
+  reviewed: false,
+}
+
+const soundChangeLesson = {
+  id: 'hangul_004',
+  order: 4,
+  kind: 'soundChange',
+  titleJa: '音の変化（1）',
+  introJa: ['書いた形と発音が違うことがあります。'],
+  rules: [
+    {
+      titleJa: '連音化',
+      explanationJa: 'パッチムの後に ㅇ が来ると、パッチムが次の音節に移ります。',
+      examples: [{ korean: '각이', spoken: '가기', pronunciation: 'カギ', japanese: '角が' }],
+    },
+  ],
+  reviewed: false,
+}
+
+const readingLesson = {
+  id: 'hangul_005',
+  order: 5,
+  kind: 'reading',
+  titleJa: '教材の言葉を読む',
+  introJa: ['習った文字で読んでみましょう。'],
+  vocabulary: ['vocab_001'],
+  reviewed: false,
+}
+
+const loadLessons = (lessons: unknown[]) => loadContent({ ...base, hangulLessons: { 'h.json': lessons } })
+const messages = (result: { issues: { path: string; message: string }[] }) => result.issues.map((i) => `${i.path}: ${i.message}`)
+const firstLetter = { jamo: 'ㅏ', sounds: [{ korean: '아', pronunciation: 'ア' }], tipJa: '口を大きく開けて「ア」' }
+const firstFinal = batchimLesson.finals[0] ?? {}
+const firstRule = soundChangeLesson.rules[0] ?? {}
+
+describe('ハングルのレッスン', () => {
+  it('正しいレッスンは問題なしで読み込み、order の順に並べる', () => {
+    const result = loadLessons([readingLesson, vowelLesson, soundChangeLesson, batchimLesson, consonantLesson])
+    expect(messages(result)).toEqual([])
+    expect(result.hangulLessons.map((l) => l.id)).toEqual(['hangul_001', 'hangul_002', 'hangul_003', 'hangul_004', 'hangul_005'])
+    expect(result.hangulLessons[0]).toMatchObject({ finals: [], rules: [], vocabulary: [] })
+  })
+
+  it('kind に合わない項目はエラー', () => {
+    const result = loadLessons([{ ...vowelLesson, rules: soundChangeLesson.rules }])
+    expect(messages(result).some((m) => m.startsWith('rules: kind が "letters"'))).toBe(true)
+  })
+
+  it('kind に必要な項目がないとエラー（文字のレッスンの単語は1語以上）', () => {
+    const { words: _words, ...noWords } = vowelLesson
+    expect(messages(loadLessons([noWords]))).toContain('words: 必須項目がありません')
+    expect(messages(loadLessons([{ ...vowelLesson, words: [] }]))).toContain('words: 1個以上入れてください')
+  })
+
+  it('単語の数に厳しい下限はない（1語でもよい）', () => {
+    const result = loadLessons([{ ...vowelLesson, words: vowelLesson.words.slice(0, 1) }])
+    expect(messages(result)).toEqual([])
+  })
+
+  it('聞かせる音節は1音節で、その字母を含み、パッチムがないこと', () => {
+    const bad = (sounds: unknown[]) => loadLessons([{ ...vowelLesson, letters: [{ jamo: 'ㅏ', sounds, tipJa: 'ア' }] }])
+    expect(messages(bad([{ korean: '아이', pronunciation: 'アイ' }]))).toContain('letters[0].sounds[0].korean: 1つの音節（例：가）にしてください')
+    expect(messages(bad([{ korean: '오', pronunciation: 'オ' }])).some((m) => m.includes('母音 ㅏ の音節にしてください'))).toBe(true)
+    expect(messages(bad([{ korean: '악', pronunciation: 'アク' }]))).toContain('letters[0].sounds[0].korean: パッチムのない音節にしてください')
+    expect(messages(bad([{ korean: 'ㅏ', pronunciation: 'ア' }])).some((m) => m.includes('字母（ㄱ・ㅏ など）を単体で書かず'))).toBe(true)
+  })
+
+  it('子音の音節は、その子音で始まること', () => {
+    const result = loadLessons([vowelLesson, { ...consonantLesson, letters: [{ jamo: 'ㄱ', sounds: [{ korean: '아', pronunciation: 'ア' }], tipJa: 'カ' }] }])
+    expect(messages(result).some((m) => m.includes('子音 ㄱ で始まる音節にしてください'))).toBe(true)
+  })
+
+  it('聞かせる音節の読みはカタカナ1語', () => {
+    const result = loadLessons([{ ...vowelLesson, letters: [{ jamo: 'ㅏ', sounds: [{ korean: '아', pronunciation: 'a' }], tipJa: 'ア' }] }])
+    expect(messages(result).some((m) => m.startsWith('letters[0].sounds[0].pronunciation:'))).toBe(true)
+  })
+
+  it('字母でないもの・自分自身を confusableWith に入れるとエラー', () => {
+    expect(messages(loadLessons([{ ...vowelLesson, letters: [{ ...firstLetter, jamo: 'A' }] }])).some((m) => m.startsWith('letters[0].jamo:'))).toBe(true)
+    const self = loadLessons([{ ...vowelLesson, letters: [{ ...firstLetter, confusableWith: ['ㅏ'] }] }])
+    expect(messages(self)).toContain('letters[0].confusableWith: 自分自身（jamo と同じ字母）は入れないでください')
+  })
+
+  it('習っていない字母を使った単語はエラーになり、そのレッスンを除外する', () => {
+    const result = loadLessons([{ ...vowelLesson, words: [{ id: 'hword_001', korean: '우유', pronunciation: 'ウユ', japanese: '牛乳' }] }])
+    expect(messages(result)).toEqual(['words[0].korean: 「우유」に、このレッスンまでに習っていない字母があります：ㅜ ㅠ'])
+    expect(result.hangulLessons).toEqual([])
+  })
+
+  it('前のレッスンで習った文字は使えるが、後のレッスンの文字は使えない', () => {
+    const early = loadLessons([{ ...vowelLesson, order: 3 }, { ...consonantLesson, order: 1 }])
+    expect(messages(early).filter((m) => m.includes('習っていない字母')).length).toBeGreaterThan(0)
+  })
+
+  it('パッチムのレッスンより前のレッスンでは、パッチムのある単語はエラー', () => {
+    const result = loadLessons([vowelLesson, { ...consonantLesson, words: [{ id: 'hword_003', korean: '각', pronunciation: 'カク', japanese: '角' }] }])
+    expect(messages(result)).toContain('words[0].korean: 「각」はパッチムのある言葉です。パッチムのレッスンより後のレッスンで使ってください')
+  })
+
+  it('パッチムのレッスンの後でも、finals に入れていないパッチムはエラー', () => {
+    const result = loadLessons([vowelLesson, consonantLesson, { ...batchimLesson, words: [{ id: 'hword_004', korean: '각', pronunciation: 'カク', japanese: '角' }, { id: 'hword_005', korean: '감', pronunciation: 'カム', japanese: '柿' }] }])
+    expect(messages(result).some((m) => m.includes('パッチムのレッスンで習っていないパッチムがあります：ㅁ'))).toBe(true)
+  })
+
+  it('パッチムの音節は、そのグループの字母をパッチムに持つこと', () => {
+    const result = loadLessons([vowelLesson, { ...batchimLesson, finals: [{ ...firstFinal, sounds: [{ korean: '아', pronunciation: 'ア' }] }] }])
+    expect(messages(result)).toContain('finals[0].sounds[0].korean: パッチムのある音節にしてください（例：악）')
+  })
+
+  it('代表音でない sound、パッチムにならない字母はエラー', () => {
+    const result = loadLessons([{ ...batchimLesson, finals: [{ ...firstFinal, sound: 'ㅋ', letters: ['ㄱ', 'ㄸ'] }] }])
+    expect(messages(result).some((m) => m.startsWith('finals[0].sound:'))).toBe(true)
+    expect(messages(result).some((m) => m.startsWith('finals[0].letters: パッチムになる字母ではありません：ㄸ'))).toBe(true)
+  })
+
+  it('音の変化の例は、korean と spoken の区切りの数が同じ', () => {
+    const rule = { ...firstRule, examples: [{ korean: '각이', spoken: '가 기', pronunciation: 'カギ', japanese: '角が' }] }
+    const result = loadLessons([vowelLesson, consonantLesson, batchimLesson, { ...soundChangeLesson, rules: [rule] }])
+    expect(messages(result)).toContain('rules[0].examples[0].spoken: korean と同じ位置で空白を入れてください（区切りの数が違います）')
+  })
+
+  it('reading のレッスンの教材の単語も、習った文字の範囲を確かめる', () => {
+    // 커피 は ㅓ ㅣ（母音のレッスン）と ㅋ ㅍ（子音のレッスン）で書ける。子音のレッスンがなければエラー
+    expect(messages(loadLessons([vowelLesson, consonantLesson, readingLesson]))).toEqual([])
+    expect(messages(loadLessons([vowelLesson, readingLesson])).some((m) => m.startsWith('vocabulary（vocab_001）:'))).toBe(true)
+  })
+
+  it('reading のレッスンは、存在しない単語IDや、words・vocabulary のどちらもないとエラー', () => {
+    expect(messages(loadLessons([{ ...readingLesson, vocabulary: ['vocab_999'] }]))).toContain('vocabulary: 存在しない単語IDです：vocab_999')
+    const { vocabulary: _v, ...empty } = readingLesson
+    expect(messages(loadLessons([empty]))).toContain('words: reading のレッスンには、words か vocabulary の少なくとも一方を書いてください')
+  })
+
+  it('order・字母が重複したレッスンは、後から出てきた方を除外する', () => {
+    const dupOrder = loadLessons([vowelLesson, { ...consonantLesson, order: 1 }])
+    expect(dupOrder.hangulLessons.map((l) => l.id)).toEqual(['hangul_001'])
+    expect(messages(dupOrder)).toContain('order: order 1 は、すでにレッスン hangul_001 で使われています。後から出てきた方を除外しました')
+    const dupLetter = loadLessons([vowelLesson, { ...consonantLesson, letters: [firstLetter], words: [{ id: 'hword_003', korean: '아', pronunciation: 'ア', japanese: 'ああ' }] }])
+    expect(messages(dupLetter)).toContain(': 字母 ㅏ は、すでにレッスン hangul_001 にあります。後から出てきた方を除外しました')
+  })
+
+  it('読む練習の単語のIDは、形式と重複を確かめる', () => {
+    expect(messages(loadLessons([{ ...vowelLesson, words: [{ id: 'word_1', korean: '아이', pronunciation: 'アイ', japanese: '子ども' }] }]))).toContain('words[0].id: IDの形式が違います（例：hword_001）')
+    const dup = loadLessons([vowelLesson, { ...consonantLesson, words: [{ id: 'hword_001', korean: '고기', pronunciation: 'コギ', japanese: '肉' }] }])
+    expect(messages(dup).some((m) => m.startsWith('words[0].id: IDが重複しています'))).toBe(true)
+  })
+
+  it('レッスンの名前にハングルは入れられない（説明には入れてよい）', () => {
+    expect(messages(loadLessons([{ ...vowelLesson, titleJa: 'ㅏ の文字' }])).some((m) => m.startsWith('titleJa:'))).toBe(true)
+  })
+})
+
+// ---------- リスニングの文 ----------
+
+const validListening = {
+  id: 'listen_001',
+  afterEvent: 'event_001',
+  korean: '커피 주세요.',
+  pronunciation: 'コピ ジュセヨ',
+  japanese: 'コーヒーをください。',
+  distractors: [
+    { korean: '커피 좋아요.', pronunciation: 'コピ ジョアヨ', japanese: 'コーヒーが好きです。' },
+    { korean: '커피 있어요?', pronunciation: 'コピ イッソヨ', japanese: 'コーヒーはありますか？' },
+  ],
+  reviewed: false,
+}
+const loadListening = (items: unknown[]) => loadContent({ ...base, listening: { 'l.json': items } })
+
+describe('リスニングの文', () => {
+  it('正しい文は問題なしで読み込む', () => {
+    const result = loadListening([validListening])
+    expect(messages(result)).toEqual([])
+    expect(result.listening).toHaveLength(1)
+  })
+
+  it('存在しないイベントを afterEvent にするとエラー', () => {
+    expect(messages(loadListening([{ ...validListening, afterEvent: 'event_002' }])).some((m) => m.startsWith('afterEvent: 存在しないイベントIDです'))).toBe(true)
+  })
+
+  it('まぎらわしい文は1つ以上必要', () => {
+    expect(messages(loadListening([{ ...validListening, distractors: [] }]))).toContain('distractors: 1個以上入れてください')
+  })
+
+  it('空白・句読点だけが違う文は選択肢にできない', () => {
+    const same = { ...validListening, distractors: [{ korean: '커피주세요', pronunciation: 'コピジュセヨ', japanese: 'コーヒーをください' }] }
+    expect(messages(loadListening([same])).some((m) => m.startsWith('distractors: 正解の文と同じ文'))).toBe(true)
+  })
+
+  it('IDは重複できない', () => {
+    const result = loadContent({ ...base, listening: { 'a.json': [validListening], 'b.json': [validListening] } })
+    expect(result.listening).toHaveLength(1)
+    expect(messages(result).some((m) => m.startsWith('id: IDが重複しています'))).toBe(true)
   })
 })

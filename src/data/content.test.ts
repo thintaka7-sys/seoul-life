@@ -18,7 +18,7 @@ describe('data/ の実データ', () => {
   })
 
   it('仮データ（900番台のID）は reviewed: false になっている', () => {
-    const items = [...content.vocabulary, ...content.grammar, ...content.conversations]
+    const items = [...content.vocabulary, ...content.grammar, ...content.conversations, ...content.columns, ...content.hangulLessons, ...content.listening]
     const drafts = items.filter((item) => /_9\d\d$/.test(item.id))
     for (const item of drafts) expect(item.reviewed, item.id).toBe(false)
   })

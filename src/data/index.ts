@@ -14,6 +14,8 @@ export const content: LoadedContent = loadContent({
   events: import.meta.glob<unknown>('./events/*.json', { eager: true, import: 'default' }),
   locations: import.meta.glob<unknown>('./locations/*.json', { eager: true, import: 'default' }),
   characters: import.meta.glob<unknown>('./characters/*.json', { eager: true, import: 'default' }),
+  hangulLessons: import.meta.glob<unknown>('./hangul/*.json', { eager: true, import: 'default' }),
+  listening: import.meta.glob<unknown>('./listening/*.json', { eager: true, import: 'default' }),
   balance: import.meta.glob<unknown>('./game/balance.json', { eager: true, import: 'default' }),
 })
 
@@ -52,6 +54,10 @@ export function findGameEvent(id: string) {
 
 export function findColumn(id: string) {
   return content.columns.find((c) => c.id === id)
+}
+
+export function findHangulLesson(id: string) {
+  return content.hangulLessons.find((l) => l.id === id)
 }
 
 // ---------- 加工済みの画像 ----------
