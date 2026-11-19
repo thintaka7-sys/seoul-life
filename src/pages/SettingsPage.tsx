@@ -9,10 +9,28 @@ import { playSfx } from '../audio/sfx'
 import { TEXT_SPEED_MS, totalChars } from '../components/dialogue/typewriter'
 import { useTypewriter } from '../components/dialogue/useTypewriter'
 import { pairReading } from '../learning/furigana/furigana'
-import { EFFECT_LEVELS, FURIGANA_MODES, SPEECH_RATES, TEXT_SPEEDS, type EffectLevel, type FuriganaMode, type Settings, type SpeechRate, type TextSpeed } from '../storage/settings'
+import {
+  EFFECT_LEVELS,
+  FURIGANA_MODES,
+  SPEECH_RATES,
+  TEXT_SPEEDS,
+  TRANSLATION_MODES,
+  type EffectLevel,
+  type FuriganaMode,
+  type Settings,
+  type SpeechRate,
+  type TextSpeed,
+  type TranslationMode,
+} from '../storage/settings'
 
 const FURIGANA_LABELS: Record<FuriganaMode, string> = {
   recommended: `おすすめ（第${content.balance.furiganaAlwaysUntilChapter}章まではいつも表示、その後はタップで表示）`,
+  always: 'いつも表示',
+  tap: 'タップしたときだけ表示',
+  off: '表示しない',
+}
+
+const TRANSLATION_LABELS: Record<TranslationMode, string> = {
   always: 'いつも表示',
   tap: 'タップしたときだけ表示',
   off: '表示しない',
@@ -90,6 +108,17 @@ export function SettingsPage() {
         ))}
         <FuriganaPreview />
         <p className="muted small">カタカナでは表せない音もあるので、フリガナは読み上げと一緒に使ってください。</p>
+      </fieldset>
+
+      <fieldset className="field">
+        <legend>日本語訳</legend>
+        {TRANSLATION_MODES.map((mode) => (
+          <label key={mode} className="radio">
+            <input type="radio" name="translation" value={mode} checked={settings.translation === mode} onChange={() => change({ translation: mode })} />
+            <span>{TRANSLATION_LABELS[mode]}</span>
+          </label>
+        ))}
+        <p className="muted small">台詞・単語カードの例文・コラムの韓国語に付く訳です。単語の意味と、書いて答えるときのお題はいつも表示します。慣れてきたら、訳を隠して挑戦してみましょう。</p>
       </fieldset>
 
       <fieldset className="field">

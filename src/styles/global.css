@@ -1701,3 +1701,27 @@ rt {
 .column-card > .button {
   margin-top: 4px;
 }
+
+/* ---------- 日本語訳（タップで表示） ---------- */
+
+.translation-tap {
+  min-height: var(--tap-min);
+  padding: 0 4px;
+  border: none;
+  border-bottom: 2px dotted var(--color-border);
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.translation-tap:not(.translation-tap--open) {
+  color: var(--color-primary);
+  font-size: 0.9em;
+}
+
+.translation-tap:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}

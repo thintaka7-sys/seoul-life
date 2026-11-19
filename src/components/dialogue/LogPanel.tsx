@@ -4,6 +4,7 @@ import type { FuriganaDisplay } from '../../learning/furigana/furigana'
 import { Button } from '../Button'
 import { KoreanText } from '../KoreanText'
 import { SpeakButton } from '../SpeakButton'
+import { Translation } from '../Translation'
 import { characterColors } from './characterColors'
 import { NamePlate } from './NamePlate'
 
@@ -31,7 +32,7 @@ export function LogPanel({ lines, display, onClose }: { lines: readonly ShownLin
                   <KoreanText korean={l.korean} reading={l.pronunciation} display={display} />
                   <SpeakButton text={l.korean} />
                 </div>
-                <p className="log-line__ja">{l.japanese}</p>
+                <Translation text={l.japanese} className="log-line__ja" />
               </li>
             ))}
         </ol>

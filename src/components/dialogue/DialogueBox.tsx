@@ -3,6 +3,7 @@ import type { ShownLine } from '../../learning/conversation/session'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
 import { KoreanText } from '../KoreanText'
 import { SpeakButton } from '../SpeakButton'
+import { Translation } from '../Translation'
 import { characterColors } from './characterColors'
 import { NamePlate } from './NamePlate'
 
@@ -49,7 +50,7 @@ export function DialogueBox({ line, display, typing, canAdvance, onAdvance, onOp
         <KoreanText korean={line.korean} reading={line.pronunciation} display={display} className="dialogue__ko" visibleChars={typing.done ? undefined : typing.visible} />
         <SpeakButton text={line.korean} />
       </div>
-      <p className={`dialogue__ja${typing.done ? '' : ' dialogue__ja--waiting'}`}>{line.japanese}</p>
+      <Translation text={line.japanese} className={`dialogue__ja${typing.done ? '' : ' dialogue__ja--waiting'}`} />
       {(canAdvance || !typing.done) && (
         <button type="button" className="button button--primary dialogue__next" onClick={next}>
           次へ

@@ -3,6 +3,7 @@ import { useFuriganaDisplay } from '../../app/hooks'
 import { Button } from '../../components/Button'
 import { KoreanText } from '../../components/KoreanText'
 import { SpeakButton } from '../../components/SpeakButton'
+import { Translation } from '../../components/Translation'
 import type { Column } from '../../data/types'
 
 /** コラム（韓国生活の小ネタ）を読む段階。経験値は付けない */
@@ -24,7 +25,7 @@ export function ColumnStep({ column }: { column: Column }) {
               <KoreanText korean={block.korean} reading={block.pronunciation} display={display} />
               <SpeakButton text={block.korean} />
             </div>
-            <p className="column-card__ja">{block.japanese}</p>
+            <Translation text={block.japanese} className="column-card__ja" />
           </div>
         ),
       )}

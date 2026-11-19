@@ -5,6 +5,7 @@ import { Button } from '../../components/Button'
 import { KoreanText } from '../../components/KoreanText'
 import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
+import { Translation } from '../../components/Translation'
 import { findGrammar, findVocab } from '../../data'
 import type { Grammar, Vocab } from '../../data/types'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
@@ -27,7 +28,7 @@ function VocabCard({ vocab, display }: { vocab: Vocab; display: FuriganaDisplay 
             <KoreanText korean={vocab.example} reading={vocab.examplePronunciation} display={display} />
             <SpeakButton text={vocab.example} />
           </div>
-          <p className="muted">{vocab.exampleJapanese}</p>
+          {vocab.exampleJapanese !== undefined && <Translation text={vocab.exampleJapanese} className="muted" />}
         </div>
       )}
     </article>
@@ -49,7 +50,7 @@ function GrammarCard({ grammar, display }: { grammar: Grammar; display: Furigana
               <KoreanText korean={ex.korean} reading={ex.pronunciation} display={display} />
               <SpeakButton text={ex.korean} />
             </div>
-            <p className="muted">{ex.japanese}</p>
+            <Translation text={ex.japanese} className="muted" />
           </li>
         ))}
       </ul>
