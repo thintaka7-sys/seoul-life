@@ -17,7 +17,7 @@ const BROWSER_CANDIDATES = [
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** 設定を「文字送りなし」にして、操作を速く・確実にする（文字送りの確認をするときは使わない） */
-export const FAST_SETTINGS = { version: 2, furigana: 'recommended', speechRate: 'normal', textSpeed: 'instant', soundEffects: true, effects: 'normal' }
+export const FAST_SETTINGS = { version: 3, furigana: 'recommended', translation: 'always', speechRate: 'normal', textSpeed: 'instant', soundEffects: true, effects: 'normal', voiceInput: true, voiceInputNoticeSeen: false }
 
 /**
  * ブラウザを開き、確認に使う関数をまとめて返す。
@@ -129,6 +129,17 @@ export async function openBrowser(name) {
     }
     await sleep(100)
   }
+  /**
+   * 会話の答え方のタブを押す（label は「選んで答える」「書いて答える」「話して答える」）。
+   * 答え方が3つのときはタブの文字が短くなる（選ぶ・書く・話す）ので、aria-label で探す。タブがなければ false
+   */
+  async function chooseMode(label) {
+    const ok = await evaluate(
+      `(() => { const b = document.querySelector('.mode-tab[aria-label=${JSON.stringify(label)}]'); if (!b) return false; if (b.getAttribute('aria-pressed') !== 'true') b.click(); return true })()`,
+    )
+    await sleep(100)
+    return ok
+  }
   const heading = () => evaluate(`document.querySelector('h1')?.innerText ?? ''`)
   /** main の文字（フリガナを除く） */
   const mainText = () => evaluate(`(() => { const m = document.querySelector('main'); if (!m) return ''; const c = m.cloneNode(true); c.querySelectorAll('rt').forEach(r => r.remove()); return c.textContent })()`)
@@ -193,6 +204,7 @@ export async function openBrowser(name) {
     reload,
     click,
     clickChoice,
+    chooseMode,
     typeKeys,
     heading,
     mainText,

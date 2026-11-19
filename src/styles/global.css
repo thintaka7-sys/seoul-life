@@ -1973,3 +1973,8 @@ rt {
   display: grid;
   gap: 8px;
 }
+
+.lesson-cards {
+  display: grid;
+  gap: 12px;
+}

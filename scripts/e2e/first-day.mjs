@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { openBrowser, sleep } from './browser.mjs'
 
 const b = await openBrowser('first-day')
-const { evaluate, click, clickChoice, typeKeys, heading, mainText, saved, stepHeading, viewport, shot, freshStart, check, layoutCheck, nextCards, reload } = b
+const { evaluate, click, clickChoice, chooseMode, typeKeys, heading, mainText, saved, stepHeading, viewport, shot, freshStart, check, layoutCheck, nextCards, reload } = b
 
 const readJson = (p) => JSON.parse(readFileSync(new URL(`../../src/data/${p}`, import.meta.url), 'utf8'))
 const convs = new Map([...readJson('scenarios/ch01_home.json'), ...readJson('scenarios/ch03_cafe.json')].map((c) => [c.id, c]))
@@ -47,16 +47,15 @@ async function playConversation(id, plan = {}) {
     await advanceUntil(answering, `${id} 往復${t}`)
     const p = plan[t] ?? {}
     if (p.before) await p.before()
-    // 前の往復で「書いて答える」にしていると、次の往復も書く画面で始まるので、選ぶ画面に戻す
-    if (!p.write) await evaluate(`(() => { const b = [...document.querySelectorAll('.mode-tab')].find(b => b.textContent.includes('選んで')); if (b && b.getAttribute('aria-pressed') !== 'true') b.click() })()`)
-    await sleep(100)
+    // 選んでいた答え方は次の往復・次の会話にも引き継がれるので、選ぶときは選ぶ画面に戻す（タブがない往復は選ぶだけ）
+    if (!p.write) await chooseMode('選んで答える')
     if (p.wrong) {
       await clickChoice(p.wrong)
       await sleep(250)
       if (p.onWrong) await p.onWrong()
     }
     if (p.write) {
-      await click('書いて答える')
+      if (!(await chooseMode('書いて答える'))) throw new Error(`${id} 往復${t}：書いて答えるのタブがありません`)
       await typeKeys(p.write)
       await click('答える')
     } else await clickChoice(p.choice ?? turn.choices.find((c) => c.correct).korean)
@@ -74,7 +73,9 @@ for (const [W, H, mobile] of [
   await viewport(W, H, mobile)
   await freshStart()
   await click('はじめから')
-  check(`${P} はじめから → 自宅`, (await heading()) === '自宅')
+  check(`${P} はじめから → ハングルを読めるかを聞く`, (await heading()) === 'ハングルは読めますか？')
+  await click('このまま物語を始める')
+  check(`${P} このまま物語を始める → 自宅`, (await heading()) === '自宅')
 
   // --- event_001（自宅・玄関） ---
   await click('玄関に出る')

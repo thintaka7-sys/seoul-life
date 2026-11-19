@@ -316,8 +316,9 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
     case 'cards': {
       const card = cards[phase.index]
       const isLast = phase.index >= cards.length - 1
+      // 背景の絵の上で読みにくくならないよう、番号と「前へ・次へ」も板の上に置く（BUG-001 と同じ考え方）
       body = (
-        <>
+        <section className="panel lesson-cards">
           <p className="muted small">
             {phase.index + 1} / {cards.length}
           </p>
@@ -330,7 +331,7 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
               {isLast ? (words.length > 0 ? '言葉を読む' : '小テストへ') : '次へ'}
             </Button>
           </div>
-        </>
+        </section>
       )
       break
     }

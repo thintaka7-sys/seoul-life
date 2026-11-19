@@ -32,13 +32,13 @@ for (const [label, save] of cases) {
   await sleep(300)
   const s = await saved()
   const inEvent = await evaluate(`!!document.querySelector('.event-progress')`)
-  check(`${label}：つづきからイベント画面で再開（段階 ${s.progress.activeEvent?.step}）`, inEvent && s.version === 3, JSON.stringify(s.progress))
+  check(`${label}：つづきからイベント画面で再開し、v4 に移行（段階 ${s.progress.activeEvent?.step}）`, inEvent && s.version === 4, `v${s.version} ${JSON.stringify(s.progress)}`)
   for (let i = 0; i < 80 && (await evaluate(`!!document.querySelector('.event-progress')`)); i++) {
     await evaluate(`(() => {
       const start = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '会話をはじめる'); if (start) { start.click(); return }
       const n = document.querySelector('.dialogue__next'); if (n) { n.click(); return }
       const ch = [...document.querySelectorAll('.choice__button:not([disabled])')]; if (ch.length) { ch[Math.floor(Math.random() * ch.length)].click(); return }
-      const tab = [...document.querySelectorAll('.mode-tab')].find(b => b.textContent.includes('選んで')); if (tab) { tab.click(); return }
+      const tab = document.querySelector('.mode-tab[aria-label="選んで答える"]'); if (tab && tab.getAttribute('aria-pressed') !== 'true') { tab.click(); return }
       const b = [...document.querySelectorAll('main button')].find(b => ['次へ', '覚えた！', '閉じる'].includes(b.textContent.trim()) && !b.disabled); if (b) b.click() })()`)
     await sleep(150)
   }
