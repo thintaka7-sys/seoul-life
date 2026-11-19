@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { Notice } from '../components/Notice'
 import { RewardToast } from '../components/RewardToast'
+import { Backdrop } from '../components/scene/Backdrop'
+import { assets, backgroundImage } from '../data'
+import type { ImageAsset } from '../data/types'
 import { DictionaryPage } from '../pages/DictionaryPage'
 import { EventPage } from '../pages/event/EventPage'
 import { LocationPage } from '../pages/LocationPage'
@@ -27,6 +30,23 @@ function SceneView({ scene }: { scene: Scene }) {
       return <DictionaryPage />
     case 'saveError':
       return <SaveErrorPage reason={scene.reason} detail={scene.detail} backupKey={scene.backupKey} />
+  }
+}
+
+/** 画面の後ろに敷く絵（タイトルとマップは街のマップ、施設とイベントはその施設の背景。設定・図鑑は開く前の画面のもの） */
+function backdropFor(scene: Scene): ImageAsset | undefined {
+  switch (scene.name) {
+    case 'title':
+    case 'main':
+      return assets.map ?? undefined
+    case 'location':
+    case 'event':
+      return backgroundImage(scene.locationId)
+    case 'settings':
+    case 'dictionary':
+      return backdropFor(scene.back)
+    case 'saveError':
+      return undefined
   }
 }
 
@@ -72,8 +92,11 @@ export function App() {
     window.scrollTo(0, 0)
   }, [state.scene, state.run?.step])
 
+  const backdrop = backdropFor(state.scene)
+
   return (
-    <div className="app">
+    <div className={`app${backdrop === undefined ? '' : ' app--backdrop'}`} data-effects={state.settings.effects}>
+      <Backdrop image={backdrop} />
       {(!state.storageAvailable || state.saveFailure !== null) && (
         <div className="app__banners">
           {!state.storageAvailable && (

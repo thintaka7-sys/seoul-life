@@ -1,15 +1,23 @@
 import { useGame, nowIso } from '../app/GameContext'
 import { Button } from '../components/Button'
 import { Hud } from '../components/Hud'
+import { TownMap } from '../components/scene/TownMap'
 import { ScreenLayout } from '../components/ScreenLayout'
-import { content } from '../data'
+import { assets, content } from '../data'
+import type { Location } from '../data/types'
 import { nextEvent } from '../game/events/events'
 
 const unlocked = new Set(content.balance.initialLocations)
 
+type MappedLocation = Location & { mapArea: NonNullable<Location['mapArea']> }
+const mapped = content.locations.filter((l): l is MappedLocation => l.mapArea !== undefined)
+
 export function MainPage() {
   const { state, dispatch } = useGame()
   const target = state.save === null ? undefined : nextEvent(content.events, state.save.progress)?.location
+  const go = (locationId: string) => dispatch({ type: 'goToLocation', locationId, now: nowIso() })
+  // マップの絵に載せていない施設は、下のボタンの一覧で選ぶ（マップの絵がなければ、すべてボタンの一覧）
+  const listed = assets.map === null ? content.locations : content.locations.filter((l) => l.mapArea === undefined)
 
   return (
     <ScreenLayout
@@ -22,25 +30,24 @@ export function MainPage() {
       }
     >
       <Hud />
-      <p className="muted">行きたい場所を選んでください。（マップの絵は、絵柄が決まってから追加します）</p>
-      <ul className="tile-grid">
-        {content.locations.map((loc) => {
-          const open = unlocked.has(loc.id)
-          return (
-            <li key={loc.id}>
-              <Button
-                className={`tile${loc.id === target ? ' tile--target' : ''}`}
-                disabled={!open}
-                onClick={() => dispatch({ type: 'goToLocation', locationId: loc.id, now: nowIso() })}
-              >
-                <span className="tile__name">{loc.nameJa}</span>
-                {!open && <span className="tile__note">🔒 まだ行けません</span>}
-                {open && loc.id === target && <span className="tile__note">目標</span>}
-              </Button>
-            </li>
-          )
-        })}
-      </ul>
+      <p className="panel-text">行きたい場所を選んでください。</p>
+      {assets.map !== null && <TownMap image={assets.map} locations={mapped} isOpen={(id) => unlocked.has(id)} targetId={target} onSelect={go} />}
+      {listed.length > 0 && (
+        <ul className="tile-grid">
+          {listed.map((loc) => {
+            const open = unlocked.has(loc.id)
+            return (
+              <li key={loc.id}>
+                <Button className={`tile${loc.id === target ? ' tile--target' : ''}`} disabled={!open} onClick={() => go(loc.id)}>
+                  <span className="tile__name">{loc.nameJa}</span>
+                  {!open && <span className="tile__note">🔒 まだ行けません</span>}
+                  {open && loc.id === target && <span className="tile__note">目標</span>}
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </ScreenLayout>
   )
 }

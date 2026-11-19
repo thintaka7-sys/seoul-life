@@ -120,7 +120,7 @@ export function EventPage() {
         </div>
       </header>
       <progress className="event-progress" max={event.steps.length} value={run.step} aria-label="イベントの進み具合" />
-      <div className="screen__body">{body}</div>
+      <div className="screen__body">{step.type === 'conversation' ? body : <div className="panel">{body}</div>}</div>
     </main>
   )
 }

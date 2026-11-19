@@ -7,9 +7,10 @@ import { KoreanText } from '../../components/KoreanText'
 import { Notice } from '../../components/Notice'
 import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
-import { content, findCharacter } from '../../data'
+import { Stage } from '../../components/scene/Stage'
+import { backgroundImage, content, findCharacter } from '../../data'
 import { PLAYER_SPEAKER_ID, type Conversation, type ConversationChoice } from '../../data/types'
-import { availableModes, canReveal, createSessionReducer, initialSession, sessionPhase, shownLines, type ShownLine } from '../../learning/conversation/session'
+import { availableModes, canReveal, characterExpression, createSessionReducer, initialSession, sessionPhase, shownLines, type ShownLine } from '../../learning/conversation/session'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
 
 function speakerName(speaker: string): string {
@@ -67,8 +68,18 @@ export function ConversationStep({ conversation }: { conversation: Conversation 
     if (answer !== null) dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method, now: nowIso() })
   }, [answer, answeredTurn, dispatch])
 
+  const writing = phase === 'answer' && s.mode === 'write'
+
   return (
     <>
+      <Stage
+        locationId={conversation.location}
+        characterId={conversation.character}
+        expression={characterExpression(conversation, s)}
+        size={writing ? 'compact' : 'normal'}
+        hasBackground={backgroundImage(conversation.location) !== undefined}
+      />
+      <div className="panel">
       <SpeechNotice />
       <ol className="lines">
         {shownLines(conversation, s).map((line, i) => (
@@ -142,6 +153,7 @@ export function ConversationStep({ conversation }: { conversation: Conversation 
           </Button>
         )
       )}
+      </div>
     </>
   )
 }
