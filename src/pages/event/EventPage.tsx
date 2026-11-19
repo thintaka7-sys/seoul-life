@@ -75,7 +75,7 @@ export function EventPage() {
         conversation === undefined ? (
           <p>会話データが見つかりませんでした。</p>
         ) : (
-          <ConversationStep key={stepKey} conversation={conversation} />
+          <ConversationStep key={stepKey} conversation={conversation} replay={run.replay} />
         )
       break
     }

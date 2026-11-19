@@ -76,3 +76,13 @@ export function characterImage(characterId: string, expression: Expression) {
 export function backgroundImage(locationId: string) {
   return assets.backgrounds[locationId]
 }
+
+/** そのキャラクターと最初に話す会話のID（イベントの順。初めて会ったときの紹介を出すのに使う） */
+export function firstConversationWith(characterId: string): string | undefined {
+  for (const event of content.events) {
+    for (const step of event.steps) {
+      if (step.type === 'conversation' && findConversation(step.id)?.character === characterId) return step.id
+    }
+  }
+  return undefined
+}

@@ -1,7 +1,8 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, Ref } from 'react'
 
 interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
   variant?: 'primary' | 'secondary'
+  ref?: Ref<HTMLButtonElement>
 }
 
 export function Button({ variant = 'secondary', className, ...rest }: ButtonProps) {

@@ -3,33 +3,30 @@ import { useGame, nowIso } from '../../app/GameContext'
 import { useFuriganaDisplay } from '../../app/hooks'
 import { AnswerInput } from '../../components/AnswerInput'
 import { Button } from '../../components/Button'
+import { DialogueBox } from '../../components/dialogue/DialogueBox'
+import { LogPanel } from '../../components/dialogue/LogPanel'
+import { ProfileCard } from '../../components/dialogue/ProfileCard'
+import { TEXT_SPEED_MS, plainSegments, totalChars } from '../../components/dialogue/typewriter'
+import { useTypewriter } from '../../components/dialogue/useTypewriter'
 import { KoreanText } from '../../components/KoreanText'
 import { Notice } from '../../components/Notice'
+import { Stage } from '../../components/scene/Stage'
 import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
-import { Stage } from '../../components/scene/Stage'
-import { backgroundImage, content, findCharacter } from '../../data'
-import { PLAYER_SPEAKER_ID, type Conversation, type ConversationChoice } from '../../data/types'
-import { availableModes, canReveal, characterExpression, createSessionReducer, initialSession, sessionPhase, shownLines, type ShownLine } from '../../learning/conversation/session'
-import type { FuriganaDisplay } from '../../learning/furigana/furigana'
-
-function speakerName(speaker: string): string {
-  if (speaker === PLAYER_SPEAKER_ID) return 'あなた'
-  return findCharacter(speaker)?.roleJa ?? speaker
-}
-
-function Line({ line, display }: { line: ShownLine; display: FuriganaDisplay }) {
-  return (
-    <li className={`line${line.speaker === PLAYER_SPEAKER_ID ? ' line--player' : ''}`}>
-      <span className="line__speaker">{speakerName(line.speaker)}</span>
-      <div className="ko-row">
-        <KoreanText korean={line.korean} reading={line.pronunciation} display={display} className="line__ko" />
-        <SpeakButton text={line.korean} />
-      </div>
-      <p className="line__ja">{line.japanese}</p>
-    </li>
-  )
-}
+import { backgroundImage, content, findCharacter, firstConversationWith } from '../../data'
+import type { Conversation, ConversationChoice } from '../../data/types'
+import {
+  availableModes,
+  canReveal,
+  characterExpression,
+  createSessionReducer,
+  initialSession,
+  sessionPhase,
+  shownLines,
+  type ConversationSession,
+  type TurnAnswer,
+} from '../../learning/conversation/session'
+import { pairReading, type FuriganaDisplay } from '../../learning/furigana/furigana'
 
 /** 選択肢。フリガナが「タップで表示」のときは、選択肢を押すと答えになってしまうため、横の「読み」ボタンで出す */
 function ChoiceItem({ choice, wrong, display, onChoose }: { choice: ConversationChoice; wrong: boolean; display: FuriganaDisplay; onChoose: () => void }) {
@@ -50,16 +47,104 @@ function ChoiceItem({ choice, wrong, display, onChoose }: { choice: Conversation
   )
 }
 
-export function ConversationStep({ conversation }: { conversation: Conversation }) {
-  const { dispatch } = useGame()
+/** 答えた直後に、主人公の返事の上に出す知らせ */
+function AnswerBadge({ answer }: { answer: TurnAnswer }) {
+  if (answer.method === 'revealed') {
+    return (
+      <Notice>
+        答え：<span lang="ko">{answer.line.korean}</span>（次は書けるようにしてみましょう）
+      </Notice>
+    )
+  }
+  if (answer.spacingNote) {
+    return (
+      <Notice tone="warn">
+        正解。ただし分かち書きに注意：<span lang="ko">{answer.line.korean}</span>
+      </Notice>
+    )
+  }
+  return (
+    <p className="correct" aria-live="polite">
+      正解！
+    </p>
+  )
+}
+
+/** 返事をする欄（選ぶ・書く） */
+function AnswerArea({
+  conversation,
+  s,
+  send,
+  display,
+}: {
+  conversation: Conversation
+  s: ConversationSession
+  send: (a: Parameters<ReturnType<typeof createSessionReducer>>[1]) => void
+  display: FuriganaDisplay
+}) {
+  const turn = conversation.turns[s.turn]
+  if (turn?.choices === undefined) return null
+  const modes = availableModes(turn)
+  const lastWrong = s.wrongChoices.at(-1)
+  const lastWrongChoice = lastWrong === undefined ? undefined : turn.choices[lastWrong]
+
+  return (
+    <section className="answer panel" aria-label="返事をする">
+      {modes.length > 1 && (
+        <div className="mode-tabs" role="group" aria-label="答え方">
+          {modes.map((mode) => (
+            <button key={mode} type="button" className="mode-tab" aria-pressed={s.mode === mode} onClick={() => send({ type: 'setMode', mode })}>
+              {mode === 'choice' ? '選んで答える' : '書いて答える'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {s.mode === 'choice' && (
+        <>
+          <p className="step-heading">返事を選んでください</p>
+          <ul className="choices">
+            {turn.choices.map((choice, i) => (
+              <ChoiceItem key={choice.korean} choice={choice} wrong={s.wrongChoices.includes(i)} display={display} onChoose={() => send({ type: 'choose', index: i })} />
+            ))}
+          </ul>
+          {lastWrongChoice !== undefined && (
+            <Notice tone="warn">
+              「<span lang="ko">{lastWrongChoice.korean}</span>」は「{lastWrongChoice.japanese}」という意味です。もう一度選んでみましょう。
+            </Notice>
+          )}
+        </>
+      )}
+
+      {s.mode === 'write' && turn.freeAnswer !== undefined && (
+        <>
+          <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で書いてみましょう</p>
+          <AnswerInput key={s.turn} onSubmit={(text) => send({ type: 'submitWrite', text })} />
+          {s.lastJudge?.kind === 'incorrect' && <Notice tone="warn">ちがうようです。もう一度書いてみましょう。</Notice>}
+          {canReveal(conversation, s, content.balance.writeAttemptsBeforeReveal) && <Button onClick={() => send({ type: 'reveal' })}>答えを見る</Button>}
+        </>
+      )}
+    </section>
+  )
+}
+
+export function ConversationStep({ conversation, replay }: { conversation: Conversation; replay: boolean }) {
+  const { state, dispatch } = useGame()
   const display = useFuriganaDisplay(conversation.chapter)
   const reducer = useMemo(() => createSessionReducer(conversation, content.balance.writeAttemptsBeforeReveal), [conversation])
   const [s, send] = useReducer(reducer, conversation, initialSession)
-  const turn = conversation.turns[s.turn]
-  const modes = availableModes(turn)
+  const [logOpen, setLogOpen] = useState(false)
+  const character = findCharacter(conversation.character)
+  const [profileOpen, setProfileOpen] = useState(() => !replay && character !== undefined && firstConversationWith(conversation.character) === conversation.id)
+
   const phase = sessionPhase(conversation, s)
-  const lastWrong = s.wrongChoices.at(-1)
-  const lastWrongChoice = lastWrong === undefined ? undefined : turn?.choices?.[lastWrong]
+  const lines = shownLines(conversation, s)
+  const current = lines.at(-1)
+  const lineKey = `${s.turn}:${lines.length}:${current?.kind ?? ''}`
+  const segments = current === undefined ? [] : current.pronunciation === null ? plainSegments(current.korean) : (pairReading(current.korean, current.pronunciation) ?? plainSegments(current.korean))
+  // 紹介のカードを出している間と、主人公の返事は文字送りしない
+  const msPerChar = profileOpen || current?.kind === 'player' ? 0 : TEXT_SPEED_MS[state.settings.textSpeed]
+  const typing = useTypewriter(lineKey, totalChars(segments), msPerChar)
 
   // 往復に答えたら、その場で経験値を付ける
   const answer = s.answer
@@ -69,9 +154,10 @@ export function ConversationStep({ conversation }: { conversation: Conversation 
   }, [answer, answeredTurn, dispatch])
 
   const writing = phase === 'answer' && s.mode === 'write'
+  const advance = () => (phase === 'end' ? dispatch({ type: 'conversationDone', now: nowIso() }) : send({ type: 'next' }))
 
   return (
-    <>
+    <div className="conversation">
       <Stage
         locationId={conversation.location}
         characterId={conversation.character}
@@ -79,81 +165,21 @@ export function ConversationStep({ conversation }: { conversation: Conversation 
         size={writing ? 'compact' : 'normal'}
         hasBackground={backgroundImage(conversation.location) !== undefined}
       />
-      <div className="panel">
       <SpeechNotice />
-      <ol className="lines">
-        {shownLines(conversation, s).map((line, i) => (
-          <Line key={i} line={line} display={display} />
-        ))}
-      </ol>
-
-      {phase === 'answer' && turn?.choices !== undefined && (
-        <section className="answer" aria-label="返事をする">
-          {modes.length > 1 && (
-            <div className="mode-tabs" role="group" aria-label="答え方">
-              {modes.map((mode) => (
-                <button key={mode} type="button" className="mode-tab" aria-pressed={s.mode === mode} onClick={() => send({ type: 'setMode', mode })}>
-                  {mode === 'choice' ? '選んで答える' : '書いて答える'}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {s.mode === 'choice' && (
-            <>
-              <p className="step-heading">返事を選んでください</p>
-              <ul className="choices">
-                {turn.choices.map((choice, i) => (
-                  <ChoiceItem key={choice.korean} choice={choice} wrong={s.wrongChoices.includes(i)} display={display} onChoose={() => send({ type: 'choose', index: i })} />
-                ))}
-              </ul>
-              {lastWrongChoice !== undefined && (
-                <Notice tone="warn">
-                  「<span lang="ko">{lastWrongChoice.korean}</span>」は「{lastWrongChoice.japanese}」という意味です。もう一度選んでみましょう。
-                </Notice>
-              )}
-            </>
-          )}
-
-          {s.mode === 'write' && turn.freeAnswer !== undefined && (
-            <>
-              <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で書いてみましょう</p>
-              <AnswerInput key={s.turn} onSubmit={(text) => send({ type: 'submitWrite', text })} />
-              {s.lastJudge?.kind === 'incorrect' && <Notice tone="warn">ちがうようです。もう一度書いてみましょう。</Notice>}
-              {canReveal(conversation, s, content.balance.writeAttemptsBeforeReveal) && <Button onClick={() => send({ type: 'reveal' })}>答えを見る</Button>}
-            </>
-          )}
-        </section>
+      {current !== undefined && (
+        <DialogueBox
+          line={current}
+          display={display}
+          typing={typing}
+          canAdvance={phase !== 'answer'}
+          onAdvance={advance}
+          onOpenLog={() => setLogOpen(true)}
+          badge={current.kind === 'player' && answer !== null ? <AnswerBadge answer={answer} /> : undefined}
+        />
       )}
-
-      {answer !== null && s.shownReply === 0 && (
-        <section className="result" aria-live="polite">
-          {answer.method === 'revealed' ? (
-            <Notice>
-              答え：<span lang="ko">{answer.line.korean}</span>（次は書けるようにしてみましょう）
-            </Notice>
-          ) : answer.spacingNote ? (
-            <Notice tone="warn">
-              正解。ただし分かち書きに注意：<span lang="ko">{answer.line.korean}</span>
-            </Notice>
-          ) : (
-            <p className="correct">正解！</p>
-          )}
-        </section>
-      )}
-
-      {phase === 'end' ? (
-        <Button variant="primary" onClick={() => dispatch({ type: 'conversationDone', now: nowIso() })}>
-          次へ
-        </Button>
-      ) : (
-        phase !== 'answer' && (
-          <Button variant="primary" onClick={() => send({ type: 'next' })}>
-            次へ
-          </Button>
-        )
-      )}
-      </div>
-    </>
+      {phase === 'answer' && typing.done && !profileOpen && <AnswerArea conversation={conversation} s={s} send={send} display={display} />}
+      {logOpen && <LogPanel lines={lines} display={display} onClose={() => setLogOpen(false)} />}
+      {profileOpen && character !== undefined && <ProfileCard character={character} display={display} onClose={() => setProfileOpen(false)} />}
+    </div>
   )
 }

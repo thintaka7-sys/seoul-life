@@ -1192,3 +1192,241 @@ rt {
 [data-effects='reduced'] .stage {
   transition: none;
 }
+
+/* ---------- 会話（台詞の枠・名前の札・ログ・紹介） ---------- */
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 会話の舞台は少し低くし、台詞の枠を立ち絵の下に重ねる */
+.conversation .stage--normal {
+  height: clamp(200px, 36dvh, 420px);
+  margin-bottom: -56px;
+}
+
+.tw-hidden {
+  visibility: hidden;
+}
+
+.dialogue {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  border: 2px solid var(--char-color, var(--color-border));
+  border-radius: 16px;
+  background: var(--color-glass-strong);
+  box-shadow: var(--shadow-panel);
+  cursor: pointer;
+  animation: fade-in var(--duration-fade) ease-out;
+}
+
+.dialogue--player {
+  border-color: var(--color-primary);
+  background: #fff8f2;
+}
+
+.dialogue__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dialogue__log {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+}
+
+.dialogue__ko {
+  font-size: 1.3rem;
+  line-height: 2;
+}
+
+.dialogue__ja {
+  margin: 0;
+  color: var(--color-muted);
+  transition: opacity var(--duration-fade) ease;
+}
+
+.dialogue__ja--waiting {
+  opacity: 0;
+}
+
+.dialogue__next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  min-width: 120px;
+  gap: 8px;
+}
+
+.dialogue__next-mark {
+  font-size: 0.7rem;
+  animation: next-bob 1s ease-in-out infinite;
+}
+
+@keyframes next-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 3px;
+  }
+}
+
+.nameplate {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin: 0;
+  padding: 2px 12px;
+  border-radius: 10px;
+  background: var(--char-color, var(--color-surface-soft));
+  color: var(--char-on, var(--color-text));
+  font-weight: 700;
+}
+
+.nameplate--player {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.nameplate__name {
+  font-size: 1.05rem;
+}
+
+.nameplate__name rt {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.nameplate .ko-text--tap {
+  color: inherit;
+}
+
+.nameplate__role {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: rgb(30 20 10 / 0.45);
+  animation: fade-in var(--duration-fade) ease-out;
+}
+
+.overlay__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: calc(var(--content-width) - 2 * var(--gutter));
+  max-height: calc(100dvh - 2 * var(--gutter));
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.25);
+}
+
+.log-list {
+  display: grid;
+  gap: 10px;
+}
+
+.log-line {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--char-color, var(--color-border));
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+}
+
+.log-line--player {
+  border-left-color: var(--color-primary);
+}
+
+.log-line__ja {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.profile-card {
+  align-items: center;
+  text-align: center;
+  border-top: 8px solid var(--char-color, var(--color-primary));
+  animation: card-pop var(--duration-move) ease-out;
+}
+
+.profile-card__label {
+  margin: 0;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--char-color, var(--color-surface-soft));
+  color: var(--char-on, var(--color-text));
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.profile-card__portrait {
+  width: 160px;
+  height: 180px;
+  overflow: hidden;
+}
+
+.profile-card__portrait .portrait {
+  width: 100%;
+}
+
+.profile-card__name {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.profile-card__role {
+  margin: -8px 0 0;
+  color: var(--color-muted);
+}
+
+.profile-card__text {
+  margin: 0;
+  text-align: left;
+}
+
+.profile-card .button {
+  align-self: stretch;
+}
+
+@keyframes card-pop {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+[data-effects='reduced'] .profile-card {
+  animation-name: fade-in;
+}
+
+[data-effects='reduced'] .dialogue__next-mark {
+  animation: none;
+}
