@@ -1,0 +1,1573 @@
+[
+  {
+    "id": "hangul_001",
+    "order": 1,
+    "kind": "letters",
+    "titleJa": "基本の母音（1）",
+    "introJa": [
+      "ハングルは、子音と母音のパーツを組み合わせて、1つの文字（音節）を作ります。パーツの形と音を覚えれば、知らない言葉でも読めるようになります。",
+      "母音だけの音を書くときは、音のない子音 ㅇ を前に付けます。ㅏ なら 아、ㅗ なら 오 と書きます。",
+      "このレッスンでは、基本の母音を6つ覚えます。ㅓ と ㅗ、ㅜ と ㅡ は、カタカナではどちらも「オ」「ウ」になりますが、口の形が違う別の音です。読み上げをよく聞き比べてください。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㅏ",
+        "sounds": [
+          {
+            "korean": "아",
+            "pronunciation": "ア"
+          }
+        ],
+        "tipJa": "日本語の「ア」とほぼ同じです。口を大きく開けます。"
+      },
+      {
+        "jamo": "ㅓ",
+        "sounds": [
+          {
+            "korean": "어",
+            "pronunciation": "オ"
+          }
+        ],
+        "tipJa": "「ア」の口の形のまま、「オ」と言います。口を縦に大きく開けた、こもった「オ」です。",
+        "confusableWith": [
+          "ㅗ"
+        ]
+      },
+      {
+        "jamo": "ㅗ",
+        "sounds": [
+          {
+            "korean": "오",
+            "pronunciation": "オ"
+          }
+        ],
+        "tipJa": "唇を丸くすぼめて、前に突き出して「オ」と言います。",
+        "confusableWith": [
+          "ㅓ"
+        ]
+      },
+      {
+        "jamo": "ㅜ",
+        "sounds": [
+          {
+            "korean": "우",
+            "pronunciation": "ウ"
+          }
+        ],
+        "tipJa": "唇を丸くすぼめて、前に突き出して「ウ」と言います。日本語の「ウ」より、唇をしっかり丸めます。",
+        "confusableWith": [
+          "ㅡ"
+        ]
+      },
+      {
+        "jamo": "ㅡ",
+        "sounds": [
+          {
+            "korean": "으",
+            "pronunciation": "ウ"
+          }
+        ],
+        "tipJa": "唇を横に引いて（「イ」の口の形で）「ウ」と言います。",
+        "confusableWith": [
+          "ㅜ"
+        ]
+      },
+      {
+        "jamo": "ㅣ",
+        "sounds": [
+          {
+            "korean": "이",
+            "pronunciation": "イ"
+          }
+        ],
+        "tipJa": "日本語の「イ」とほぼ同じです。"
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_001",
+        "korean": "아이",
+        "pronunciation": "アイ",
+        "japanese": "子ども"
+      },
+      {
+        "id": "hword_002",
+        "korean": "오이",
+        "pronunciation": "オイ",
+        "japanese": "きゅうり"
+      },
+      {
+        "id": "hword_003",
+        "korean": "어이",
+        "pronunciation": "オイ",
+        "japanese": "おい（呼びかけ。くだけた言い方で、失礼に聞こえることがある）"
+      },
+      {
+        "id": "hword_004",
+        "korean": "이",
+        "pronunciation": "イ",
+        "japanese": "歯"
+      },
+      {
+        "id": "hword_005",
+        "korean": "오",
+        "pronunciation": "オ",
+        "japanese": "5（数字の五）"
+      },
+      {
+        "id": "hword_006",
+        "korean": "우아",
+        "pronunciation": "ウア",
+        "japanese": "優雅（な様子）"
+      },
+      {
+        "id": "hword_007",
+        "korean": "아아",
+        "pronunciation": "アア",
+        "japanese": "アイスアメリカーノ（縮めた言い方）"
+      }
+    ],
+    "reviewed": true,
+    "notes": "母音とㅇだけで書ける単語は少ないため7語（ㅡ を使う言葉はない）。오이 と 어이 は、ㅗ と ㅓ の聞き比べ用。아아 は column_002 に出てくる言い方／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_002",
+    "order": 2,
+    "kind": "letters",
+    "titleJa": "基本の母音（2）",
+    "introJa": [
+      "ㅏ ㅓ ㅗ ㅜ に短い線を1本足すと、前に「イ」が付いた音（ヤ行の音）になります。",
+      "ㅏ→ㅑ（ヤ）、ㅓ→ㅕ（ヨ）、ㅗ→ㅛ（ヨ）、ㅜ→ㅠ（ユ）です。ㅕ と ㅛ は、ㅓ と ㅗ と同じように、口の形で区別します。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㅑ",
+        "sounds": [
+          {
+            "korean": "야",
+            "pronunciation": "ヤ"
+          }
+        ],
+        "tipJa": "日本語の「ヤ」とほぼ同じです。"
+      },
+      {
+        "jamo": "ㅕ",
+        "sounds": [
+          {
+            "korean": "여",
+            "pronunciation": "ヨ"
+          }
+        ],
+        "tipJa": "ㅓ の前に「イ」を付けた音です。口を縦に大きく開けた「ヨ」です。",
+        "confusableWith": [
+          "ㅛ"
+        ]
+      },
+      {
+        "jamo": "ㅛ",
+        "sounds": [
+          {
+            "korean": "요",
+            "pronunciation": "ヨ"
+          }
+        ],
+        "tipJa": "ㅗ の前に「イ」を付けた音です。唇を丸くすぼめた「ヨ」です。",
+        "confusableWith": [
+          "ㅕ"
+        ]
+      },
+      {
+        "jamo": "ㅠ",
+        "sounds": [
+          {
+            "korean": "유",
+            "pronunciation": "ユ"
+          }
+        ],
+        "tipJa": "ㅜ の前に「イ」を付けた音です。唇を丸く突き出した「ユ」です。"
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_008",
+        "korean": "우유",
+        "pronunciation": "ウユ",
+        "japanese": "牛乳"
+      },
+      {
+        "id": "hword_009",
+        "korean": "여우",
+        "pronunciation": "ヨウ",
+        "japanese": "キツネ"
+      },
+      {
+        "id": "hword_010",
+        "korean": "이유",
+        "pronunciation": "イユ",
+        "japanese": "理由"
+      },
+      {
+        "id": "hword_011",
+        "korean": "여유",
+        "pronunciation": "ヨユ",
+        "japanese": "余裕"
+      },
+      {
+        "id": "hword_012",
+        "korean": "유아",
+        "pronunciation": "ユア",
+        "japanese": "幼児"
+      },
+      {
+        "id": "hword_013",
+        "korean": "요요",
+        "pronunciation": "ヨヨ",
+        "japanese": "ヨーヨー"
+      },
+      {
+        "id": "hword_014",
+        "korean": "아야",
+        "pronunciation": "アヤ",
+        "japanese": "痛っ（痛いときの声）"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_003",
+    "order": 3,
+    "kind": "letters",
+    "titleJa": "基本の子音（1）",
+    "introJa": [
+      "子音の文字は、母音の左か上に書きます。ㅏ ㅓ ㅣ のような縦長の母音なら左に（가）、ㅗ ㅜ ㅡ のような横長の母音なら上に書きます（고）。",
+      "子音だけでは音が聞けないので、母音と組み合わせた音（가・고・구 など）で聞きます。",
+      "ㄱ と ㄷ は、言葉の最初では濁らずに「カ」「タ」に近い音ですが、母音の後に来ると濁って「ガ」「ダ」に近い音になります（有声音化）。고기 は「コギ」、구두 は「クドゥ」と聞こえます。パッチムのレッスンで覚える ㄴ・ㄹ・ㅁ・ㅇ の後でも濁ります。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㄱ",
+        "sounds": [
+          {
+            "korean": "가",
+            "pronunciation": "カ"
+          },
+          {
+            "korean": "고",
+            "pronunciation": "コ"
+          },
+          {
+            "korean": "구",
+            "pronunciation": "ク"
+          }
+        ],
+        "tipJa": "言葉の最初では「カ」行に近い音です。息は強く出しません。母音の後では「ガ」行に近くなります。"
+      },
+      {
+        "jamo": "ㄴ",
+        "sounds": [
+          {
+            "korean": "나",
+            "pronunciation": "ナ"
+          },
+          {
+            "korean": "노",
+            "pronunciation": "ノ"
+          },
+          {
+            "korean": "누",
+            "pronunciation": "ヌ"
+          }
+        ],
+        "tipJa": "日本語の「ナ」行とほぼ同じです。"
+      },
+      {
+        "jamo": "ㄷ",
+        "sounds": [
+          {
+            "korean": "다",
+            "pronunciation": "タ"
+          },
+          {
+            "korean": "도",
+            "pronunciation": "ト"
+          },
+          {
+            "korean": "두",
+            "pronunciation": "トゥ"
+          }
+        ],
+        "tipJa": "言葉の最初では「タ」行に近い音です。母音の後では「ダ」行に近くなります。두 は「ツ」ではなく「トゥ」、디 は「チ」ではなく「ティ」です。"
+      },
+      {
+        "jamo": "ㄹ",
+        "sounds": [
+          {
+            "korean": "라",
+            "pronunciation": "ラ"
+          },
+          {
+            "korean": "로",
+            "pronunciation": "ロ"
+          },
+          {
+            "korean": "루",
+            "pronunciation": "ル"
+          }
+        ],
+        "tipJa": "日本語の「ラ」行とほぼ同じです。舌の先で、上あごを軽くはじきます。"
+      },
+      {
+        "jamo": "ㅁ",
+        "sounds": [
+          {
+            "korean": "마",
+            "pronunciation": "マ"
+          },
+          {
+            "korean": "모",
+            "pronunciation": "モ"
+          },
+          {
+            "korean": "무",
+            "pronunciation": "ム"
+          }
+        ],
+        "tipJa": "日本語の「マ」行とほぼ同じです。"
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_015",
+        "korean": "나무",
+        "pronunciation": "ナム",
+        "japanese": "木"
+      },
+      {
+        "id": "hword_016",
+        "korean": "고기",
+        "pronunciation": "コギ",
+        "japanese": "肉"
+      },
+      {
+        "id": "hword_017",
+        "korean": "어머니",
+        "pronunciation": "オモニ",
+        "japanese": "お母さん"
+      },
+      {
+        "id": "hword_018",
+        "korean": "다리",
+        "pronunciation": "タリ",
+        "japanese": "脚／橋"
+      },
+      {
+        "id": "hword_019",
+        "korean": "머리",
+        "pronunciation": "モリ",
+        "japanese": "頭／髪"
+      },
+      {
+        "id": "hword_020",
+        "korean": "나라",
+        "pronunciation": "ナラ",
+        "japanese": "国"
+      },
+      {
+        "id": "hword_021",
+        "korean": "구두",
+        "pronunciation": "クドゥ",
+        "japanese": "革靴"
+      },
+      {
+        "id": "hword_022",
+        "korean": "라디오",
+        "pronunciation": "ラディオ",
+        "japanese": "ラジオ"
+      }
+    ],
+    "reviewed": true,
+    "notes": "有声音化（母音の後で濁る音）は introJa と tipJa で説明した／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_004",
+    "order": 4,
+    "kind": "letters",
+    "titleJa": "基本の子音（2）",
+    "introJa": [
+      "残りの基本の子音を5つ覚えます。これで、基本の母音と子音がそろいます。",
+      "ㅂ と ㅈ も、ㄱ・ㄷ と同じように、母音の後では濁ります。바다 は「パダ」、아버지 は「アボジ」と聞こえます。",
+      "文の中でも同じです。주세요（ください）は、単独では「チュセヨ」ですが、우유 주세요（牛乳をください）のように前に言葉があると、「ウユ ジュセヨ」と濁って聞こえます。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㅂ",
+        "sounds": [
+          {
+            "korean": "바",
+            "pronunciation": "パ"
+          },
+          {
+            "korean": "보",
+            "pronunciation": "ポ"
+          },
+          {
+            "korean": "부",
+            "pronunciation": "プ"
+          }
+        ],
+        "tipJa": "言葉の最初では「パ」行に近い音です。息は強く出しません。母音の後では「バ」行に近くなります。"
+      },
+      {
+        "jamo": "ㅅ",
+        "sounds": [
+          {
+            "korean": "사",
+            "pronunciation": "サ"
+          },
+          {
+            "korean": "소",
+            "pronunciation": "ソ"
+          },
+          {
+            "korean": "시",
+            "pronunciation": "シ"
+          }
+        ],
+        "tipJa": "日本語の「サ」行に近い音です。ㅣ の前では「シ」、ㅑ・ㅕ・ㅛ・ㅠ の前では「シャ」行の音になります。言葉の途中でも濁りません。"
+      },
+      {
+        "jamo": "ㅇ",
+        "sounds": [
+          {
+            "korean": "아",
+            "pronunciation": "ア"
+          },
+          {
+            "korean": "오",
+            "pronunciation": "オ"
+          },
+          {
+            "korean": "우",
+            "pronunciation": "ウ"
+          }
+        ],
+        "tipJa": "音節の最初では音がありません。母音だけの音を書くときに使います。音節の下（パッチム）に付くと「ン」の音になります（パッチムのレッスンで覚えます）。"
+      },
+      {
+        "jamo": "ㅈ",
+        "sounds": [
+          {
+            "korean": "자",
+            "pronunciation": "チャ"
+          },
+          {
+            "korean": "조",
+            "pronunciation": "チョ"
+          },
+          {
+            "korean": "주",
+            "pronunciation": "チュ"
+          }
+        ],
+        "tipJa": "言葉の最初では「チャ」行に近い音です。母音の後では「ジャ」行に近くなります。"
+      },
+      {
+        "jamo": "ㅎ",
+        "sounds": [
+          {
+            "korean": "하",
+            "pronunciation": "ハ"
+          },
+          {
+            "korean": "호",
+            "pronunciation": "ホ"
+          },
+          {
+            "korean": "후",
+            "pronunciation": "フ"
+          }
+        ],
+        "tipJa": "日本語の「ハ」行に近い音です。言葉の途中では弱くなって、聞こえにくくなることがあります（音の変化のレッスンで覚えます）。"
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_023",
+        "korean": "바다",
+        "pronunciation": "パダ",
+        "japanese": "海"
+      },
+      {
+        "id": "hword_024",
+        "korean": "모자",
+        "pronunciation": "モジャ",
+        "japanese": "帽子"
+      },
+      {
+        "id": "hword_025",
+        "korean": "아버지",
+        "pronunciation": "アボジ",
+        "japanese": "お父さん"
+      },
+      {
+        "id": "hword_026",
+        "korean": "지도",
+        "pronunciation": "チド",
+        "japanese": "地図"
+      },
+      {
+        "id": "hword_027",
+        "korean": "두부",
+        "pronunciation": "トゥブ",
+        "japanese": "豆腐"
+      },
+      {
+        "id": "hword_028",
+        "korean": "주스",
+        "pronunciation": "チュス",
+        "japanese": "ジュース"
+      },
+      {
+        "id": "hword_029",
+        "korean": "휴지",
+        "pronunciation": "ヒュジ",
+        "japanese": "ティッシュ／トイレットペーパー"
+      },
+      {
+        "id": "hword_030",
+        "korean": "가수",
+        "pronunciation": "カス",
+        "japanese": "歌手"
+      }
+    ],
+    "reviewed": true,
+    "notes": "주세요 が文の中で「ジュセヨ」と聞こえる理由（有声音化）を introJa に入れた／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_005",
+    "order": 5,
+    "kind": "letters",
+    "titleJa": "激音（息を強く出す子音）",
+    "introJa": [
+      "激音は、息を強く吐き出して言う子音です。口の前に手のひらを当てて言うと、息が当たるのが分かります。",
+      "多くは、基本の子音に線を足した形です。ㄱ→ㅋ、ㄷ→ㅌ、ㅂ→ㅍ、ㅈ→ㅊ と対応しています。",
+      "激音は、言葉の途中でも濁りません。토마토 は「トマト」、기차 は「キチャ」です。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㅊ",
+        "sounds": [
+          {
+            "korean": "차",
+            "pronunciation": "チャ"
+          },
+          {
+            "korean": "초",
+            "pronunciation": "チョ"
+          },
+          {
+            "korean": "치",
+            "pronunciation": "チ"
+          }
+        ],
+        "tipJa": "息を強く吐きながら「チャ」行の音を言います。",
+        "confusableWith": [
+          "ㅈ"
+        ]
+      },
+      {
+        "jamo": "ㅋ",
+        "sounds": [
+          {
+            "korean": "카",
+            "pronunciation": "カ"
+          },
+          {
+            "korean": "코",
+            "pronunciation": "コ"
+          },
+          {
+            "korean": "키",
+            "pronunciation": "キ"
+          }
+        ],
+        "tipJa": "息を強く吐きながら「カ」行の音を言います。",
+        "confusableWith": [
+          "ㄱ"
+        ]
+      },
+      {
+        "jamo": "ㅌ",
+        "sounds": [
+          {
+            "korean": "타",
+            "pronunciation": "タ"
+          },
+          {
+            "korean": "토",
+            "pronunciation": "ト"
+          },
+          {
+            "korean": "티",
+            "pronunciation": "ティ"
+          }
+        ],
+        "tipJa": "息を強く吐きながら「タ」行の音を言います。티 は「チ」ではなく「ティ」です。",
+        "confusableWith": [
+          "ㄷ"
+        ]
+      },
+      {
+        "jamo": "ㅍ",
+        "sounds": [
+          {
+            "korean": "파",
+            "pronunciation": "パ"
+          },
+          {
+            "korean": "포",
+            "pronunciation": "ポ"
+          },
+          {
+            "korean": "피",
+            "pronunciation": "ピ"
+          }
+        ],
+        "tipJa": "息を強く吐きながら「パ」行の音を言います。",
+        "confusableWith": [
+          "ㅂ"
+        ]
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_031",
+        "korean": "커피",
+        "pronunciation": "コピ",
+        "japanese": "コーヒー"
+      },
+      {
+        "id": "hword_032",
+        "korean": "기차",
+        "pronunciation": "キチャ",
+        "japanese": "列車"
+      },
+      {
+        "id": "hword_033",
+        "korean": "코",
+        "pronunciation": "コ",
+        "japanese": "鼻"
+      },
+      {
+        "id": "hword_034",
+        "korean": "치마",
+        "pronunciation": "チマ",
+        "japanese": "スカート"
+      },
+      {
+        "id": "hword_035",
+        "korean": "토마토",
+        "pronunciation": "トマト",
+        "japanese": "トマト"
+      },
+      {
+        "id": "hword_036",
+        "korean": "포도",
+        "pronunciation": "ポド",
+        "japanese": "ぶどう"
+      },
+      {
+        "id": "hword_037",
+        "korean": "피아노",
+        "pronunciation": "ピアノ",
+        "japanese": "ピアノ"
+      },
+      {
+        "id": "hword_038",
+        "korean": "카드",
+        "pronunciation": "カドゥ",
+        "japanese": "カード"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_006",
+    "order": 6,
+    "kind": "letters",
+    "titleJa": "濃音（詰まった強い子音）",
+    "introJa": [
+      "濃音は、口や舌に力を入れ、息をほとんど出さずに言う、詰まった強い音です。",
+      "基本の子音を2つ並べた形です。ㄱ→ㄲ、ㄷ→ㄸ、ㅂ→ㅃ、ㅅ→ㅆ、ㅈ→ㅉ と対応しています。小さい「ッ」を前に付けて言うと、近い音になります。このゲームのカタカナでも「ッ」を付けて書きます（아빠＝アッパ）。",
+      "가・카・까 のように、同じ口の位置で3種類の音があります。基本の子音はやわらかく、激音は息が強く、濃音は詰まった音です。聞き比べてみてください。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㄲ",
+        "sounds": [
+          {
+            "korean": "까",
+            "pronunciation": "ッカ"
+          },
+          {
+            "korean": "꼬",
+            "pronunciation": "ッコ"
+          },
+          {
+            "korean": "꾸",
+            "pronunciation": "ック"
+          }
+        ],
+        "tipJa": "息をほとんど出さずに、詰まった感じで「ッカ」と言います。",
+        "confusableWith": [
+          "ㄱ",
+          "ㅋ"
+        ]
+      },
+      {
+        "jamo": "ㄸ",
+        "sounds": [
+          {
+            "korean": "따",
+            "pronunciation": "ッタ"
+          },
+          {
+            "korean": "또",
+            "pronunciation": "ット"
+          },
+          {
+            "korean": "뚜",
+            "pronunciation": "ットゥ"
+          }
+        ],
+        "tipJa": "息をほとんど出さずに、詰まった感じで「ッタ」と言います。",
+        "confusableWith": [
+          "ㄷ",
+          "ㅌ"
+        ]
+      },
+      {
+        "jamo": "ㅃ",
+        "sounds": [
+          {
+            "korean": "빠",
+            "pronunciation": "ッパ"
+          },
+          {
+            "korean": "뽀",
+            "pronunciation": "ッポ"
+          },
+          {
+            "korean": "뿌",
+            "pronunciation": "ップ"
+          }
+        ],
+        "tipJa": "息をほとんど出さずに、詰まった感じで「ッパ」と言います。",
+        "confusableWith": [
+          "ㅂ",
+          "ㅍ"
+        ]
+      },
+      {
+        "jamo": "ㅆ",
+        "sounds": [
+          {
+            "korean": "싸",
+            "pronunciation": "ッサ"
+          },
+          {
+            "korean": "쏘",
+            "pronunciation": "ッソ"
+          },
+          {
+            "korean": "씨",
+            "pronunciation": "ッシ"
+          }
+        ],
+        "tipJa": "息をほとんど出さずに、詰まった感じで「ッサ」と言います。ㅣ の前では「ッシ」になります。",
+        "confusableWith": [
+          "ㅅ"
+        ]
+      },
+      {
+        "jamo": "ㅉ",
+        "sounds": [
+          {
+            "korean": "짜",
+            "pronunciation": "ッチャ"
+          },
+          {
+            "korean": "쪼",
+            "pronunciation": "ッチョ"
+          },
+          {
+            "korean": "찌",
+            "pronunciation": "ッチ"
+          }
+        ],
+        "tipJa": "息をほとんど出さずに、詰まった感じで「ッチャ」と言います。",
+        "confusableWith": [
+          "ㅈ",
+          "ㅊ"
+        ]
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_039",
+        "korean": "아빠",
+        "pronunciation": "アッパ",
+        "japanese": "パパ（お父さん）"
+      },
+      {
+        "id": "hword_040",
+        "korean": "오빠",
+        "pronunciation": "オッパ",
+        "japanese": "お兄さん（女性から見て）"
+      },
+      {
+        "id": "hword_041",
+        "korean": "토끼",
+        "pronunciation": "トッキ",
+        "japanese": "ウサギ"
+      },
+      {
+        "id": "hword_042",
+        "korean": "아저씨",
+        "pronunciation": "アジョッシ",
+        "japanese": "おじさん"
+      },
+      {
+        "id": "hword_043",
+        "korean": "비싸요",
+        "pronunciation": "ピッサヨ",
+        "japanese": "（値段が）高いです"
+      },
+      {
+        "id": "hword_044",
+        "korean": "짜요",
+        "pronunciation": "ッチャヨ",
+        "japanese": "しょっぱいです"
+      },
+      {
+        "id": "hword_045",
+        "korean": "또",
+        "pronunciation": "ット",
+        "japanese": "また"
+      },
+      {
+        "id": "hword_046",
+        "korean": "이따가",
+        "pronunciation": "イッタガ",
+        "japanese": "あとで"
+      }
+    ],
+    "reviewed": true,
+    "notes": "또 は、カフェの 또 오세요 で出てくる言葉／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_007",
+    "order": 7,
+    "kind": "letters",
+    "titleJa": "複合母音（1）",
+    "introJa": [
+      "母音を組み合わせた「複合母音」を覚えます。",
+      "ㅐ と ㅔ は、今のソウルの発音では、ほとんど同じ「エ」です。ㅒ と ㅖ も、どちらも「イェ」です。音では区別できないので、言葉ごとにどちらで書くかを覚えます。",
+      "ㅘ は ㅗ＋ㅏ で「ワ」、ㅝ は ㅜ＋ㅓ で「ウォ」です。2つの母音を、すばやく続けて言う音です。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㅐ",
+        "sounds": [
+          {
+            "korean": "애",
+            "pronunciation": "エ"
+          }
+        ],
+        "tipJa": "日本語の「エ」に近い音です。今のソウルの発音では、ㅔ とほとんど同じです。",
+        "confusableWith": [
+          "ㅔ"
+        ]
+      },
+      {
+        "jamo": "ㅔ",
+        "sounds": [
+          {
+            "korean": "에",
+            "pronunciation": "エ"
+          }
+        ],
+        "tipJa": "日本語の「エ」に近い音です。今のソウルの発音では、ㅐ とほとんど同じです。",
+        "confusableWith": [
+          "ㅐ"
+        ]
+      },
+      {
+        "jamo": "ㅒ",
+        "sounds": [
+          {
+            "korean": "얘",
+            "pronunciation": "イェ"
+          }
+        ],
+        "tipJa": "「イェ」と言います。ㅖ とほとんど同じ音です。使う言葉は多くありません。",
+        "confusableWith": [
+          "ㅖ"
+        ]
+      },
+      {
+        "jamo": "ㅖ",
+        "sounds": [
+          {
+            "korean": "예",
+            "pronunciation": "イェ"
+          }
+        ],
+        "tipJa": "「イェ」と言います。子音の後では、「エ」に近く発音される言葉もあります（시계 は「シゲ」）。",
+        "confusableWith": [
+          "ㅒ"
+        ]
+      },
+      {
+        "jamo": "ㅘ",
+        "sounds": [
+          {
+            "korean": "와",
+            "pronunciation": "ワ"
+          }
+        ],
+        "tipJa": "ㅗ と ㅏ を続けた音で、「ワ」と言います。子音の後では「クァ」「グァ」のようになります（사과 は「サグァ」）。",
+        "confusableWith": [
+          "ㅝ"
+        ]
+      },
+      {
+        "jamo": "ㅝ",
+        "sounds": [
+          {
+            "korean": "워",
+            "pronunciation": "ウォ"
+          }
+        ],
+        "tipJa": "ㅜ と ㅓ を続けた音で、「ウォ」と言います。",
+        "confusableWith": [
+          "ㅘ"
+        ]
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_047",
+        "korean": "네",
+        "pronunciation": "ネ",
+        "japanese": "はい"
+      },
+      {
+        "id": "hword_048",
+        "korean": "개",
+        "pronunciation": "ケ",
+        "japanese": "犬"
+      },
+      {
+        "id": "hword_049",
+        "korean": "가게",
+        "pronunciation": "カゲ",
+        "japanese": "店"
+      },
+      {
+        "id": "hword_050",
+        "korean": "시계",
+        "pronunciation": "シゲ",
+        "japanese": "時計"
+      },
+      {
+        "id": "hword_051",
+        "korean": "얘기",
+        "pronunciation": "イェギ",
+        "japanese": "話"
+      },
+      {
+        "id": "hword_052",
+        "korean": "사과",
+        "pronunciation": "サグァ",
+        "japanese": "りんご"
+      },
+      {
+        "id": "hword_053",
+        "korean": "뭐",
+        "pronunciation": "ムォ",
+        "japanese": "何"
+      },
+      {
+        "id": "hword_054",
+        "korean": "고마워요",
+        "pronunciation": "コマウォヨ",
+        "japanese": "ありがとう（ございます）"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_008",
+    "order": 8,
+    "kind": "letters",
+    "titleJa": "複合母音（2）",
+    "introJa": [
+      "残りの複合母音を5つ覚えます。これで、ハングルの母音21個がすべてそろいます。",
+      "ㅙ・ㅞ・ㅚ は形が違いますが、今の発音では、どれも「ウェ」に近い同じような音です。",
+      "ㅟ と ㅢ は、どちらも「ウィ」と書きますが、唇の形が違います。ㅢ は、言葉の最初以外では「イ」と発音することが多い音です。"
+    ],
+    "letters": [
+      {
+        "jamo": "ㅙ",
+        "sounds": [
+          {
+            "korean": "왜",
+            "pronunciation": "ウェ"
+          }
+        ],
+        "tipJa": "ㅗ と ㅐ を続けた音で、「ウェ」と言います。왜（なぜ）でよく使います。",
+        "confusableWith": [
+          "ㅞ",
+          "ㅚ"
+        ]
+      },
+      {
+        "jamo": "ㅞ",
+        "sounds": [
+          {
+            "korean": "웨",
+            "pronunciation": "ウェ"
+          }
+        ],
+        "tipJa": "ㅜ と ㅔ を続けた音で、「ウェ」と言います。外来語によく出てきます。",
+        "confusableWith": [
+          "ㅙ",
+          "ㅚ"
+        ]
+      },
+      {
+        "jamo": "ㅚ",
+        "sounds": [
+          {
+            "korean": "외",
+            "pronunciation": "ウェ"
+          }
+        ],
+        "tipJa": "形は ㅗ と ㅣ ですが、今は「ウェ」と発音します。",
+        "confusableWith": [
+          "ㅙ",
+          "ㅞ"
+        ]
+      },
+      {
+        "jamo": "ㅟ",
+        "sounds": [
+          {
+            "korean": "위",
+            "pronunciation": "ウィ"
+          }
+        ],
+        "tipJa": "唇を丸く突き出した「ウ」から、すぐに「イ」と言います。",
+        "confusableWith": [
+          "ㅢ"
+        ]
+      },
+      {
+        "jamo": "ㅢ",
+        "sounds": [
+          {
+            "korean": "의",
+            "pronunciation": "ウィ"
+          }
+        ],
+        "tipJa": "唇を横に引いた「ウ」（ㅡ）から、すぐに「イ」と言います。言葉の最初では「ウィ」ですが、子音の後や言葉の途中では「イ」、「〜の」という意味の 의 は「エ」と発音することが多いです。",
+        "confusableWith": [
+          "ㅟ"
+        ]
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_055",
+        "korean": "왜",
+        "pronunciation": "ウェ",
+        "japanese": "なぜ"
+      },
+      {
+        "id": "hword_056",
+        "korean": "회사",
+        "pronunciation": "フェサ",
+        "japanese": "会社"
+      },
+      {
+        "id": "hword_057",
+        "korean": "웨이터",
+        "pronunciation": "ウェイト",
+        "japanese": "ウェイター"
+      },
+      {
+        "id": "hword_058",
+        "korean": "위",
+        "pronunciation": "ウィ",
+        "japanese": "上"
+      },
+      {
+        "id": "hword_059",
+        "korean": "귀",
+        "pronunciation": "クィ",
+        "japanese": "耳"
+      },
+      {
+        "id": "hword_060",
+        "korean": "가위",
+        "pronunciation": "カウィ",
+        "japanese": "はさみ"
+      },
+      {
+        "id": "hword_061",
+        "korean": "의사",
+        "pronunciation": "ウィサ",
+        "japanese": "医者"
+      },
+      {
+        "id": "hword_062",
+        "korean": "의자",
+        "pronunciation": "ウィジャ",
+        "japanese": "いす"
+      }
+    ],
+    "reviewed": true,
+    "notes": "ㅢ のカタカナは CONTENT_STYLE の決まり（いつも「ウィ」）に合わせるため、読む練習の単語は、言葉の最初に ㅢ がある 의사・의자 だけにした／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_009",
+    "order": 9,
+    "kind": "batchim",
+    "titleJa": "パッチム",
+    "introJa": [
+      "音節の下に付く子音を「パッチム」といいます。例えば 밥（ご飯）は、바 の下に ㅂ が付いています。",
+      "パッチムの発音は、ㄱ ㄴ ㄷ ㄹ ㅁ ㅂ ㅇ の7つの音のどれかになります。文字が違っても、同じ音になることがあります。옷（服）の ㅅ も、꽃（花）の ㅊ も、パッチムでは同じ「ッ」の音です。",
+      "カタカナでは、ㄱ を「ク」、ㄹ を「ル」、ㅁ を「ム」、ㅂ を「プ」と書きますが、実際は最後の「ウ」を言わずに止めます。ㄴ と ㅇ はどちらも「ン」と書きますが、舌の位置が違います。",
+      "パッチムに子音が2つ並ぶこともあります（二重パッチム）。ふつうは、どちらか片方だけを読みます。どちらを読むかは組み合わせごとに決まっていますが、後ろに来る音によって変わるものもあります。よく出るのは、닭（鶏）の ㄺ、값（値段）の ㅄ、괜찮아요 の ㄶ、앉아요（座ります）の ㄵ です。"
+    ],
+    "finals": [
+      {
+        "sound": "ㄱ",
+        "letters": [
+          "ㄱ",
+          "ㅋ",
+          "ㄲ",
+          "ㄺ"
+        ],
+        "sounds": [
+          {
+            "korean": "악",
+            "pronunciation": "アク"
+          },
+          {
+            "korean": "밖",
+            "pronunciation": "パク"
+          }
+        ],
+        "tipJa": "「ク」と言いかけて、舌の奥を上あごに付けたまま止めます。「ウ」の音は出しません。ㅋ・ㄲ も、パッチムではこの音になります。"
+      },
+      {
+        "sound": "ㄴ",
+        "letters": [
+          "ㄴ",
+          "ㄵ",
+          "ㄶ"
+        ],
+        "sounds": [
+          {
+            "korean": "안",
+            "pronunciation": "アン"
+          }
+        ],
+        "tipJa": "舌の先を上の歯の裏に付けて「ン」と言います。「アンナ」と言うときの「ン」です。"
+      },
+      {
+        "sound": "ㄷ",
+        "letters": [
+          "ㄷ",
+          "ㅅ",
+          "ㅆ",
+          "ㅈ",
+          "ㅊ",
+          "ㅌ",
+          "ㅎ"
+        ],
+        "sounds": [
+          {
+            "korean": "앋",
+            "pronunciation": "アッ"
+          },
+          {
+            "korean": "옷",
+            "pronunciation": "オッ"
+          }
+        ],
+        "tipJa": "舌の先を上の歯の裏に付けたまま止める、詰まった音です。ㅅ・ㅆ・ㅈ・ㅊ・ㅌ・ㅎ も、パッチムではこの音になります。"
+      },
+      {
+        "sound": "ㄹ",
+        "letters": [
+          "ㄹ"
+        ],
+        "sounds": [
+          {
+            "korean": "알",
+            "pronunciation": "アル"
+          }
+        ],
+        "tipJa": "舌の先を上あごに付けたまま、「ル」と言いかけて止めます。「ウ」の音は出しません。"
+      },
+      {
+        "sound": "ㅁ",
+        "letters": [
+          "ㅁ"
+        ],
+        "sounds": [
+          {
+            "korean": "암",
+            "pronunciation": "アム"
+          }
+        ],
+        "tipJa": "唇を閉じて「ン」と言います。「サンマ」と言うときの「ン」です。"
+      },
+      {
+        "sound": "ㅂ",
+        "letters": [
+          "ㅂ",
+          "ㅍ",
+          "ㅄ"
+        ],
+        "sounds": [
+          {
+            "korean": "압",
+            "pronunciation": "アプ"
+          },
+          {
+            "korean": "앞",
+            "pronunciation": "アプ"
+          }
+        ],
+        "tipJa": "「プ」と言いかけて、唇を閉じたまま止めます。ㅍ も、パッチムではこの音になります。"
+      },
+      {
+        "sound": "ㅇ",
+        "letters": [
+          "ㅇ"
+        ],
+        "sounds": [
+          {
+            "korean": "앙",
+            "pronunciation": "アン"
+          }
+        ],
+        "tipJa": "舌の奥を上あごに付けて、鼻に抜ける「ン」と言います。「マンガ」と言うときの「ン」です。"
+      }
+    ],
+    "words": [
+      {
+        "id": "hword_063",
+        "korean": "떡",
+        "pronunciation": "ットク",
+        "japanese": "お餅"
+      },
+      {
+        "id": "hword_064",
+        "korean": "돈",
+        "pronunciation": "トン",
+        "japanese": "お金"
+      },
+      {
+        "id": "hword_065",
+        "korean": "옷",
+        "pronunciation": "オッ",
+        "japanese": "服"
+      },
+      {
+        "id": "hword_066",
+        "korean": "꽃",
+        "pronunciation": "ッコッ",
+        "japanese": "花"
+      },
+      {
+        "id": "hword_067",
+        "korean": "물",
+        "pronunciation": "ムル",
+        "japanese": "水"
+      },
+      {
+        "id": "hword_068",
+        "korean": "김치",
+        "pronunciation": "キムチ",
+        "japanese": "キムチ"
+      },
+      {
+        "id": "hword_069",
+        "korean": "밥",
+        "pronunciation": "パプ",
+        "japanese": "ご飯"
+      },
+      {
+        "id": "hword_070",
+        "korean": "앞",
+        "pronunciation": "アプ",
+        "japanese": "前"
+      },
+      {
+        "id": "hword_071",
+        "korean": "빵",
+        "pronunciation": "ッパン",
+        "japanese": "パン"
+      },
+      {
+        "id": "hword_072",
+        "korean": "닭",
+        "pronunciation": "タク",
+        "japanese": "鶏"
+      }
+    ],
+    "reviewed": true,
+    "notes": "7つの代表音を一通り読めるように、読む練習の単語は10語にした。二重パッチムは、よく出る ㄺ・ㄵ・ㄶ・ㅄ の4つ（괜찮아요・없어요 など、教材に出てくるもの）／二重パッチムの例外（ㄶ・ㅀ の ㅎ、後ろの音で読み方が変わる ㄺ など）は、ChatGPT の指摘を受けて「後ろに来る音によって変わるものもある」とだけ書いた。初心者向けのレッスンなので、個々の例外は扱わない／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_010",
+    "order": 10,
+    "kind": "soundChange",
+    "titleJa": "音の変化（1）",
+    "introJa": [
+      "韓国語は、書いた形と実際の発音が違うことがあります。音と音がつながるときに、言いやすいように音が変わるためです。",
+      "このレッスンでは、よく出る3つの変化を覚えます。発音どおりの形は [ ] の中に書いています。",
+      "ルールを全部覚えなくても大丈夫です。「書いた形と音が違うことがある」と知っておくだけでも、聞き取りがぐっと楽になります。"
+    ],
+    "rules": [
+      {
+        "titleJa": "連音化",
+        "explanationJa": "パッチムの後に、ㅇ で始まる音節が来ると、パッチムが次の音節に移って発音されます。二重パッチムでは、ふつう右側の子音が次の音節に移ります（없어요 → [업써요]）。ただし、ㅎ を含むもの（괜찮아요 など）は違う変わり方をします（次の「h音の弱化」で覚えます）。",
+        "examples": [
+          {
+            "korean": "음악",
+            "spoken": "으막",
+            "pronunciation": "ウマク",
+            "japanese": "音楽"
+          },
+          {
+            "korean": "한국어",
+            "spoken": "한구거",
+            "pronunciation": "ハングゴ",
+            "japanese": "韓国語"
+          },
+          {
+            "korean": "맛있어요",
+            "spoken": "마시써요",
+            "pronunciation": "マシッソヨ",
+            "japanese": "おいしいです"
+          },
+          {
+            "korean": "없어요",
+            "spoken": "업써요",
+            "pronunciation": "オプソヨ",
+            "japanese": "ありません／いません"
+          }
+        ]
+      },
+      {
+        "titleJa": "h音の弱化",
+        "explanationJa": "パッチムの ㅎ の後に母音が来ると、ㅎ は発音しません（좋아요 → [조아요]）。また、ㄴ・ㄹ・ㅁ・ㅇ の後の ㅎ は、話すときに弱くなって、ほとんど聞こえなくなります（전화 → [저놔]）。",
+        "examples": [
+          {
+            "korean": "좋아요",
+            "spoken": "조아요",
+            "pronunciation": "チョアヨ",
+            "japanese": "いいです／好きです"
+          },
+          {
+            "korean": "괜찮아요",
+            "spoken": "괜차나요",
+            "pronunciation": "ケンチャナヨ",
+            "japanese": "大丈夫です"
+          },
+          {
+            "korean": "많이",
+            "spoken": "마니",
+            "pronunciation": "マニ",
+            "japanese": "たくさん"
+          },
+          {
+            "korean": "전화",
+            "spoken": "저놔",
+            "pronunciation": "チョヌァ",
+            "japanese": "電話"
+          }
+        ]
+      },
+      {
+        "titleJa": "激音化",
+        "explanationJa": "ㄱ・ㄷ・ㅂ・ㅈ の音と ㅎ が隣り合うと、2つが合わさって激音（ㅋ・ㅌ・ㅍ・ㅊ）になります。축하해요（おめでとうございます）は「チュカヘヨ」と発音します。",
+        "examples": [
+          {
+            "korean": "축하해요",
+            "spoken": "추카해요",
+            "pronunciation": "チュカヘヨ",
+            "japanese": "おめでとうございます"
+          },
+          {
+            "korean": "따뜻한",
+            "spoken": "따뜨탄",
+            "pronunciation": "ッタットゥタン",
+            "japanese": "温かい（〜）"
+          },
+          {
+            "korean": "못해요",
+            "spoken": "모태요",
+            "pronunciation": "モテヨ",
+            "japanese": "できません"
+          },
+          {
+            "korean": "입학",
+            "spoken": "이팍",
+            "pronunciation": "イパク",
+            "japanese": "入学"
+          }
+        ]
+      }
+    ],
+    "reviewed": true,
+    "notes": "따뜻한 は cafe_006、괜찮아요 は vocab_026 に出てくる言葉／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_011",
+    "order": 11,
+    "kind": "soundChange",
+    "titleJa": "音の変化（2）",
+    "introJa": [
+      "音の変化の続きです。ここで覚える3つも、毎日の会話によく出てきます。",
+      "감사합니다 が「カムサハムニダ」と聞こえるのも、같이（一緒に）が「カチ」と聞こえるのも、この音の変化のためです。"
+    ],
+    "rules": [
+      {
+        "titleJa": "鼻音化",
+        "explanationJa": "パッチムの ㄱ・ㄷ・ㅂ の音の後に ㄴ や ㅁ が来ると、パッチムが、それぞれ ㅇ・ㄴ・ㅁ の音に変わります。",
+        "examples": [
+          {
+            "korean": "감사합니다",
+            "spoken": "감사함니다",
+            "pronunciation": "カムサハムニダ",
+            "japanese": "ありがとうございます"
+          },
+          {
+            "korean": "한국말",
+            "spoken": "한궁말",
+            "pronunciation": "ハングンマル",
+            "japanese": "韓国語（話す言葉）"
+          },
+          {
+            "korean": "작년",
+            "spoken": "장년",
+            "pronunciation": "チャンニョン",
+            "japanese": "去年"
+          },
+          {
+            "korean": "거짓말",
+            "spoken": "거진말",
+            "pronunciation": "コジンマル",
+            "japanese": "うそ"
+          }
+        ]
+      },
+      {
+        "titleJa": "濃音化",
+        "explanationJa": "パッチムの ㄱ・ㄷ・ㅂ の音の後に ㄱ・ㄷ・ㅂ・ㅅ・ㅈ が来ると、濃音（ㄲ・ㄸ・ㅃ・ㅆ・ㅉ）で発音されます。このゲームのカタカナでは、「ク」「プ」などの後の濃音には「ッ」を付けずに書きますが、実際は詰まった強い音です。",
+        "examples": [
+          {
+            "korean": "학교",
+            "spoken": "학꾜",
+            "pronunciation": "ハクキョ",
+            "japanese": "学校"
+          },
+          {
+            "korean": "식당",
+            "spoken": "식땅",
+            "pronunciation": "シクタン",
+            "japanese": "食堂"
+          },
+          {
+            "korean": "맥주",
+            "spoken": "맥쭈",
+            "pronunciation": "メクチュ",
+            "japanese": "ビール"
+          },
+          {
+            "korean": "잡지",
+            "spoken": "잡찌",
+            "pronunciation": "チャプチ",
+            "japanese": "雑誌"
+          }
+        ]
+      },
+      {
+        "titleJa": "口蓋音化",
+        "explanationJa": "パッチムの ㄷ・ㅌ の後に 이 が来ると、それぞれ 지・치 の音になります。",
+        "examples": [
+          {
+            "korean": "같이",
+            "spoken": "가치",
+            "pronunciation": "カチ",
+            "japanese": "一緒に"
+          },
+          {
+            "korean": "해돋이",
+            "spoken": "해도지",
+            "pronunciation": "ヘドジ",
+            "japanese": "日の出"
+          },
+          {
+            "korean": "굳이",
+            "spoken": "구지",
+            "pronunciation": "クジ",
+            "japanese": "あえて"
+          },
+          {
+            "korean": "끝이",
+            "spoken": "끄치",
+            "pronunciation": "ックチ",
+            "japanese": "終わりが"
+          }
+        ]
+      }
+    ],
+    "reviewed": true,
+    "notes": "濃音化のカタカナは CONTENT_STYLE の決まり（ㄱ・ㄷ・ㅂ の音のパッチムの直後の濃音には「ッ」を付けない）に合わせた。같이 は cafe_006 に出てくる言葉／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "hangul_012",
+    "order": 12,
+    "kind": "reading",
+    "titleJa": "1日目の言葉を読む",
+    "introJa": [
+      "ここまでに習った文字で、1日目に出てきた言葉を読んでみましょう。",
+      "最初はカタカナを頼りに覚えた言葉も、今ならハングルのまま読めるはずです。読めたら、読み上げで答え合わせをしましょう。"
+    ],
+    "vocabulary": [
+      "vocab_001",
+      "vocab_002",
+      "vocab_004",
+      "vocab_007",
+      "vocab_008",
+      "vocab_009",
+      "vocab_024",
+      "vocab_010",
+      "vocab_013",
+      "vocab_026"
+    ],
+    "reviewed": true,
+    "notes": "読む言葉は確認済みの単語（vocab）なので、今回の確認では対象外／確認：ChatGPT（2026-11-20）"
+  }
+]

@@ -25,9 +25,8 @@ for (const l of lessons) {
   for (const w of l.words ?? []) answerOf.set(w.korean, { ...answerOf.get(w.korean), reading: w.pronunciation, meaning: w.japanese })
   for (const r of l.rules ?? []) for (const e of r.examples) answerOf.set(e.korean, { ...answerOf.get(e.korean), spoken: e.spoken })
 }
-for (const f of ['ch01', 'ch03_cafe']) {
-  for (const v of JSON.parse(readFileSync(`src/data/vocabulary/${f}.json`, 'utf8'))) answerOf.set(v.korean, { ...answerOf.get(v.korean), reading: v.pronunciation, meaning: v.japanese })
-}
+const vocabById = new Map(readdirJson('src/data/vocabulary').map((v) => [v.id, v]))
+for (const v of vocabById.values()) answerOf.set(v.korean, { ...answerOf.get(v.korean), reading: v.pronunciation, meaning: v.japanese })
 
 const target = () => evaluate(`document.querySelector('.quiz-target')?.textContent.trim() ?? ''`)
 
@@ -135,14 +134,40 @@ for (const [W, H, mobile] of [
   check(`${P} レッスン一覧（${lessons.length}本、1本目は合格）`, (await evaluate(`document.querySelectorAll('.lesson-item').length`)) === lessons.length && (await mainText()).includes('合格（100点）'))
   await layoutCheck(`${P} レッスン一覧`)
   if (W === 375) await shot('lesson-list-375')
+  const draftBadges = await evaluate(`document.querySelectorAll('.lesson-item .draft-badge').length`)
+  check(`${P} 「仮データ」の印は reviewed: false のレッスンだけ（${lessons.filter((l) => !l.reviewed).length}本）`, draftBadges === lessons.filter((l) => !l.reviewed).length, String(draftBadges))
+  const openLesson = async (lesson) => {
+    await evaluate(`[...document.querySelectorAll('.lesson-item')].find((b) => b.textContent.includes(${JSON.stringify(lesson.titleJa)})).click()`)
+    await sleep(150)
+  }
   const batchim = lessons.find((l) => l.kind === 'batchim')
   if (batchim !== undefined) {
-    await evaluate(`[...document.querySelectorAll('.lesson-item')].find((b) => b.textContent.includes(${JSON.stringify(batchim.titleJa)})).click()`)
-    await sleep(150)
+    await openLesson(batchim)
     await click('文字を見る')
     check(`${P} パッチムのカード`, (await mainText()).includes(`パッチム：${batchim.finals[0].sound} の音になる文字`))
     await click('やめる')
     check(`${P} やめる → レッスン一覧`, (await heading()) === 'ハングル')
+  }
+  const soundChange = lessons.find((l) => l.kind === 'soundChange')
+  if (soundChange !== undefined) {
+    const rule = soundChange.rules[0]
+    await openLesson(soundChange)
+    await click('文字を見る')
+    check(`${P} 音の変化のカード（${rule.titleJa}、[${rule.examples[0].spoken}]）`, (await mainText()).includes(rule.titleJa) && (await mainText()).includes(`[${rule.examples[0].spoken}]`))
+    for (let i = 1; i < soundChange.rules.length; i++) await click('次へ')
+    await click('小テストへ')
+    check(`${P} 音の変化の小テストは発音どおりの形を選ぶ`, (await stepHeading()).includes('発音どおり'), await stepHeading())
+    if (W === 375) await shot('sound-change-quiz-375')
+    await click('やめる')
+  }
+  const reading = lessons.find((l) => l.kind === 'reading')
+  if (reading !== undefined) {
+    await openLesson(reading)
+    await click('読んでみる')
+    const items = await evaluate(`[...document.querySelectorAll('.word-item__ko')].map((e) => e.textContent)`)
+    const expected = [...(reading.words ?? []).map((w) => w.korean), ...reading.vocabulary.map((id) => vocabById.get(id)?.korean)]
+    check(`${P} 「${reading.titleJa}」で教材の単語（${expected.length}語）を読む`, JSON.stringify(items) === JSON.stringify(expected), JSON.stringify(items))
+    await click('やめる')
   }
   await click('戻る')
   await click('戻る')

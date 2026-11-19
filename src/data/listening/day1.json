@@ -1,0 +1,212 @@
+[
+  {
+    "id": "listen_001",
+    "afterEvent": "event_001",
+    "korean": "안녕히 가세요.",
+    "pronunciation": "アンニョンヒ ガセヨ",
+    "japanese": "さようなら。（立ち去る人に）",
+    "distractors": [
+      {
+        "korean": "안녕히 계세요.",
+        "pronunciation": "アンニョンヒ ゲセヨ",
+        "japanese": "さようなら。（その場に残る人に）"
+      },
+      {
+        "korean": "안녕하세요.",
+        "pronunciation": "アンニョンハセヨ",
+        "japanese": "こんにちは。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_002",
+    "afterEvent": "event_001",
+    "korean": "죄송합니다.",
+    "pronunciation": "チェソンハムニダ",
+    "japanese": "申し訳ありません。",
+    "distractors": [
+      {
+        "korean": "감사합니다.",
+        "pronunciation": "カムサハムニダ",
+        "japanese": "ありがとうございます。"
+      },
+      {
+        "korean": "고맙습니다.",
+        "pronunciation": "コマプスムニダ",
+        "japanese": "ありがとうございます。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_003",
+    "afterEvent": "event_001",
+    "korean": "네, 고맙습니다.",
+    "pronunciation": "ネ コマプスムニダ",
+    "japanese": "はい、ありがとうございます。",
+    "distractors": [
+      {
+        "korean": "네, 죄송합니다.",
+        "pronunciation": "ネ チェソンハムニダ",
+        "japanese": "はい、申し訳ありません。"
+      },
+      {
+        "korean": "네, 감사합니다.",
+        "pronunciation": "ネ カムサハムニダ",
+        "japanese": "はい、ありがとうございます。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "どれも「네,」で始まるので、後ろの言葉を聞き分ける問題／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_004",
+    "afterEvent": "event_001",
+    "korean": "제가 만든 떡이에요.",
+    "pronunciation": "チェガ マンドゥン ットギエヨ",
+    "japanese": "私が作ったお餅です。",
+    "distractors": [
+      {
+        "korean": "제가 만든 빵이에요.",
+        "pronunciation": "チェガ マンドゥン ッパンイエヨ",
+        "japanese": "私が作ったパンです。"
+      },
+      {
+        "korean": "제가 산 떡이에요.",
+        "pronunciation": "チェガ サン ットギエヨ",
+        "japanese": "私が買ったお餅です。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "home_004 の台詞／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_005",
+    "afterEvent": "event_002",
+    "korean": "어서 오세요!",
+    "pronunciation": "オソ オセヨ",
+    "japanese": "いらっしゃいませ！",
+    "distractors": [
+      {
+        "korean": "또 오세요!",
+        "pronunciation": "ット オセヨ",
+        "japanese": "またお越しください！"
+      },
+      {
+        "korean": "안녕히 계세요.",
+        "pronunciation": "アンニョンヒ ゲセヨ",
+        "japanese": "さようなら。（その場に残る人に）"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_006",
+    "afterEvent": "event_002",
+    "korean": "아메리카노 한 잔 주세요.",
+    "pronunciation": "アメリカノ ハン ジャン ジュセヨ",
+    "japanese": "アメリカーノを1杯ください。",
+    "distractors": [
+      {
+        "korean": "아메리카노 두 잔 주세요.",
+        "pronunciation": "アメリカノ ドゥ ジャン ジュセヨ",
+        "japanese": "アメリカーノを2杯ください。"
+      },
+      {
+        "korean": "카페라테 한 잔 주세요.",
+        "pronunciation": "カペラテ ハン ジャン ジュセヨ",
+        "japanese": "カフェラテを1杯ください。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_007",
+    "afterEvent": "event_002",
+    "korean": "아이스로 드릴까요?",
+    "pronunciation": "アイスロ ドゥリルッカヨ",
+    "japanese": "アイスになさいますか？",
+    "distractors": [
+      {
+        "korean": "아이스로 주세요.",
+        "pronunciation": "アイスロ ジュセヨ",
+        "japanese": "アイスでお願いします。"
+      },
+      {
+        "korean": "따뜻한 걸로 드릴까요?",
+        "pronunciation": "ッタットゥタン ゴルロ ドゥリルッカヨ",
+        "japanese": "温かいものになさいますか？"
+      }
+    ],
+    "reviewed": true,
+    "notes": "cafe_006 の台詞／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_008",
+    "afterEvent": "event_002",
+    "korean": "케이크 하나 주세요.",
+    "pronunciation": "ケイク ハナ ジュセヨ",
+    "japanese": "ケーキを1つください。",
+    "distractors": [
+      {
+        "korean": "케이크 두 개 주세요.",
+        "pronunciation": "ケイク ドゥ ゲ ジュセヨ",
+        "japanese": "ケーキを2つください。"
+      },
+      {
+        "korean": "케이크도 있어요?",
+        "pronunciation": "ケイクド イッソヨ",
+        "japanese": "ケーキもありますか？"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_009",
+    "afterEvent": "event_002",
+    "korean": "여기 있습니다.",
+    "pronunciation": "ヨギ イッスムニダ",
+    "japanese": "はい、どうぞ。（ここにあります）",
+    "distractors": [
+      {
+        "korean": "여기 없습니다.",
+        "pronunciation": "ヨギ オプスムニダ",
+        "japanese": "ここにはありません。"
+      },
+      {
+        "korean": "여기 있어요?",
+        "pronunciation": "ヨギ イッソヨ",
+        "japanese": "ここにありますか？"
+      }
+    ],
+    "reviewed": true,
+    "notes": "있습니다 と 없습니다 の聞き分け／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "listen_010",
+    "afterEvent": "event_002",
+    "korean": "아니요, 괜찮아요.",
+    "pronunciation": "アニヨ ケンチャナヨ",
+    "japanese": "いいえ、結構です。",
+    "distractors": [
+      {
+        "korean": "네, 괜찮아요.",
+        "pronunciation": "ネ ケンチャナヨ",
+        "japanese": "はい、大丈夫です。"
+      },
+      {
+        "korean": "아니요, 감사합니다.",
+        "pronunciation": "アニヨ カムサハムニダ",
+        "japanese": "いいえ、結構です。ありがとうございます。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "確認：ChatGPT（2026-11-20）"
+  }
+]
