@@ -1,6 +1,7 @@
 // 画面から使う小さなフック。
 
 import { useCallback, useSyncExternalStore } from 'react'
+import { getRecognitionStatus, subscribeRecognition, type RecognitionStatus } from '../audio/recognition'
 import { getSpeechStatus, speakKorean, subscribeSpeech, type SpeechStatus } from '../audio/speech'
 import { content } from '../data'
 import { furiganaDisplay, type FuriganaDisplay } from '../learning/furigana/furigana'
@@ -8,6 +9,17 @@ import { useGame } from './GameContext'
 
 export function useSpeechStatus(): SpeechStatus {
   return useSyncExternalStore(subscribeSpeech, getSpeechStatus, getSpeechStatus)
+}
+
+/** 音声認識（話して答える）が使えるか。使えない環境・マイクを拒否されたときは unavailable */
+export function useRecognitionStatus(): RecognitionStatus {
+  return useSyncExternalStore(subscribeRecognition, getRecognitionStatus, getRecognitionStatus)
+}
+
+/** 「話す」を出してよいか：音声認識が使え、設定で音声入力がオン */
+export function useCanSpeak(): boolean {
+  const { state } = useGame()
+  return useRecognitionStatus().state === 'available' && state.settings.voiceInput
 }
 
 /** 設定の速さで韓国語を読み上げる関数 */

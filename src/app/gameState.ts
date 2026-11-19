@@ -2,6 +2,7 @@
 // reducer は純粋な関数にする（日時は action で受け取る）ので、画面なしでテストできる。
 
 import type { Balance, GameEvent } from '../data/types'
+import type { AnswerMode } from '../learning/conversation/session'
 import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
 import { advanceEvent, clearConversationTurn, learnItems, passHangulLesson, recordListeningCorrect, startEvent, type ClearMethod, type Reward } from '../game/progression/progression'
 import { createNewSave, type SaveData } from '../storage/saveData'
@@ -51,6 +52,8 @@ export interface GameState {
   saveFailure: string | null
   run: EventRun | null
   reward: RewardNotice | null
+  /** 会話で選んでいた答え方。次の会話もこの方法で始める（ゲームを開いている間だけ。保存しない。計画 Q9） */
+  answerPreference: AnswerMode
 }
 
 export type GameAction =
@@ -89,6 +92,8 @@ export type GameAction =
   | { type: 'hangulLessonPassed'; lessonId: string; score: number; now: string }
   /** リスニングの問題に正解した（key は listeningKey） */
   | { type: 'listeningCorrect'; key: string; now: string }
+  /** 会話で答え方を選んだ */
+  | { type: 'setAnswerPreference'; mode: AnswerMode }
   | { type: 'dismissReward' }
   | { type: 'saveSucceeded' }
   | { type: 'saveFailed'; message: string }
@@ -102,7 +107,7 @@ export interface GameDeps {
 }
 
 export function createInitialState(load: LoadResult, backupKey: string | null, settings: Settings): GameState {
-  const base = { settings, saveFailure: null, run: null, reward: null }
+  const base = { settings, saveFailure: null, run: null, reward: null, answerPreference: 'choice' as const }
   switch (load.kind) {
     case 'ok':
       return { ...base, scene: { name: 'title' }, save: load.data, storageAvailable: true }
@@ -345,6 +350,9 @@ export function createGameReducer(deps: GameDeps) {
         }
         return state
       }
+
+      case 'setAnswerPreference':
+        return state.answerPreference === action.mode ? state : { ...state, answerPreference: action.mode }
 
       case 'dismissReward':
         return state.reward === null ? state : { ...state, reward: null }

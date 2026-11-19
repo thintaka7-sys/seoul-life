@@ -245,3 +245,84 @@ describe('立ち絵の表情', () => {
     expect(characterExpression(single, s)).toBe('normal')
   })
 })
+
+describe('話して答える・答え方の引き継ぎ', () => {
+  /** 書ける往復 → 選ぶだけの往復 → 書ける往復 → 締め */
+  const mixed: Conversation = {
+    ...single,
+    id: 'cafe_011',
+    turns: [
+      {
+        lines: [staff('뭐 드릴까요?')],
+        choices: [{ korean: '아메리카노 한 잔 주세요.', pronunciation: 'アメリカノ ハン ジャン ジュセヨ', japanese: 'アメリカーノを1杯', correct: true }],
+        freeAnswer: { prompt: 'アメリカーノを1杯ください', answers: ['아메리카노 한 잔 주세요.'] },
+      },
+      { lines: [staff('아이스로 드릴까요?')], choices: [{ korean: '네.', pronunciation: 'ネ', japanese: 'はい', correct: true }] },
+      {
+        lines: [staff('여기 있습니다.')],
+        choices: [{ korean: '감사합니다.', pronunciation: 'カムサハムニダ', japanese: 'ありがとう', correct: true }],
+        freeAnswer: { prompt: 'ありがとうございます', answers: ['감사합니다.'] },
+      },
+      { lines: [staff('안녕히 가세요.')] },
+    ],
+  }
+  const reducer = createSessionReducer(mixed, 2)
+  const from = (start: ConversationSession, ...actions: SessionAction[]) => actions.reduce(reducer, start)
+  const speak = (...alternatives: string[]): SessionAction => ({ type: 'submitSpeech', alternatives })
+  /** 「話す」が使える環境での操作 */
+  const nextOk: SessionAction = { type: 'next', speakAvailable: true }
+  const mode = (m: 'choice' | 'write' | 'speak', speakAvailable = true): SessionAction => ({ type: 'setMode', mode: m, speakAvailable })
+
+  it('「話す」は、書く問題があり音声認識が使える往復だけで選べる', () => {
+    expect(availableModes(mixed.turns[0], true)).toEqual(['choice', 'write', 'speak'])
+    expect(availableModes(mixed.turns[0], false)).toEqual(['choice', 'write'])
+    expect(availableModes(mixed.turns[1], true)).toEqual(['choice'])
+  })
+
+  it('選んだ答え方を覚え、使えない往復では選ぶにし、次に使える往復で戻す', () => {
+    let s = from(initialSession(mixed, 'choice', true), mode('write'))
+    expect(s).toMatchObject({ mode: 'write', preferred: 'write' })
+    s = from(s, { type: 'submitWrite', text: '아메리카노 한 잔 주세요' }, nextOk)
+    expect(s).toMatchObject({ turn: 1, mode: 'choice', preferred: 'write' })
+    s = from(s, { type: 'choose', index: 0 }, nextOk)
+    expect(s).toMatchObject({ turn: 2, mode: 'write', preferred: 'write' })
+  })
+
+  it('前の会話で選んでいた答え方で始める。「話す」が使えなければ「書く」にする', () => {
+    expect(initialSession(mixed, 'speak', true)).toMatchObject({ mode: 'speak', preferred: 'speak' })
+    expect(initialSession(mixed, 'speak', false)).toMatchObject({ mode: 'write', preferred: 'speak' })
+    expect(initialSession(mixed, 'write', false)).toMatchObject({ mode: 'write' })
+  })
+
+  it('話して正解なら、一致した正解を返事にする（数字で認識されても正解、分かち書きの注意は出さない）', () => {
+    const s = from(initialSession(mixed, 'speak', true), speak('아메리카노 1잔 주세요'))
+    expect(s.answer).toMatchObject({ method: 'speak', spacingNote: false, line: { korean: '아메리카노 한 잔 주세요.', pronunciation: 'アメリカノ ハン ジャン ジュセヨ' } })
+    expect(s.lastHeard).toBeNull()
+  })
+
+  it('通じなかったら聞き取った言葉を残し、書くと合わせて数えた回数で「答えを見る」を出す', () => {
+    let s = from(initialSession(mixed, 'speak', true), speak('아메리카 노래', '아메리카노 래'))
+    expect(s).toMatchObject({ lastHeard: '아메리카 노래', writeMisses: 1, answer: null })
+    expect(characterExpression(mixed, s)).toBe('troubled')
+    expect(canReveal(mixed, s, 2)).toBe(false)
+    s = from(s, mode('write'), { type: 'submitWrite', text: '커피' })
+    expect(s.writeMisses).toBe(2)
+    expect(canReveal(mixed, s, 2)).toBe(true)
+    s = from(s, mode('speak'))
+    expect(s.lastHeard).toBeNull()
+    expect(canReveal(mixed, s, 2)).toBe(true)
+  })
+
+  it('「話す」が使えなくなったら、「話す」には切り替えられない。話していない方法の答えは受け付けない', () => {
+    const s = initialSession(mixed, 'write', false)
+    expect(from(s, mode('speak', false))).toBe(s)
+    expect(from(s, { type: 'setMode', mode: 'speak' })).toBe(s)
+    expect(from(s, speak('아메리카노 한 잔 주세요'))).toBe(s)
+  })
+
+  it('次の往復に進むときに「話す」が使えなくなっていたら、「書く」で始める', () => {
+    let s = from(initialSession(mixed, 'speak', true), speak('아메리카노 한 잔 주세요'), nextOk)
+    s = from(s, { type: 'choose', index: 0 }, { type: 'next', speakAvailable: false })
+    expect(s).toMatchObject({ turn: 2, mode: 'write', preferred: 'speak' })
+  })
+})

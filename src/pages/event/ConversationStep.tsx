@@ -2,7 +2,7 @@ import { useEffect, useMemo, useReducer, useState } from 'react'
 import { eventBackdrop } from '../../app/backdrop'
 import { useGame, nowIso } from '../../app/GameContext'
 import { playSfx } from '../../audio/sfx'
-import { useFuriganaDisplay } from '../../app/hooks'
+import { useCanSpeak, useFuriganaDisplay } from '../../app/hooks'
 import { AnswerInput } from '../../components/AnswerInput'
 import { Button } from '../../components/Button'
 import { DialogueBox } from '../../components/dialogue/DialogueBox'
@@ -11,12 +11,14 @@ import { ProfileCard } from '../../components/dialogue/ProfileCard'
 import { TEXT_SPEED_MS, plainSegments, totalChars } from '../../components/dialogue/typewriter'
 import { useTypewriter } from '../../components/dialogue/useTypewriter'
 import { KoreanText } from '../../components/KoreanText'
+import { MicButton } from '../../components/MicButton'
 import { Notice } from '../../components/Notice'
 import { Stage } from '../../components/scene/Stage'
 import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
 import { content, findCharacter, firstConversationWith } from '../../data'
 import type { Conversation, ConversationChoice } from '../../data/types'
+import { judgeSpoken } from '../../learning/judge/judgeSpoken'
 import {
   availableModes,
   canReveal,
@@ -25,6 +27,7 @@ import {
   initialSession,
   sessionPhase,
   shownLines,
+  type AnswerMode,
   type ConversationSession,
   type TurnAnswer,
 } from '../../learning/conversation/session'
@@ -72,34 +75,87 @@ function AnswerBadge({ answer }: { answer: TurnAnswer }) {
   )
 }
 
-/** 返事をする欄（選ぶ・書く） */
+const MODE_LABELS: Record<AnswerMode, string> = {
+  choice: '選んで答える',
+  write: '書いて答える',
+  speak: '話して答える',
+}
+
+/** 答え方が3つあるときの短い名前（幅375pxに収めるため） */
+const MODE_SHORT_LABELS: Record<AnswerMode, string> = {
+  choice: '選ぶ',
+  write: '書く',
+  speak: '話す',
+}
+
+/** 選んだ返事を、声に出して言ってみる（練習。経験値・記録は付けない。GAME_SPEC 4-4） */
+function SayItPractice({ korean }: { korean: string }) {
+  const [result, setResult] = useState<{ ok: boolean; heard: string } | null>(null)
+  return (
+    <section className="panel say-it" aria-label="声に出して言ってみる">
+      <MicButton
+        label="声に出して言ってみる"
+        onHeard={(alternatives) => {
+          const judge = judgeSpoken(alternatives, [korean])
+          playSfx(judge.kind === 'correct' ? 'correct' : 'wrong')
+          setResult({ ok: judge.kind === 'correct', heard: judge.heard })
+        }}
+      />
+      {result !== null &&
+        (result.ok ? (
+          <p className="correct" aria-live="polite">
+            通じました！
+          </p>
+        ) : (
+          <Notice tone="warn">
+            聞き取った言葉：「<span lang="ko">{result.heard}</span>」。もう一度言ってみましょう。
+          </Notice>
+        ))}
+    </section>
+  )
+}
+
+/** 返事をする欄（選ぶ・書く・話す） */
 function AnswerArea({
   conversation,
   s,
   send,
   display,
+  canSpeak,
+  onChooseMode,
 }: {
   conversation: Conversation
   s: ConversationSession
   send: (a: Parameters<ReturnType<typeof createSessionReducer>>[1]) => void
   display: FuriganaDisplay
+  canSpeak: boolean
+  onChooseMode: (mode: AnswerMode) => void
 }) {
   const turn = conversation.turns[s.turn]
   if (turn?.choices === undefined) return null
-  const modes = availableModes(turn)
+  const modes = availableModes(turn, canSpeak)
+  const labels = modes.length > 2 ? MODE_SHORT_LABELS : MODE_LABELS
   const lastWrong = s.wrongChoices.at(-1)
   const lastWrongChoice = lastWrong === undefined ? undefined : turn.choices[lastWrong]
+  const reveal = canReveal(conversation, s, content.balance.writeAttemptsBeforeReveal) && (
+    <Button onClick={() => send({ type: 'reveal' })}>答えを見る</Button>
+  )
 
   return (
     <section className="answer panel" aria-label="返事をする">
       {modes.length > 1 && (
-        <div className="mode-tabs" role="group" aria-label="答え方">
+        <div className={`mode-tabs mode-tabs--${modes.length}`} role="group" aria-label="答え方">
           {modes.map((mode) => (
-            <button key={mode} type="button" className="mode-tab" aria-pressed={s.mode === mode} onClick={() => send({ type: 'setMode', mode })}>
-              {mode === 'choice' ? '選んで答える' : '書いて答える'}
+            <button key={mode} type="button" className="mode-tab" aria-pressed={s.mode === mode} aria-label={MODE_LABELS[mode]} onClick={() => onChooseMode(mode)}>
+              {labels[mode]}
             </button>
           ))}
         </div>
+      )}
+      {s.mode !== s.preferred && (
+        <p className="muted small">
+          この返事は{s.mode === 'choice' ? '選んで' : '書いて'}答えます（{MODE_LABELS[s.preferred]}ことはできません）。
+        </p>
       )}
 
       {s.mode === 'choice' && (
@@ -123,7 +179,25 @@ function AnswerArea({
           <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で書いてみましょう</p>
           <AnswerInput key={s.turn} onSubmit={(text) => send({ type: 'submitWrite', text })} />
           {s.lastJudge?.kind === 'incorrect' && <Notice tone="warn">ちがうようです。もう一度書いてみましょう。</Notice>}
-          {canReveal(conversation, s, content.balance.writeAttemptsBeforeReveal) && <Button onClick={() => send({ type: 'reveal' })}>答えを見る</Button>}
+          {reveal}
+        </>
+      )}
+
+      {s.mode === 'speak' && turn.freeAnswer !== undefined && (
+        <>
+          <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で言ってみましょう</p>
+          <MicButton onHeard={(alternatives) => send({ type: 'submitSpeech', alternatives })} />
+          {s.lastHeard !== null && (
+            <Notice tone="warn">
+              聞き取った言葉：「<span lang="ko">{s.lastHeard}</span>」。ちがうようです。もう一度話してみましょう。
+            </Notice>
+          )}
+          {s.lastHeard !== null && (
+            <button type="button" className="link-button" onClick={() => onChooseMode('write')}>
+              書いて答える
+            </button>
+          )}
+          {reveal}
         </>
       )}
     </section>
@@ -133,8 +207,9 @@ function AnswerArea({
 export function ConversationStep({ conversation, replay }: { conversation: Conversation; replay: boolean }) {
   const { state, dispatch } = useGame()
   const display = useFuriganaDisplay(conversation.chapter)
+  const canSpeak = useCanSpeak()
   const reducer = useMemo(() => createSessionReducer(conversation, content.balance.writeAttemptsBeforeReveal), [conversation])
-  const [s, send] = useReducer(reducer, conversation, initialSession)
+  const [s, send] = useReducer(reducer, conversation, (c) => initialSession(c, state.answerPreference, canSpeak))
   const [logOpen, setLogOpen] = useState(false)
   const character = findCharacter(conversation.character)
   const [profileOpen, setProfileOpen] = useState(() => !replay && character !== undefined && firstConversationWith(conversation.character) === conversation.id)
@@ -154,7 +229,8 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
   useEffect(() => {
     if (answer === null) return
     if (answer.method !== 'revealed') playSfx('correct')
-    dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method, now: nowIso() })
+    // 話して正解は、書いて正解と同じ記録・経験値にする（計画 Q10）
+    dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method === 'speak' ? 'write' : answer.method, now: nowIso() })
   }, [answer, answeredTurn, dispatch])
 
   // 間違えたら音で知らせる（往復が変わると数は0に戻る）
@@ -163,8 +239,18 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
     if (misses > 0) playSfx('wrong')
   }, [misses])
 
+  // 話している途中でマイクが使えなくなったら（拒否された・設定でオフにした）、書いて答える
+  useEffect(() => {
+    if (s.mode === 'speak' && !canSpeak) send({ type: 'setMode', mode: 'write', speakAvailable: false })
+  }, [s.mode, canSpeak])
+
+  function chooseMode(mode: AnswerMode) {
+    send({ type: 'setMode', mode, speakAvailable: canSpeak })
+    dispatch({ type: 'setAnswerPreference', mode })
+  }
+
   const writing = phase === 'answer' && s.mode === 'write'
-  const advance = () => (phase === 'end' ? dispatch({ type: 'conversationDone', now: nowIso() }) : send({ type: 'next' }))
+  const advance = () => (phase === 'end' ? dispatch({ type: 'conversationDone', now: nowIso() }) : send({ type: 'next', speakAvailable: canSpeak }))
 
   return (
     <div className="conversation">
@@ -187,7 +273,10 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
           badge={current.kind === 'player' && answer !== null ? <AnswerBadge answer={answer} /> : undefined}
         />
       )}
-      {phase === 'answer' && typing.done && !profileOpen && <AnswerArea conversation={conversation} s={s} send={send} display={display} />}
+      {phase === 'answer' && typing.done && !profileOpen && (
+        <AnswerArea conversation={conversation} s={s} send={send} display={display} canSpeak={canSpeak} onChooseMode={chooseMode} />
+      )}
+      {current?.kind === 'player' && answer?.method === 'choice' && canSpeak && <SayItPractice key={s.turn} korean={answer.line.korean} />}
       {logOpen && <LogPanel lines={lines} display={display} onClose={() => setLogOpen(false)} />}
       {profileOpen && character !== undefined && <ProfileCard character={character} display={display} onClose={() => setProfileOpen(false)} />}
     </div>

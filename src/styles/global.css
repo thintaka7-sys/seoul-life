@@ -1931,3 +1931,45 @@ rt {
   color: var(--color-muted);
   font-size: 0.9rem;
 }
+
+/* ---------- 話して答える（マイク） ---------- */
+
+.mode-tabs--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.mic {
+  display: grid;
+  gap: 8px;
+}
+
+.mic__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mic__button--listening {
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+
+[data-effects="reduced"] .mic__button--listening {
+  animation: none;
+  outline: 3px solid var(--color-focus);
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(180 83 42 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgb(180 83 42 / 0);
+  }
+}
+
+.say-it {
+  display: grid;
+  gap: 8px;
+}

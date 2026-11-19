@@ -1,5 +1,5 @@
 import { useGame } from '../app/GameContext'
-import { useFuriganaDisplay } from '../app/hooks'
+import { useFuriganaDisplay, useRecognitionStatus } from '../app/hooks'
 import { Button } from '../components/Button'
 import { KoreanText } from '../components/KoreanText'
 import { ScreenLayout } from '../components/ScreenLayout'
@@ -88,6 +88,7 @@ function FuriganaPreview() {
 export function SettingsPage() {
   const { state, dispatch } = useGame()
   const { settings } = state
+  const recognition = useRecognitionStatus()
   const change = (patch: Partial<Settings>) => dispatch({ type: 'changeSettings', settings: { ...settings, ...patch } })
 
   return (
@@ -135,6 +136,23 @@ export function SettingsPage() {
             <span>{SPEECH_LABELS[rate]}</span>
           </label>
         ))}
+      </fieldset>
+
+      <fieldset className="field">
+        <legend>音声入力（話して答える）</legend>
+        {([true, false] as const).map((on) => (
+          <label key={String(on)} className="radio">
+            <input type="radio" name="voiceInput" checked={settings.voiceInput === on} onChange={() => change({ voiceInput: on })} />
+            <span>{on ? 'オン' : 'オフ'}</span>
+          </label>
+        ))}
+        {recognition.state === 'unavailable' ? (
+          <p className="muted small">この環境では使えません：{recognition.reason}</p>
+        ) : (
+          <p className="muted small">
+            会話で「話す」を選ぶと、声で答えられます。声はブラウザの音声認識の機能で文字にし、ブラウザの提供元（Google・Apple など）のサーバーで処理されることがあります。このゲームは声を保存しません。
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="field">

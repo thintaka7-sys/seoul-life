@@ -1,12 +1,14 @@
 // 1つの会話の進み方。会話は1つ以上の往復（turn）からなり、往復ごとに
 // 「台詞を1つずつ見せる → 返事をする → 主人公の返事と相手の反応（reply）を見せる」と進む。
-// 返事の方法（answer mode）はここで切り替える。Phase 1 は「選ぶ」「書く」。
-// Phase 2 の「話す」、Phase 7 の「AI会話」も、ここに方法を足して同じ入口から使う。
+// 返事の方法（answer mode）はここで切り替える。「選ぶ」「書く」「話す」（Phase 2）。
+// Phase 7 の「AI会話」も、ここに方法を足して同じ入口から使う。
+// プレイヤーが選んだ答え方（preferred）は往復をまたいで覚えておき、使える往復ではその方法で始める（計画 Q9）。
 
 import { DEFAULT_EXPRESSION, PLAYER_SPEAKER_ID, type Conversation, type ConversationLine, type ConversationTurn, type Expression } from '../../data/types'
 import { judgeAnswer, normalizeAnswer, type JudgeResult } from '../judge/judgeAnswer'
+import { judgeSpoken } from '../judge/judgeSpoken'
 
-export type AnswerMode = 'choice' | 'write'
+export type AnswerMode = 'choice' | 'write' | 'speak'
 
 /** 主人公の返事として会話に加える行 */
 export interface PlayerLine {
@@ -18,7 +20,7 @@ export interface PlayerLine {
 
 /** 往復の答え */
 export interface TurnAnswer {
-  method: 'choice' | 'write' | 'revealed'
+  method: 'choice' | 'write' | 'speak' | 'revealed'
   line: PlayerLine
   /** 書いた答えが分かち書きだけ違った */
   spacingNote: boolean
@@ -32,12 +34,16 @@ export interface ConversationSession {
   /** いまの往復で見せている台詞の数（0〜lines.length） */
   shownLines: number
   mode: AnswerMode
+  /** プレイヤーが選んだ答え方。いまの往復で使えなければ mode は別の方法になる */
+  preferred: AnswerMode
   /** いまの往復で間違えた選択肢の番号 */
   wrongChoices: number[]
-  /** いまの往復で書いて間違えた回数 */
+  /** いまの往復で書いて（話して）間違えた回数 */
   writeMisses: number
   /** 直近の書いた答えの判定 */
   lastJudge: JudgeResult | null
+  /** 直近の話した答えが通じなかったときの、聞き取った言葉（通じなかったときだけ。なければ null） */
+  lastHeard: string | null
   /** 直前に間違えた選択肢への相手の反応（なければ null） */
   wrongReply: ConversationLine[] | null
   /** いまの往復の答え。答えるまでは null */
@@ -48,11 +54,17 @@ export interface ConversationSession {
   history: TurnAnswer[]
 }
 
+/**
+ * 会話の操作。speakAvailable は、いま「話す」が使えるか（音声認識が使え、設定でオン）。
+ * 会話の途中でマイクを拒否されるなど変わることがあるので、往復を始めるとき（next）と答え方を変えるときに渡す。省略したら使えない。
+ */
 export type SessionAction =
-  | { type: 'next' }
-  | { type: 'setMode'; mode: AnswerMode }
+  | { type: 'next'; speakAvailable?: boolean }
+  | { type: 'setMode'; mode: AnswerMode; speakAvailable?: boolean }
   | { type: 'choose'; index: number }
   | { type: 'submitWrite'; text: string }
+  /** 話した答え。alternatives は音声認識の候補（確からしい順） */
+  | { type: 'submitSpeech'; alternatives: string[] }
   | { type: 'reveal' }
 
 /**
@@ -68,23 +80,34 @@ function turnAt(conversation: Conversation, index: number): ConversationTurn | u
   return conversation.turns[index]
 }
 
-/** その往復で使える返事の方法（返事のない往復では空。書く問題がない往復では「選ぶ」だけ） */
-export function availableModes(turn: ConversationTurn | undefined): AnswerMode[] {
+/**
+ * その往復で使える返事の方法（返事のない往復では空。書く問題がない往復では「選ぶ」だけ）。
+ * 「話す」は、書く問題があり、音声認識が使える（speakAvailable）ときだけ。
+ */
+export function availableModes(turn: ConversationTurn | undefined, speakAvailable = false): AnswerMode[] {
   if (turn?.choices === undefined) return []
-  return turn.freeAnswer === undefined ? ['choice'] : ['choice', 'write']
+  if (turn.freeAnswer === undefined) return ['choice']
+  return speakAvailable ? ['choice', 'write', 'speak'] : ['choice', 'write']
 }
 
-function enterTurn(conversation: Conversation, index: number, mode: AnswerMode, history: TurnAnswer[]): ConversationSession {
+/** 選んだ答え方が使えなければ、近い方法にする（話す → 書く → 選ぶ） */
+export function modeFor(preferred: AnswerMode, modes: readonly AnswerMode[]): AnswerMode {
+  if (modes.includes(preferred)) return preferred
+  if (preferred === 'speak' && modes.includes('write')) return 'write'
+  return 'choice'
+}
+
+function enterTurn(conversation: Conversation, index: number, preferred: AnswerMode, history: TurnAnswer[], speakAvailable: boolean): ConversationSession {
   const turn = turnAt(conversation, index)
-  const modes = availableModes(turn)
   return {
     turn: index,
     shownLines: Math.min(1, turn?.lines.length ?? 0),
-    // 前の往復で「書く」を選んでいたら、次の往復でも続けて書けるようにする
-    mode: modes.includes(mode) ? mode : 'choice',
+    mode: modeFor(preferred, availableModes(turn, speakAvailable)),
+    preferred,
     wrongChoices: [],
     writeMisses: 0,
     lastJudge: null,
+    lastHeard: null,
     wrongReply: null,
     answer: null,
     shownReply: 0,
@@ -92,8 +115,9 @@ function enterTurn(conversation: Conversation, index: number, mode: AnswerMode, 
   }
 }
 
-export function initialSession(conversation: Conversation): ConversationSession {
-  return enterTurn(conversation, 0, 'choice', [])
+/** 会話を始める。preferred は前の会話で選んでいた答え方（ゲームを開いている間だけ覚えておく） */
+export function initialSession(conversation: Conversation, preferred: AnswerMode = 'choice', speakAvailable = false): ConversationSession {
+  return enterTurn(conversation, 0, preferred, [], speakAvailable)
 }
 
 export function sessionPhase(conversation: Conversation, s: ConversationSession): SessionPhase {
@@ -114,9 +138,9 @@ export function isAnswering(conversation: Conversation, s: ConversationSession):
   return sessionPhase(conversation, s) === 'answer'
 }
 
-/** 「答えを見る」を出してよいか */
+/** 「答えを見る」を出してよいか（書く・話すで、合わせて attemptsBeforeReveal 回間違えたら） */
 export function canReveal(conversation: Conversation, s: ConversationSession, attemptsBeforeReveal: number): boolean {
-  return isAnswering(conversation, s) && s.mode === 'write' && s.writeMisses >= attemptsBeforeReveal
+  return isAnswering(conversation, s) && (s.mode === 'write' || s.mode === 'speak') && s.writeMisses >= attemptsBeforeReveal
 }
 
 /** 書いた答えに対応する選択肢（同じ文の選択肢があればそれ） */
@@ -130,7 +154,7 @@ function replyForWritten(turn: ConversationTurn, korean: string): ConversationLi
   return turn.freeAnswer?.reply ?? matchingChoice(turn, korean)?.reply ?? turn.choices?.find((c) => c.correct)?.reply ?? []
 }
 
-function writtenAnswer(turn: ConversationTurn, korean: string, method: 'write' | 'revealed', prompt: string, spacingNote: boolean): TurnAnswer {
+function writtenAnswer(turn: ConversationTurn, korean: string, method: 'write' | 'speak' | 'revealed', prompt: string, spacingNote: boolean): TurnAnswer {
   return {
     method,
     line: { korean, pronunciation: matchingChoice(turn, korean)?.pronunciation ?? null, japanese: prompt },
@@ -150,13 +174,13 @@ export function createSessionReducer(conversation: Conversation, attemptsBeforeR
         if (phase === 'lines') return { ...s, shownLines: s.shownLines + 1 }
         if (phase === 'reply' && s.answer !== null) {
           if (s.shownReply < s.answer.reply.length) return { ...s, shownReply: s.shownReply + 1 }
-          return enterTurn(conversation, s.turn + 1, s.mode, [...s.history, s.answer])
+          return enterTurn(conversation, s.turn + 1, s.preferred, [...s.history, s.answer], action.speakAvailable ?? false)
         }
         return s
 
       case 'setMode':
-        if (phase !== 'answer' || !availableModes(turn).includes(action.mode) || s.mode === action.mode) return s
-        return { ...s, mode: action.mode, lastJudge: null, wrongReply: null }
+        if (phase !== 'answer' || !availableModes(turn, action.speakAvailable ?? false).includes(action.mode) || s.mode === action.mode) return s
+        return { ...s, mode: action.mode, preferred: action.mode, lastJudge: null, lastHeard: null, wrongReply: null }
 
       case 'choose': {
         if (phase !== 'answer' || s.mode !== 'choice') return s
@@ -181,6 +205,15 @@ export function createSessionReducer(conversation: Conversation, attemptsBeforeR
         const judge = judgeAnswer(action.text, free.answers)
         if (judge.kind === 'incorrect') return { ...s, lastJudge: judge, writeMisses: s.writeMisses + 1 }
         return { ...s, lastJudge: judge, answer: writtenAnswer(turn, judge.matched, 'write', free.prompt, judge.kind === 'spacing') }
+      }
+
+      case 'submitSpeech': {
+        const free = turn.freeAnswer
+        if (phase !== 'answer' || s.mode !== 'speak' || free === undefined) return s
+        const judge = judgeSpoken(action.alternatives, free.answers)
+        if (judge.kind === 'incorrect') return { ...s, lastHeard: judge.heard, writeMisses: s.writeMisses + 1 }
+        // 話した答えは分かち書きの注意を出さない（話した人の誤りではないため）
+        return { ...s, lastHeard: null, answer: writtenAnswer(turn, judge.matched, 'speak', free.prompt, false) }
       }
 
       case 'reveal': {
@@ -247,7 +280,7 @@ export function characterExpression(conversation: Conversation, s: ConversationS
   const lines = shownLines(conversation, s)
   const last = lines.at(-1)
   if (last?.kind === 'player') return last.autoExpression
-  const missed = s.wrongChoices.length > 0 || s.lastJudge?.kind === 'incorrect'
+  const missed = s.wrongChoices.length > 0 || s.lastJudge?.kind === 'incorrect' || s.lastHeard !== null
   if (s.answer === null && s.wrongReply === null && missed) return 'troubled'
   const own = lines.findLast((l) => l.speaker === conversation.character)
   return own === undefined ? DEFAULT_EXPRESSION : (own.expression ?? own.autoExpression)
