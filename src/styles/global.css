@@ -1725,3 +1725,209 @@ rt {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
+
+/* ---------- 学習画面・ハングルのレッスン・リスニング ---------- */
+
+.onboarding {
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.lesson-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson-item {
+  display: grid;
+  grid-template-columns: 2.2em 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lesson-item:hover {
+  border-color: var(--color-primary);
+}
+
+.lesson-item:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.lesson-item__order {
+  display: grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  font-weight: 700;
+}
+
+.lesson-item__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.lesson-item__status {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.lesson-item__status--passed {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.hangul-card {
+  display: grid;
+  gap: 12px;
+}
+
+.jamo-big {
+  margin: 0;
+  font-family: var(--font-ko);
+  font-size: 4.5rem;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.jamo-row {
+  margin: 0;
+  font-family: var(--font-ko);
+  font-size: 2rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.sound-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sound-list__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-soft);
+}
+
+.sound-list__ko {
+  font-family: var(--font-ko);
+  font-size: 1.6rem;
+}
+
+.sound-list__kana {
+  color: var(--color-muted);
+}
+
+.sound-change-list,
+.word-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sound-change__ko,
+.sound-change__spoken,
+.word-item__ko {
+  font-family: var(--font-ko);
+  font-size: 1.4rem;
+}
+
+.sound-change__spoken {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.sound-change__arrow {
+  color: var(--color-muted);
+}
+
+.word-item {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.word-item p {
+  margin: 0;
+}
+
+.card-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.quiz {
+  display: grid;
+  gap: 12px;
+}
+
+.quiz-target {
+  margin: 0;
+  font-family: var(--font-ko);
+  font-size: 2.6rem;
+  line-height: 1.3;
+}
+
+.quiz-option {
+  display: grid;
+  gap: 2px;
+}
+
+.quiz-option:disabled {
+  cursor: default;
+}
+
+.quiz-option--answer {
+  border: 2px solid var(--color-primary);
+  background: var(--color-surface-soft);
+}
+
+.quiz-option--wrong {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.quiz-option__mark {
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.quiz-option__meaning {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}

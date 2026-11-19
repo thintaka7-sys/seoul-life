@@ -46,6 +46,16 @@ export function splitSyllable(ch: string): Syllable | null {
   return { initial, medial, final: finalIndex === 0 ? null : (FINAL_CONSONANTS[finalIndex - 1] ?? null) }
 }
 
+/** 字母から1文字の音節を組み立てる。組み立てられない字母なら null */
+export function composeSyllable(initial: string, medial: string, final: string | null = null): string | null {
+  const i = (INITIAL_CONSONANTS as readonly string[]).indexOf(initial)
+  const m = (VOWELS as readonly string[]).indexOf(medial)
+  const finalIndex = final === null ? -1 : (FINAL_CONSONANTS as readonly string[]).indexOf(final)
+  if (i < 0 || m < 0 || (final !== null && finalIndex < 0)) return null
+  const f = finalIndex + 1
+  return String.fromCharCode(SYLLABLE_FIRST + (i * 21 + m) * 28 + f)
+}
+
 /** 文の中の音節（空白・句読点など、音節でない文字は飛ばす） */
 export function syllablesOf(text: string): Syllable[] {
   return [...text].flatMap((ch) => {

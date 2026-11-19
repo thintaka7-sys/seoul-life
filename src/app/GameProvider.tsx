@@ -12,6 +12,7 @@ const gameReducer = createGameReducer({
   events: content.events,
   balance: content.balance,
   locationIds: new Set(content.locations.map((l) => l.id)),
+  firstHangulLessonId: content.hangulLessons[0]?.id ?? null,
 })
 
 function initState(boot: BootResult) {

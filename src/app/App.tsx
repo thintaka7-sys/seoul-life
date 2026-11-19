@@ -6,8 +6,13 @@ import { DictionaryPage } from '../pages/DictionaryPage'
 import { EventPage } from '../pages/event/EventPage'
 import { LocationPage } from '../pages/LocationPage'
 import { MainPage } from '../pages/MainPage'
+import { OnboardingPage } from '../pages/OnboardingPage'
 import { SaveErrorPage } from '../pages/SaveErrorPage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { HangulLessonPage } from '../pages/study/HangulLessonPage'
+import { HangulListPage } from '../pages/study/HangulListPage'
+import { ListeningPage } from '../pages/study/ListeningPage'
+import { StudyPage } from '../pages/study/StudyPage'
 import { TitlePage } from '../pages/TitlePage'
 import { backdropFor } from './backdrop'
 import { nowIso, useGame } from './GameContext'
@@ -27,6 +32,16 @@ function SceneView({ scene }: { scene: Scene }) {
       return <EventPage />
     case 'dictionary':
       return <DictionaryPage />
+    case 'onboarding':
+      return <OnboardingPage />
+    case 'study':
+      return <StudyPage />
+    case 'hangul':
+      return <HangulListPage />
+    case 'hangulLesson':
+      return <HangulLessonPage lessonId={scene.lessonId} onboarding={scene.onboarding} />
+    case 'listening':
+      return <ListeningPage />
     case 'saveError':
       return <SaveErrorPage reason={scene.reason} detail={scene.detail} backupKey={scene.backupKey} />
   }
@@ -34,7 +49,9 @@ function SceneView({ scene }: { scene: Scene }) {
 
 /** 画面ごとの印（変わったら画面を作り直し、切り替えの演出を出す） */
 function sceneKey(scene: Scene): string {
-  return scene.name === 'location' || scene.name === 'event' ? `${scene.name}:${scene.locationId}` : scene.name
+  if (scene.name === 'location' || scene.name === 'event') return `${scene.name}:${scene.locationId}`
+  if (scene.name === 'hangulLesson') return `${scene.name}:${scene.lessonId}`
+  return scene.name
 }
 
 /**

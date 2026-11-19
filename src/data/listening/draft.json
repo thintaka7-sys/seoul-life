@@ -1,0 +1,44 @@
+[
+  {
+    "id": "listen_901",
+    "afterEvent": "event_001",
+    "korean": "안녕하세요.",
+    "pronunciation": "アンニョンハセヨ",
+    "japanese": "こんにちは。",
+    "distractors": [
+      {
+        "korean": "안녕히 가세요.",
+        "pronunciation": "アンニョンヒ ガセヨ",
+        "japanese": "さようなら（立ち去る人に）。"
+      },
+      {
+        "korean": "안녕히 계세요.",
+        "pronunciation": "アンニョンヒ ゲセヨ",
+        "japanese": "さようなら（その場に残る人に）。"
+      }
+    ],
+    "reviewed": false,
+    "notes": "仮データ（Claude Code が動作確認のために作成。韓国語は未確認。本番の教材が届いたらこのファイルを削除する）"
+  },
+  {
+    "id": "listen_902",
+    "afterEvent": "event_002",
+    "korean": "커피 주세요.",
+    "pronunciation": "コピ ジュセヨ",
+    "japanese": "コーヒーをください。",
+    "distractors": [
+      {
+        "korean": "케이크 주세요.",
+        "pronunciation": "ケイク ジュセヨ",
+        "japanese": "ケーキをください。"
+      },
+      {
+        "korean": "빵 주세요.",
+        "pronunciation": "ッパン ジュセヨ",
+        "japanese": "パンをください。"
+      }
+    ],
+    "reviewed": false,
+    "notes": "仮データ（Claude Code が動作確認のために作成。韓国語は未確認。本番の教材が届いたらこのファイルを削除する）"
+  }
+]

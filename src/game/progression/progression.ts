@@ -89,3 +89,23 @@ export function advanceEvent(save: SaveData, event: GameEvent, balance: Balance,
   const xp = alreadyDone ? 0 : balance.xp.eventComplete
   return { save: addXp(next, xp, now), reward: { xp, newWords: 0 }, finished: true }
 }
+
+/**
+ * ハングルのレッスンの小テストに合格した記録を付ける。初めて合格したときだけ経験値。
+ * 2回目以降は、点が上がったときだけ「いちばん良い点」を更新する。
+ */
+export function passHangulLesson(save: SaveData, lessonId: string, score: number, balance: Balance, now: string): Updated {
+  const prev = save.learning.hangul[lessonId]
+  if (prev !== undefined && score <= prev.bestScore) return { save, reward: NO_REWARD }
+  const record = prev === undefined ? { passedAt: now, bestScore: score } : { ...prev, bestScore: score }
+  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, hangul: { ...save.learning.hangul, [lessonId]: record } } }
+  const xp = prev === undefined ? balance.xp.hangulLesson : 0
+  return { save: addXp(next, xp, now), reward: { xp, newWords: 0 } }
+}
+
+/** リスニングの問題に正解した記録を付ける。問題ごとに、初めて正解したときだけ経験値 */
+export function recordListeningCorrect(save: SaveData, key: string, balance: Balance, now: string): Updated {
+  if (save.learning.listening[key] !== undefined) return { save, reward: NO_REWARD }
+  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, listening: { ...save.learning.listening, [key]: { correctAt: now } } } }
+  return { save: addXp(next, balance.xp.listening, now), reward: { xp: balance.xp.listening, newWords: 0 } }
+}

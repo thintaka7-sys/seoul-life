@@ -289,3 +289,60 @@ describe('起動（boot と createInitialState）', () => {
     expect(loadSave(storage).kind).toBe('ok')
   })
 })
+
+describe('はじめからの案内と学習画面', () => {
+  const withHangul = createGameReducer({
+    events: content.events,
+    balance: content.balance,
+    locationIds: new Set(content.locations.map((l) => l.id)),
+    firstHangulLessonId: 'hangul_001',
+  })
+  const go = (state: GameState, ...actions: GameAction[]) => actions.reduce(withHangul, state)
+  const home = { name: 'location', locationId: content.balance.startLocation } as const
+
+  it('ハングルのレッスンがなければ、はじめからで最初の施設に行く', () => {
+    expect(run(titleWithoutSave(), { type: 'startNew', now: T0 }).scene).toEqual(home)
+  })
+
+  it('レッスンがあれば、はじめからの直後にハングルから学ぶかを聞く。「このまま始める」で最初の施設へ', () => {
+    const s = go(titleWithoutSave(), { type: 'startNew', now: T0 })
+    expect(s.scene).toEqual({ name: 'onboarding' })
+    expect(s.save).not.toBeNull()
+    expect(go(s, { type: 'chooseOnboarding', learnHangul: false }).scene).toEqual(home)
+  })
+
+  it('「ハングルから学ぶ」でレッスン1を始め、閉じると最初の施設（物語の始まり）に戻る', () => {
+    const s = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: true })
+    expect(s.scene).toEqual({ name: 'hangulLesson', lessonId: 'hangul_001', back: home, onboarding: true })
+    expect(go(s, { type: 'closeStudyScene' }).scene).toEqual(home)
+    expect(go(s, { type: 'back', now: T1 }).scene).toEqual(home)
+  })
+
+  it('自宅から学習画面 → ハングル → レッスンと開き、戻るで1つずつ戻る', () => {
+    const atHome = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: false })
+    const lesson = go(atHome, { type: 'openStudy' }, { type: 'openHangul' }, { type: 'openHangulLesson', lessonId: 'hangul_002' })
+    expect(lesson.scene).toMatchObject({ name: 'hangulLesson', lessonId: 'hangul_002', onboarding: false, back: { name: 'hangul', back: { name: 'study', back: home } } })
+    const back1 = go(lesson, { type: 'back', now: T1 })
+    expect(back1.scene.name).toBe('hangul')
+    expect(go(back1, { type: 'closeStudyScene' }, { type: 'closeStudyScene' }).scene).toEqual(home)
+    expect(go(atHome, { type: 'openStudy' }, { type: 'openListening' }).scene).toMatchObject({ name: 'listening', back: { name: 'study' } })
+  })
+
+  it('決まった順でしか開けない（学習画面を経ずにレッスンは開けない）', () => {
+    const atHome = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: false })
+    expect(go(atHome, { type: 'openHangulLesson', lessonId: 'hangul_001' })).toBe(atHome)
+    expect(go(atHome, { type: 'openListening' })).toBe(atHome)
+    expect(go(titleWithoutSave(), { type: 'openStudy' }).scene).toEqual({ name: 'title' })
+  })
+
+  it('小テストの合格とリスニングの正解で経験値が付き、知らせを出す', () => {
+    const atHome = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: false })
+    const passed = go(atHome, { type: 'hangulLessonPassed', lessonId: 'hangul_001', score: 88, now: T1 })
+    expect(passed.save?.learning.hangul['hangul_001']).toEqual({ passedAt: T1, bestScore: 88 })
+    expect(passed.reward).toMatchObject({ xp: content.balance.xp.hangulLesson })
+    expect(go(passed, { type: 'hangulLessonPassed', lessonId: 'hangul_001', score: 50, now: T1 })).toBe(passed)
+    const heard = go(atHome, { type: 'listeningCorrect', key: 'word:vocab_001', now: T1 })
+    expect(heard.save?.stats.xp).toBe(content.balance.xp.listening)
+    expect(go(heard, { type: 'listeningCorrect', key: 'word:vocab_001', now: T1 })).toBe(heard)
+  })
+})

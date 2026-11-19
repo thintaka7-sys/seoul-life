@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Balance, GameEvent } from '../data/types'
 import { createNewSave, type SaveData } from '../storage/saveData'
 import { allEventsCompleted, backgroundAt, completedEventsAt, conversationsOf, eventsOfDay, nextEvent, nextEventAt, playableStep, resumeStep, stepProgress, vocabularyOf } from './events/events'
-import { advanceEvent, clearConversationTurn, learnItems, startEvent } from './progression/progression'
+import { advanceEvent, clearConversationTurn, learnItems, passHangulLesson, recordListeningCorrect, startEvent } from './progression/progression'
 
 const T0 = '2026-11-18T10:00:00.000Z'
 const T1 = '2026-11-18T10:05:00.000Z'
@@ -199,5 +199,33 @@ describe('背景を切り替える段階（background）', () => {
   it('進み具合の表示では background を数えない', () => {
     expect(stepProgress(event, 0)).toEqual({ done: 0, total: 4 })
     expect(stepProgress(event, 3)).toEqual({ done: 2, total: 4 })
+  })
+})
+
+describe('ハングルのレッスンとリスニングの記録', () => {
+  it('小テストに初めて合格したときだけ経験値を付け、点が上がったときだけ記録を更新する', () => {
+    const save = createNewSave(T0)
+    const first = passHangulLesson(save, 'hangul_001', 80, balance, T1)
+    expect(first.reward.xp).toBe(balance.xp.hangulLesson)
+    expect(first.save.learning.hangul['hangul_001']).toEqual({ passedAt: T1, bestScore: 80 })
+    expect(first.save.stats.xp).toBe(balance.xp.hangulLesson)
+
+    const lower = passHangulLesson(first.save, 'hangul_001', 75, balance, '2026-11-19T00:00:00.000Z')
+    expect(lower.save).toBe(first.save)
+    expect(lower.reward.xp).toBe(0)
+
+    const higher = passHangulLesson(first.save, 'hangul_001', 100, balance, '2026-11-19T00:00:00.000Z')
+    expect(higher.reward.xp).toBe(0)
+    expect(higher.save.learning.hangul['hangul_001']).toEqual({ passedAt: T1, bestScore: 100 })
+    expect(higher.save.stats.xp).toBe(balance.xp.hangulLesson)
+  })
+
+  it('リスニングの問題は、初めて正解したときだけ経験値を付ける', () => {
+    const first = recordListeningCorrect(createNewSave(T0), 'word:vocab_001', balance, T1)
+    expect(first.reward.xp).toBe(balance.xp.listening)
+    expect(first.save.learning.listening['word:vocab_001']).toEqual({ correctAt: T1 })
+    const again = recordListeningCorrect(first.save, 'word:vocab_001', balance, T1)
+    expect(again.save).toBe(first.save)
+    expect(again.reward.xp).toBe(0)
   })
 })

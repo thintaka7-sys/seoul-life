@@ -3,7 +3,7 @@
 
 import type { Balance, GameEvent } from '../data/types'
 import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
-import { advanceEvent, clearConversationTurn, learnItems, startEvent, type ClearMethod, type Reward } from '../game/progression/progression'
+import { advanceEvent, clearConversationTurn, learnItems, passHangulLesson, recordListeningCorrect, startEvent, type ClearMethod, type Reward } from '../game/progression/progression'
 import { createNewSave, type SaveData } from '../storage/saveData'
 import type { CorruptReason, LoadResult } from '../storage/saveStore'
 import type { Settings } from '../storage/settings'
@@ -16,6 +16,16 @@ export type Scene =
   /** イベントの段階を進めている画面（中身は run で決まる） */
   | { name: 'event'; locationId: string }
   | { name: 'dictionary'; back: Scene }
+  /** 「はじめから」の直後に1度だけ聞く：ハングルから学ぶか、このまま始めるか */
+  | { name: 'onboarding' }
+  /** 学習画面（GAME_SPEC 3-1 E）。自宅の「勉強する」から開く */
+  | { name: 'study'; back: Scene }
+  /** ハングルのレッスンの一覧 */
+  | { name: 'hangul'; back: Scene }
+  /** ハングルのレッスン。onboarding は「はじめから」の直後の案内から来たか（終わったら物語を始める） */
+  | { name: 'hangulLesson'; lessonId: string; back: Scene; onboarding: boolean }
+  /** リスニング */
+  | { name: 'listening'; back: Scene }
   | { name: 'saveError'; reason: CorruptReason; detail: string; backupKey: string | null }
 
 /** 進めているイベント。replay は終えたイベントの遊び直し（記録・経験値は付けない） */
@@ -67,6 +77,18 @@ export type GameAction =
   | { type: 'leaveEvent' }
   /** ブラウザの「戻る」。画面内の「戻る」ボタンと同じ動きにする */
   | { type: 'back'; now: string }
+  /** 「はじめから」の直後の案内に答える */
+  | { type: 'chooseOnboarding'; learnHangul: boolean }
+  | { type: 'openStudy' }
+  | { type: 'openHangul' }
+  | { type: 'openHangulLesson'; lessonId: string }
+  | { type: 'openListening' }
+  /** 学習画面・レッスン一覧・レッスン・リスニングを閉じて、開く前の画面に戻る */
+  | { type: 'closeStudyScene' }
+  /** ハングルのレッスンの小テストに合格した（score は 0〜100） */
+  | { type: 'hangulLessonPassed'; lessonId: string; score: number; now: string }
+  /** リスニングの問題に正解した（key は listeningKey） */
+  | { type: 'listeningCorrect'; key: string; now: string }
   | { type: 'dismissReward' }
   | { type: 'saveSucceeded' }
   | { type: 'saveFailed'; message: string }
@@ -75,6 +97,8 @@ export interface GameDeps {
   events: readonly GameEvent[]
   balance: Balance
   locationIds: ReadonlySet<string>
+  /** 最初のハングルのレッスンのID。あれば「はじめから」の直後に、ハングルから学ぶかを聞く */
+  firstHangulLessonId?: string | null
 }
 
 export function createInitialState(load: LoadResult, backupKey: string | null, settings: Settings): GameState {
@@ -113,17 +137,31 @@ export function backTarget(state: GameState): GameAction['type'] | null {
       return 'closeDictionary'
     case 'event':
       return 'leaveEvent'
+    case 'study':
+    case 'hangul':
+    case 'hangulLesson':
+    case 'listening':
+      return 'closeStudyScene'
     case 'location':
     case 'main':
       return state.scene.name === 'main' ? 'backToTitle' : 'backToMap'
     case 'title':
+    case 'onboarding':
     case 'saveError':
       return null
   }
 }
 
+/** 学習画面のなかまの画面（閉じると back に戻る） */
+type StudyScene = Extract<Scene, { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' }>
+
+function isStudyScene(scene: Scene): scene is StudyScene {
+  return scene.name === 'study' || scene.name === 'hangul' || scene.name === 'hangulLesson' || scene.name === 'listening'
+}
+
 export function createGameReducer(deps: GameDeps) {
   const { events, balance, locationIds } = deps
+  const firstHangulLessonId = deps.firstHangulLessonId ?? null
   const unlocked = new Set(balance.initialLocations)
 
   /** 段階を1つ進める。イベントの最後なら、その施設の画面に戻る */
@@ -157,7 +195,48 @@ export function createGameReducer(deps: GameDeps) {
     switch (action.type) {
       case 'startNew': {
         const save = withLocation(createNewSave(action.now), balance.startLocation, action.now)
-        return { ...state, save, run: null, reward: null, scene: { name: 'location', locationId: balance.startLocation } }
+        const scene: Scene = firstHangulLessonId === null ? { name: 'location', locationId: balance.startLocation } : { name: 'onboarding' }
+        return { ...state, save, run: null, reward: null, scene }
+      }
+
+      case 'chooseOnboarding': {
+        if (state.scene.name !== 'onboarding') return state
+        const start: Scene = { name: 'location', locationId: balance.startLocation }
+        if (!action.learnHangul || firstHangulLessonId === null) return { ...state, scene: start }
+        return { ...state, scene: { name: 'hangulLesson', lessonId: firstHangulLessonId, back: start, onboarding: true } }
+      }
+
+      case 'openStudy':
+        if (state.save === null || isStudyScene(state.scene)) return state
+        return { ...state, scene: { name: 'study', back: state.scene } }
+
+      case 'openHangul':
+        if (state.scene.name !== 'study') return state
+        return { ...state, scene: { name: 'hangul', back: state.scene } }
+
+      case 'openHangulLesson':
+        if (state.scene.name !== 'hangul') return state
+        return { ...state, scene: { name: 'hangulLesson', lessonId: action.lessonId, back: state.scene, onboarding: false } }
+
+      case 'openListening':
+        if (state.scene.name !== 'study') return state
+        return { ...state, scene: { name: 'listening', back: state.scene } }
+
+      case 'closeStudyScene':
+        return isStudyScene(state.scene) ? { ...state, scene: state.scene.back } : state
+
+      case 'hangulLessonPassed': {
+        if (state.save === null) return state
+        const passed = passHangulLesson(state.save, action.lessonId, action.score, balance, action.now)
+        if (passed.save === state.save) return state
+        return { ...state, save: passed.save, reward: addReward(state, passed.reward) }
+      }
+
+      case 'listeningCorrect': {
+        if (state.save === null) return state
+        const recorded = recordListeningCorrect(state.save, action.key, balance, action.now)
+        if (recorded.save === state.save) return state
+        return { ...state, save: recorded.save, reward: addReward(state, recorded.reward) }
       }
 
       case 'continue': {
@@ -261,7 +340,7 @@ export function createGameReducer(deps: GameDeps) {
         const target = backTarget(state)
         if (target === null) return state
         if (target === 'backToMap') return gameReducer(state, { type: 'backToMap', now: action.now })
-        if (target === 'closeSettings' || target === 'closeDictionary' || target === 'leaveEvent' || target === 'backToTitle') {
+        if (target === 'closeSettings' || target === 'closeDictionary' || target === 'leaveEvent' || target === 'backToTitle' || target === 'closeStudyScene') {
           return gameReducer(state, { type: target })
         }
         return state

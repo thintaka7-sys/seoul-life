@@ -47,7 +47,12 @@ export function LocationPage({ locationId }: { locationId: string }) {
           <p className="muted">いまは、ここですることはありません。</p>
         )}
 
-        {locationId === 'home' && <Button onClick={() => dispatch({ type: 'openDictionary' })}>図鑑を見る</Button>}
+        {locationId === 'home' && (
+          <>
+            <Button onClick={() => dispatch({ type: 'openStudy' })}>勉強する（ハングル・リスニング）</Button>
+            <Button onClick={() => dispatch({ type: 'openDictionary' })}>図鑑を見る</Button>
+          </>
+        )}
 
         {replays.length > 0 && (
           <section className="replays" aria-label="もう一度遊ぶ">
