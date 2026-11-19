@@ -2,8 +2,6 @@ import { useEffect, useRef } from 'react'
 import { Notice } from '../components/Notice'
 import { RewardToast } from '../components/RewardToast'
 import { Backdrop } from '../components/scene/Backdrop'
-import { assets, backgroundImage } from '../data'
-import type { ImageAsset } from '../data/types'
 import { DictionaryPage } from '../pages/DictionaryPage'
 import { EventPage } from '../pages/event/EventPage'
 import { LocationPage } from '../pages/LocationPage'
@@ -11,6 +9,7 @@ import { MainPage } from '../pages/MainPage'
 import { SaveErrorPage } from '../pages/SaveErrorPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { TitlePage } from '../pages/TitlePage'
+import { backdropFor } from './backdrop'
 import { nowIso, useGame } from './GameContext'
 import { backTarget, type GameState, type Scene } from './gameState'
 
@@ -36,23 +35,6 @@ function SceneView({ scene }: { scene: Scene }) {
 /** 画面ごとの印（変わったら画面を作り直し、切り替えの演出を出す） */
 function sceneKey(scene: Scene): string {
   return scene.name === 'location' || scene.name === 'event' ? `${scene.name}:${scene.locationId}` : scene.name
-}
-
-/** 画面の後ろに敷く絵（タイトルとマップは街のマップ、施設とイベントはその施設の背景。設定・図鑑は開く前の画面のもの） */
-function backdropFor(scene: Scene): ImageAsset | undefined {
-  switch (scene.name) {
-    case 'title':
-    case 'main':
-      return assets.map ?? undefined
-    case 'location':
-    case 'event':
-      return backgroundImage(scene.locationId)
-    case 'settings':
-    case 'dictionary':
-      return backdropFor(scene.back)
-    case 'saveError':
-      return undefined
-  }
 }
 
 /**
