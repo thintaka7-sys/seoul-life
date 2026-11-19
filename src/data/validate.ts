@@ -1103,15 +1103,27 @@ export interface LoadedContent {
 
 /** balance.json が読めなかったときに使う値（ゲームを止めないため） */
 export const DEFAULT_BALANCE: Balance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20 },
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3 },
   furiganaAlwaysUntilChapter: 3,
   initialLocations: ['home', 'cafe'],
   startLocation: 'home',
   writeAttemptsBeforeReveal: 2,
+  hangulQuizQuestions: 8,
+  hangulPassPercent: 80,
+  listeningQuestionsPerRound: 5,
 }
 
-const BALANCE_KEYS = ['xp', 'furiganaAlwaysUntilChapter', 'initialLocations', 'startLocation', 'writeAttemptsBeforeReveal'] as const
-const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete'] as const
+const BALANCE_KEYS = [
+  'xp',
+  'furiganaAlwaysUntilChapter',
+  'initialLocations',
+  'startLocation',
+  'writeAttemptsBeforeReveal',
+  'hangulQuizQuestions',
+  'hangulPassPercent',
+  'listeningQuestionsPerRound',
+] as const
+const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening'] as const
 
 function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Balance | undefined {
   if (!isObj(raw)) {
@@ -1131,29 +1143,40 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
   const initialLocations = idList(raw, 'initialLocations', '', errs, ctx.locationIds, '施設ID', false)
   const startLocation = reference(raw, 'startLocation', '', errs, ctx.locationIds, '施設ID')
   const writeAttemptsBeforeReveal = integer(raw, 'writeAttemptsBeforeReveal', '', errs, 1)
+  const hangulQuizQuestions = integer(raw, 'hangulQuizQuestions', '', errs, 1, 50)
+  const hangulPassPercent = integer(raw, 'hangulPassPercent', '', errs, 0, 100)
+  const listeningQuestionsPerRound = integer(raw, 'listeningQuestionsPerRound', '', errs, 1, 50)
   if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
     errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
   }
-  const { learnWord, conversationChoice, conversationWrite, eventComplete } = xp
+  const { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening } = xp
   if (
     errs.length > 0 ||
     learnWord === undefined ||
     conversationChoice === undefined ||
     conversationWrite === undefined ||
     eventComplete === undefined ||
+    hangulLesson === undefined ||
+    listening === undefined ||
     furiganaAlwaysUntilChapter === undefined ||
     initialLocations === undefined ||
     startLocation === undefined ||
-    writeAttemptsBeforeReveal === undefined
+    writeAttemptsBeforeReveal === undefined ||
+    hangulQuizQuestions === undefined ||
+    hangulPassPercent === undefined ||
+    listeningQuestionsPerRound === undefined
   ) {
     return undefined
   }
   return {
-    xp: { learnWord, conversationChoice, conversationWrite, eventComplete },
+    xp: { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening },
     furiganaAlwaysUntilChapter,
     initialLocations,
     startLocation,
     writeAttemptsBeforeReveal,
+    hangulQuizQuestions,
+    hangulPassPercent,
+    listeningQuestionsPerRound,
   }
 }
 

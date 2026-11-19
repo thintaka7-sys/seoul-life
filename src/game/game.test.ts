@@ -8,11 +8,14 @@ const T0 = '2026-11-18T10:00:00.000Z'
 const T1 = '2026-11-18T10:05:00.000Z'
 
 const balance: Balance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20 },
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3 },
   furiganaAlwaysUntilChapter: 3,
   initialLocations: ['home', 'cafe'],
   startLocation: 'home',
   writeAttemptsBeforeReveal: 2,
+  hangulQuizQuestions: 8,
+  hangulPassPercent: 80,
+  listeningQuestionsPerRound: 5,
 }
 
 const ev = (id: string, location: string, requires: string[], steps = 2): GameEvent => ({

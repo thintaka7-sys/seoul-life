@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { content } from '../data'
 import type { GameEvent } from '../data/types'
-import { createNewSave } from '../storage/saveData'
+import { CURRENT_SAVE_VERSION, createNewSave } from '../storage/saveData'
 import { SAVE_KEY, loadSave } from '../storage/saveStore'
 import { DEFAULT_SETTINGS } from '../storage/settings'
 import { MemoryStorage } from '../storage/testing'
@@ -135,7 +135,11 @@ describe('途中で閉じて再開する', () => {
     const old = {
       ...createNewSave(T0),
       progress: { currentLocationId: 'cafe', completedEvents: ['event_001'], activeEvent: { id: 'event_002', step: 99 } },
-      learning: { words: { vocab_001: { learnedAt: T0, chapter: 1 } }, grammar: {}, conversations: { 'home_001#0': { choice: true, write: false }, 'cafe_001#0': { choice: true, write: true } } },
+      learning: {
+        ...createNewSave(T0).learning,
+        words: { vocab_001: { learnedAt: T0, chapter: 1 } },
+        conversations: { 'home_001#0': { choice: true, write: false }, 'cafe_001#0': { choice: true, write: true } },
+      },
       stats: { xp: 50 },
     }
     const storage = new MemoryStorage()
@@ -263,7 +267,7 @@ describe('起動（boot と createInitialState）', () => {
     const s = createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS)
     expect(s.scene).toMatchObject({ name: 'saveError', reason: 'parse_error', backupKey: b.backupKey })
     const started = reducer(s, { type: 'startNew', now: T1 })
-    expect(started.save?.version).toBe(3)
+    expect(started.save?.version).toBe(CURRENT_SAVE_VERSION)
   })
 
   it('v1 のデータは移行前の形を退避してから読み込む', () => {

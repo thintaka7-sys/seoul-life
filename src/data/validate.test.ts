@@ -89,11 +89,14 @@ const validEvent = {
 }
 
 const validBalance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20 },
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3 },
   furiganaAlwaysUntilChapter: 3,
   initialLocations: ['home', 'cafe'],
   startLocation: 'home',
   writeAttemptsBeforeReveal: 2,
+  hangulQuizQuestions: 8,
+  hangulPassPercent: 80,
+  listeningQuestionsPerRound: 5,
 }
 
 function issuesOf(kind: ContentKind, item: unknown) {

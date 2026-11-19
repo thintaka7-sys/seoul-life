@@ -37,6 +37,11 @@ export const MIGRATIONS: MigrationTable = {
     for (const [key, record] of Object.entries(old)) conversations[key.includes('#') ? key : `${key}#0`] = record
     return { ...d, version: 3, learning: { ...learning, conversations } }
   },
+  // v3（Phase 1.5）→ v4（Phase 2）：ハングルのレッスンとリスニングの記録を空で足す。ほかはそのまま
+  3: (d) => {
+    const learning = isObj(d['learning']) ? d['learning'] : {}
+    return { ...d, version: 4, learning: { ...learning, hangul: {}, listening: {} } }
+  },
 }
 
 export type MigrateResult =

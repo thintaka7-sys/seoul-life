@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MIGRATIONS, migrate } from './migrations'
-import { CURRENT_SAVE_VERSION, isSaveData, type SaveDataV1, type SaveDataV2 } from './saveData'
+import { CURRENT_SAVE_VERSION, isSaveData, type SaveDataV1, type SaveDataV2, type SaveDataV3 } from './saveData'
 import { SAVE_KEY, loadSave } from './saveStore'
 import { MemoryStorage } from './testing'
 
@@ -116,7 +116,8 @@ describe('v2 → v3', () => {
       version: 3,
       learning: { ...v2.learning, conversations: { 'home_001#0': { choice: true, write: false }, 'cafe_001#0': { choice: true, write: true } } },
     })
-    expect(isSaveData(result.data)).toBe(true)
+    const latest = migrate(result.data, MIGRATIONS, CURRENT_SAVE_VERSION)
+    expect(latest.ok && isSaveData(latest.data)).toBe(true)
   })
 
   it('保存されている v2 のデータを読み込むと v3 になり、経験値と進行が残る', () => {
@@ -133,5 +134,47 @@ describe('v2 → v3', () => {
     const storage = new MemoryStorage()
     storage.setItem(SAVE_KEY, JSON.stringify({ ...v2, learning: null }))
     expect(loadSave(storage)).toMatchObject({ kind: 'corrupt', reason: 'invalid_shape' })
+  })
+})
+
+describe('v3 → v4', () => {
+  const v3: SaveDataV3 = {
+    version: 3,
+    createdAt: '2026-11-18T10:00:00.000Z',
+    updatedAt: '2026-11-18T10:05:00.000Z',
+    progress: { currentLocationId: 'home', completedEvents: ['event_001'], activeEvent: null },
+    learning: {
+      words: { vocab_001: { learnedAt: '2026-11-18T10:01:00.000Z', chapter: 1 } },
+      grammar: {},
+      conversations: { 'home_003#0': { choice: true, write: false } },
+    },
+    stats: { xp: 45 },
+  }
+
+  it('ハングルとリスニングの記録を空で足し、ほかはそのまま引き継ぐ', () => {
+    const result = migrate(structuredClone(v3) as unknown as Record<string, unknown>, MIGRATIONS, 4)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.data).toEqual({ ...v3, version: 4, learning: { ...v3.learning, hangul: {}, listening: {} } })
+    expect(isSaveData(result.data)).toBe(true)
+  })
+
+  it('保存されている v3 のデータを読み込むと v4 になる', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(SAVE_KEY, JSON.stringify(v3))
+    const result = loadSave(storage)
+    expect(result).toMatchObject({ kind: 'ok', migratedFrom: 3 })
+    if (result.kind !== 'ok') return
+    expect(result.data.learning.hangul).toEqual({})
+    expect(result.data.stats.xp).toBe(45)
+  })
+
+  it('v4 の記録の値が正しくなければ、壊れたデータとして扱う', () => {
+    const v4 = { ...v3, version: 4, learning: { ...v3.learning, hangul: { hangul_001: { passedAt: 'x', bestScore: 80 } }, listening: {} } }
+    expect(isSaveData(v4)).toBe(false)
+    const over = { ...v4, learning: { ...v4.learning, hangul: { hangul_001: { passedAt: v3.createdAt, bestScore: 120 } } } }
+    expect(isSaveData(over)).toBe(false)
+    const ok = { ...v4, learning: { ...v4.learning, hangul: { hangul_001: { passedAt: v3.createdAt, bestScore: 100 } }, listening: { 'word:vocab_001': { correctAt: v3.createdAt } } } }
+    expect(isSaveData(ok)).toBe(true)
   })
 })

@@ -3,9 +3,19 @@ import { DEFAULT_SETTINGS, SETTINGS_KEY, defaultSettings, loadSettings, saveSett
 import { MemoryStorage, quotaError } from './testing'
 
 describe('設定の保存と読み込み', () => {
-  it('保存されていなければ初期値（フリガナはおすすめ、読み上げ・文字送りはふつう、効果音はオン、演出はふつう）', () => {
+  it('保存されていなければ初期値（フリガナはおすすめ、訳はいつも表示、読み上げ・文字送りはふつう、効果音はオン、演出はふつう、音声入力はオンで説明は未読）', () => {
     expect(loadSettings(new MemoryStorage())).toEqual({ kind: 'default', settings: DEFAULT_SETTINGS })
-    expect(DEFAULT_SETTINGS).toEqual({ version: 2, furigana: 'recommended', speechRate: 'normal', textSpeed: 'normal', soundEffects: true, effects: 'normal' })
+    expect(DEFAULT_SETTINGS).toEqual({
+      version: 3,
+      furigana: 'recommended',
+      translation: 'always',
+      speechRate: 'normal',
+      textSpeed: 'normal',
+      soundEffects: true,
+      effects: 'normal',
+      voiceInput: true,
+      voiceInputNoticeSeen: false,
+    })
   })
 
   it('端末で「動きを減らす」がオンなら、演出の初期値は控えめ', () => {
@@ -14,7 +24,7 @@ describe('設定の保存と読み込み', () => {
     expect(defaultSettings(true)).toEqual({ ...DEFAULT_SETTINGS, effects: 'reduced' })
   })
 
-  it('v1 の設定は、フリガナと読み上げを引き継いで v2 にする（増えた項目は初期値）', () => {
+  it('v1 の設定は、フリガナと読み上げを引き継いで v3 にする（増えた項目は初期値）', () => {
     const storage = new MemoryStorage()
     storage.setItem(SETTINGS_KEY, JSON.stringify({ version: 1, furigana: 'tap', speechRate: 'slow' }))
     expect(loadSettings(storage)).toEqual({ kind: 'ok', settings: { ...DEFAULT_SETTINGS, furigana: 'tap', speechRate: 'slow' } })
@@ -27,9 +37,34 @@ describe('設定の保存と読み込み', () => {
     expect(loadSettings(storage)).toMatchObject({ kind: 'repaired', settings: { furigana: 'recommended', speechRate: 'slow', textSpeed: 'normal' } })
   })
 
+  it('v2 の設定は、すべての項目を引き継いで v3 にする（訳・音声入力は初期値）', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(SETTINGS_KEY, JSON.stringify({ version: 2, furigana: 'off', speechRate: 'slow', textSpeed: 'fast', soundEffects: false, effects: 'reduced' }))
+    expect(loadSettings(storage)).toEqual({
+      kind: 'ok',
+      settings: { ...DEFAULT_SETTINGS, furigana: 'off', speechRate: 'slow', textSpeed: 'fast', soundEffects: false, effects: 'reduced' },
+    })
+  })
+
+  it('v3 の正しくない訳・音声入力の値は初期値に戻す', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, translation: 'sometimes', voiceInput: 'no', voiceInputNoticeSeen: true }))
+    expect(loadSettings(storage)).toMatchObject({ kind: 'repaired', settings: { translation: 'always', voiceInput: true, voiceInputNoticeSeen: true } })
+  })
+
   it('保存した設定を読み込める', () => {
     const storage = new MemoryStorage()
-    const settings: Settings = { version: 2, furigana: 'tap', speechRate: 'slow', textSpeed: 'instant', soundEffects: false, effects: 'reduced' }
+    const settings: Settings = {
+      version: 3,
+      furigana: 'tap',
+      translation: 'off',
+      speechRate: 'slow',
+      textSpeed: 'instant',
+      soundEffects: false,
+      effects: 'reduced',
+      voiceInput: false,
+      voiceInputNoticeSeen: true,
+    }
     expect(saveSettings(storage, settings)).toEqual({ ok: true })
     expect(loadSettings(storage)).toEqual({ kind: 'ok', settings })
   })

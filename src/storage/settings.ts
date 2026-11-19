@@ -4,11 +4,15 @@
 import { writeItem, type KeyValueStorage, type SaveResult } from './saveStore'
 
 export const SETTINGS_KEY = 'seoul-life:settings'
-export const CURRENT_SETTINGS_VERSION = 2
+export const CURRENT_SETTINGS_VERSION = 3
 
 /** フリガナ：おすすめ（序盤はいつも表示・それ以降はタップ）／いつも表示／タップで表示／表示しない */
 export const FURIGANA_MODES = ['recommended', 'always', 'tap', 'off'] as const
 export type FuriganaMode = (typeof FURIGANA_MODES)[number]
+
+/** 日本語訳：いつも表示／タップで表示／表示しない（GAME_SPEC 9-3。フリガナとは別） */
+export const TRANSLATION_MODES = ['always', 'tap', 'off'] as const
+export type TranslationMode = (typeof TRANSLATION_MODES)[number]
 
 export const SPEECH_RATES = ['slow', 'normal'] as const
 export type SpeechRate = (typeof SPEECH_RATES)[number]
@@ -28,15 +32,31 @@ export interface SettingsV1 {
   speechRate: SpeechRate
 }
 
-/** v2（Phase 1.5） */
-export interface Settings {
+/** v2（Phase 1.5）。移行のために型を残しておく */
+export interface SettingsV2 {
   version: 2
   furigana: FuriganaMode
+  speechRate: SpeechRate
+  textSpeed: TextSpeed
+  soundEffects: boolean
+  effects: EffectLevel
+}
+
+/** v3（Phase 2） */
+export interface Settings {
+  version: 3
+  furigana: FuriganaMode
+  /** 日本語訳の出し方（台詞・反応・ログ・単語カードの例文・コラムの韓国語） */
+  translation: TranslationMode
   speechRate: SpeechRate
   textSpeed: TextSpeed
   /** 効果音を鳴らすか */
   soundEffects: boolean
   effects: EffectLevel
+  /** 音声入力（話して答える）を使うか。使えない環境では、オンでもマイクを出さない */
+  voiceInput: boolean
+  /** 音声入力の説明（音声が外部で処理されることがある）を見たか */
+  voiceInputNoticeSeen: boolean
 }
 
 /**
@@ -45,12 +65,15 @@ export interface Settings {
  */
 export function defaultSettings(prefersReducedMotion: boolean): Settings {
   return {
-    version: 2,
+    version: 3,
     furigana: 'recommended',
+    translation: 'always',
     speechRate: 'normal',
     textSpeed: 'normal',
     soundEffects: true,
     effects: prefersReducedMotion ? 'reduced' : 'normal',
+    voiceInput: true,
+    voiceInputNoticeSeen: false,
   }
 }
 
@@ -75,7 +98,7 @@ export interface LoadSettingsOptions {
 
 /**
  * 設定を読み込む。壊れていても例外を投げず、読める項目だけを使う。
- * v1 は v2 に移す（増えた項目は初期値）。
+ * v1・v2 は v3 に移す（増えた項目は初期値）。
  */
 export function loadSettings(storage: KeyValueStorage | null, options: LoadSettingsOptions = {}): SettingsLoadResult {
   const defaults = defaultSettings(options.prefersReducedMotion ?? false)
@@ -99,25 +122,34 @@ export function loadSettings(storage: KeyValueStorage | null, options: LoadSetti
   }
   const obj = parsed as Record<string, unknown>
   const version = obj['version']
-  if (version !== 1 && version !== CURRENT_SETTINGS_VERSION) {
+  if (version !== 1 && version !== 2 && version !== CURRENT_SETTINGS_VERSION) {
     return { kind: 'repaired', settings: defaults, detail: `対応していないバージョン（${String(version)}）のため初期値にしました` }
   }
-  // v1 → v2：v1 にない項目は初期値を入れる（正しくない値とはみなさない）
-  const source: Record<string, unknown> = version === 1 ? { ...obj, textSpeed: defaults.textSpeed, soundEffects: defaults.soundEffects, effects: defaults.effects } : obj
+  // 古い版にない項目は初期値を入れる（正しくない値とはみなさない）
+  // v1 → v2：textSpeed・soundEffects・effects。v2 → v3：translation・voiceInput・voiceInputNoticeSeen
+  const added: Record<string, unknown> = {}
+  if (version === 1) Object.assign(added, { textSpeed: defaults.textSpeed, soundEffects: defaults.soundEffects, effects: defaults.effects })
+  if (version === 1 || version === 2) {
+    Object.assign(added, { translation: defaults.translation, voiceInput: defaults.voiceInput, voiceInputNoticeSeen: defaults.voiceInputNoticeSeen })
+  }
+  const source: Record<string, unknown> = { ...obj, ...added }
+  const bool = (key: 'soundEffects' | 'voiceInput' | 'voiceInputNoticeSeen'): boolean => {
+    const v = source[key]
+    return typeof v === 'boolean' ? v : defaults[key]
+  }
   const settings: Settings = {
-    version: 2,
+    version: 3,
     furigana: pick(FURIGANA_MODES, source['furigana'], defaults.furigana),
+    translation: pick(TRANSLATION_MODES, source['translation'], defaults.translation),
     speechRate: pick(SPEECH_RATES, source['speechRate'], defaults.speechRate),
     textSpeed: pick(TEXT_SPEEDS, source['textSpeed'], defaults.textSpeed),
-    soundEffects: typeof source['soundEffects'] === 'boolean' ? source['soundEffects'] : defaults.soundEffects,
+    soundEffects: bool('soundEffects'),
     effects: pick(EFFECT_LEVELS, source['effects'], defaults.effects),
+    voiceInput: bool('voiceInput'),
+    voiceInputNoticeSeen: bool('voiceInputNoticeSeen'),
   }
-  const repaired =
-    settings.furigana !== source['furigana'] ||
-    settings.speechRate !== source['speechRate'] ||
-    settings.textSpeed !== source['textSpeed'] ||
-    settings.soundEffects !== source['soundEffects'] ||
-    settings.effects !== source['effects']
+  const keys = ['furigana', 'translation', 'speechRate', 'textSpeed', 'soundEffects', 'effects', 'voiceInput', 'voiceInputNoticeSeen'] as const
+  const repaired = keys.some((k) => settings[k] !== source[k])
   return repaired ? { kind: 'repaired', settings, detail: '正しくない値を初期値に戻しました' } : { kind: 'ok', settings }
 }
 

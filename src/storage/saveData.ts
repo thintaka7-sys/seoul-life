@@ -3,7 +3,7 @@
 // 2. migrations.ts に「旧バージョン → 新バージョン」の変換を追加する
 // 3. 変換のテストを書く
 
-export const CURRENT_SAVE_VERSION = 3
+export const CURRENT_SAVE_VERSION = 4
 
 /** v1（Phase 0）。移行のために型を残しておく */
 export interface SaveDataV1 {
@@ -27,6 +27,20 @@ export interface LearnedRecord {
 export interface ConversationRecord {
   choice: boolean
   write: boolean
+}
+
+/** ハングルのレッスンの記録（小テストに合格したレッスンだけ） */
+export interface HangulLessonRecord {
+  /** 初めて合格した日時（ISO形式） */
+  passedAt: string
+  /** 小テストのいちばん良い点（0〜100） */
+  bestScore: number
+}
+
+/** リスニングの問題の記録（経験値を初回だけにするため） */
+export interface ListeningRecord {
+  /** 初めて正解した日時（ISO形式） */
+  correctAt: string
 }
 
 /** v2（Phase 1）・v3（Phase 1.5）。v3 は会話の記録を往復ごとにした（キーが「会話ID#往復の番号」） */
@@ -61,13 +75,24 @@ export interface SaveDataV2 extends SaveDataBody {
   version: 2
 }
 
-/** v3（Phase 1.5） */
+/** v3（Phase 1.5）。移行のために型を残しておく */
 export interface SaveDataV3 extends SaveDataBody {
   version: 3
 }
 
+/** v4（Phase 2）：ハングルのレッスンとリスニングの記録を追加 */
+export interface SaveDataV4 extends Omit<SaveDataBody, 'learning'> {
+  version: 4
+  learning: SaveDataBody['learning'] & {
+    /** レッスンID → 記録 */
+    hangul: Record<string, HangulLessonRecord>
+    /** 問題のキー（listeningKey）→ 記録 */
+    listening: Record<string, ListeningRecord>
+  }
+}
+
 /** 現在のバージョンのセーブデータ */
-export type SaveData = SaveDataV3
+export type SaveData = SaveDataV4
 
 /** 会話の記録のキー（会話ID#往復の番号） */
 export function conversationTurnKey(conversationId: string, turn: number): string {
@@ -76,11 +101,11 @@ export function conversationTurnKey(conversationId: string, turn: number): strin
 
 export function createNewSave(nowIso: string): SaveData {
   return {
-    version: 3,
+    version: 4,
     createdAt: nowIso,
     updatedAt: nowIso,
     progress: { currentLocationId: null, completedEvents: [], activeEvent: null },
-    learning: { words: {}, grammar: {}, conversations: {} },
+    learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {} },
     stats: { xp: 0 },
   }
 }
@@ -109,6 +134,15 @@ function isConversationRecord(v: unknown): boolean {
   return isObj(v) && typeof v['choice'] === 'boolean' && typeof v['write'] === 'boolean'
 }
 
+function isHangulLessonRecord(v: unknown): boolean {
+  const score = isObj(v) ? v['bestScore'] : undefined
+  return isObj(v) && isIsoDate(v['passedAt']) && isNonNegativeInt(score) && score <= 100
+}
+
+function isListeningRecord(v: unknown): boolean {
+  return isObj(v) && isIsoDate(v['correctAt'])
+}
+
 /** 現在のバージョンのセーブデータとして正しい形かを確かめる */
 export function isSaveData(v: unknown): v is SaveData {
   if (!isObj(v)) return false
@@ -129,6 +163,8 @@ export function isSaveData(v: unknown): v is SaveData {
   if (!isRecordOf(learning['words'], isLearnedRecord)) return false
   if (!isRecordOf(learning['grammar'], isLearnedRecord)) return false
   if (!isRecordOf(learning['conversations'], isConversationRecord)) return false
+  if (!isRecordOf(learning['hangul'], isHangulLessonRecord)) return false
+  if (!isRecordOf(learning['listening'], isListeningRecord)) return false
 
   const stats = v['stats']
   return isObj(stats) && isNonNegativeInt(stats['xp'])

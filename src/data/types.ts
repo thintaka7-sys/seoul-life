@@ -376,6 +376,10 @@ export interface Balance {
     conversationChoice: number
     conversationWrite: number
     eventComplete: number
+    /** ハングルのレッスンの小テストに初めて合格したとき */
+    hangulLesson: number
+    /** リスニングの問題に初めて正解したとき（問題ごと） */
+    listening: number
   }
   /** フリガナを「おすすめ」設定でいつも表示する最後の章 */
   furiganaAlwaysUntilChapter: number
@@ -385,6 +389,12 @@ export interface Balance {
   startLocation: string
   /** 書く問題で、何回間違えたら「答えを見る」を出すか */
   writeAttemptsBeforeReveal: number
+  /** ハングルのレッスンの小テストの問題数 */
+  hangulQuizQuestions: number
+  /** 小テストの合格の基準（正解の割合、0〜100） */
+  hangulPassPercent: number
+  /** リスニングの1回の問題数 */
+  listeningQuestionsPerRound: number
 }
 
 /** 検証で見つかった問題 */

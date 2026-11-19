@@ -3,10 +3,15 @@
     "learnWord": 2,
     "conversationChoice": 10,
     "conversationWrite": 15,
-    "eventComplete": 20
+    "eventComplete": 20,
+    "hangulLesson": 20,
+    "listening": 3
   },
   "furiganaAlwaysUntilChapter": 3,
   "initialLocations": ["home", "cafe"],
   "startLocation": "home",
-  "writeAttemptsBeforeReveal": 2
+  "writeAttemptsBeforeReveal": 2,
+  "hangulQuizQuestions": 8,
+  "hangulPassPercent": 80,
+  "listeningQuestionsPerRound": 5
 }
