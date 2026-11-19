@@ -1,6 +1,8 @@
 // data/ 以下の JSON をすべて読み込み、検証してから渡す。
 // 新しい教材ファイルは、各フォルダに .json を置くだけで読み込まれる（docs/CONTENT_FORMAT.md）。
 
+import { parseAssetManifest } from './assets'
+import type { Expression } from './types'
 import { formatIssue, loadContent, type LoadedContent } from './validate'
 
 // import.meta.glob のオプションは Vite がビルド時に読むため、変数にせずその場に書く必要がある
@@ -50,4 +52,27 @@ export function findGameEvent(id: string) {
 
 export function findColumn(id: string) {
   return content.columns.find((c) => c.id === id)
+}
+
+// ---------- 加工済みの画像 ----------
+
+const assetResult = parseAssetManifest(import.meta.glob<unknown>('./assets/manifest.json', { eager: true, import: 'default' })['./assets/manifest.json'], {
+  characterIds: new Set(content.characters.map((c) => c.id)),
+  locationIds: new Set(content.locations.map((l) => l.id)),
+})
+for (const issue of assetResult.issues) console.error(`[画像] ${formatIssue(issue)}`)
+
+/** 画像の一覧（画像がないものは載らない） */
+export const assets = assetResult.manifest
+export const assetIssues = assetResult.issues
+
+/** 立ち絵。指定の表情の画像がなければ通常（normal）、それもなければ undefined（仮の絵を出す） */
+export function characterImage(characterId: string, expression: Expression) {
+  const images = assets.characters[characterId]
+  return images?.[expression] ?? images?.normal
+}
+
+/** 施設の背景。なければ undefined（仮の絵を出す） */
+export function backgroundImage(locationId: string) {
+  return assets.backgrounds[locationId]
 }

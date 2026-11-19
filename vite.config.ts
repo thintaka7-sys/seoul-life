@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/seoul-life/',
   plugins: [react()],
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
     environment: 'node',
   },
 })

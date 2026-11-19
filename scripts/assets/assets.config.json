@@ -1,0 +1,27 @@
+{
+  "inputDir": "assets-inbox",
+  "outputDir": "public/assets",
+  "manifest": "src/data/assets/manifest.json",
+  "webpQuality": 82,
+  "characterHeight": 1200,
+  "backgroundWidth": 1080,
+  "mapWidth": 1080,
+  "characters": [
+    { "id": "cafe_staff", "sheet": "char_cafe_staff_sheet.png", "expressions": ["normal", "smile", "troubled"] },
+    {
+      "id": "neighbor",
+      "sheet": "char_neighbor_sheet.png",
+      "expressions": ["normal", "smile", "troubled"],
+      "keepGreen": [
+        { "x": 718, "y": 60, "w": 75, "h": 82 },
+        { "x": 1594, "y": 60, "w": 75, "h": 82 },
+        { "x": 2482, "y": 60, "w": 75, "h": 82 }
+      ]
+    }
+  ],
+  "backgrounds": [
+    { "id": "home", "file": "bg_home.png" },
+    { "id": "cafe", "file": "bg_cafe.png" }
+  ],
+  "map": { "file": "map_town.png" }
+}

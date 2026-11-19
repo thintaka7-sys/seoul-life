@@ -1,0 +1,55 @@
+{
+  "characters": {
+    "cafe_staff": {
+      "normal": {
+        "src": "assets/char/cafe_staff/normal.webp?v=427d722ccb",
+        "width": 718,
+        "height": 1200
+      },
+      "smile": {
+        "src": "assets/char/cafe_staff/smile.webp?v=06bd1ab224",
+        "width": 718,
+        "height": 1200
+      },
+      "troubled": {
+        "src": "assets/char/cafe_staff/troubled.webp?v=abd84733d0",
+        "width": 718,
+        "height": 1200
+      }
+    },
+    "neighbor": {
+      "normal": {
+        "src": "assets/char/neighbor/normal.webp?v=8db3dd5973",
+        "width": 646,
+        "height": 1200
+      },
+      "smile": {
+        "src": "assets/char/neighbor/smile.webp?v=366e451132",
+        "width": 646,
+        "height": 1200
+      },
+      "troubled": {
+        "src": "assets/char/neighbor/troubled.webp?v=b7b1d82e78",
+        "width": 646,
+        "height": 1200
+      }
+    }
+  },
+  "backgrounds": {
+    "home": {
+      "src": "assets/bg/home.webp?v=0bc71da662",
+      "width": 1080,
+      "height": 1935
+    },
+    "cafe": {
+      "src": "assets/bg/cafe.webp?v=869d3afcac",
+      "width": 1080,
+      "height": 1935
+    }
+  },
+  "map": {
+    "src": "assets/map/town.webp?v=0300a46cb8",
+    "width": 1080,
+    "height": 1935
+  }
+}

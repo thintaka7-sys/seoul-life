@@ -1,0 +1,69 @@
+// 加工済みの画像の一覧（src/data/assets/manifest.json。npm run assets が書き出す）を読み、確かめる。
+// 一覧がない・壊れている・知らないキャラクターや施設を指している場合は、その画像を使わない（画面では仮の絵を出す）。
+
+import { EXPRESSIONS, type AssetManifest, type Expression, type ImageAsset, type ValidationIssue } from './types'
+
+const FILE = 'assets/manifest.json'
+
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+function parseImage(v: unknown): ImageAsset | null {
+  if (!isObj(v)) return null
+  const { src, width, height } = v
+  if (typeof src !== 'string' || !/^assets\/[\w/.-]+\.webp(\?v=[0-9a-f]+)?$/.test(src)) return null
+  if (typeof width !== 'number' || typeof height !== 'number' || width <= 0 || height <= 0) return null
+  return { src, width, height }
+}
+
+export function emptyAssetManifest(): AssetManifest {
+  return { characters: {}, backgrounds: {}, map: null }
+}
+
+/** 画像の一覧を確かめる。使えない項目は除き、問題の一覧を返す */
+export function parseAssetManifest(
+  raw: unknown,
+  ids: { characterIds: ReadonlySet<string>; locationIds: ReadonlySet<string> },
+): { manifest: AssetManifest; issues: ValidationIssue[] } {
+  const manifest = emptyAssetManifest()
+  const issues: ValidationIssue[] = []
+  const issue = (path: string, message: string) => issues.push({ file: FILE, index: null, id: null, path, message })
+  if (raw === undefined) return { manifest, issues }
+  if (!isObj(raw)) {
+    issue('', '画像の一覧の形ではありません（npm run assets で作り直してください）')
+    return { manifest, issues }
+  }
+
+  const characters = isObj(raw['characters']) ? raw['characters'] : {}
+  for (const [id, entry] of Object.entries(characters)) {
+    if (!ids.characterIds.has(id)) {
+      issue(`characters.${id}`, `存在しないキャラクターIDです：${id}`)
+      continue
+    }
+    if (!isObj(entry)) continue
+    const images: Partial<Record<Expression, ImageAsset>> = {}
+    for (const [expression, image] of Object.entries(entry)) {
+      const key = EXPRESSIONS.find((e) => e === expression)
+      const parsed = parseImage(image)
+      if (key === undefined || parsed === null) issue(`characters.${id}.${expression}`, '表情のキーか画像の情報が正しくありません')
+      else images[key] = parsed
+    }
+    manifest.characters[id] = images
+  }
+
+  const backgrounds = isObj(raw['backgrounds']) ? raw['backgrounds'] : {}
+  for (const [id, image] of Object.entries(backgrounds)) {
+    const parsed = parseImage(image)
+    if (!ids.locationIds.has(id)) issue(`backgrounds.${id}`, `存在しない施設IDです：${id}`)
+    else if (parsed === null) issue(`backgrounds.${id}`, '画像の情報が正しくありません')
+    else manifest.backgrounds[id] = parsed
+  }
+
+  if (raw['map'] !== null && raw['map'] !== undefined) {
+    const parsed = parseImage(raw['map'])
+    if (parsed === null) issue('map', '画像の情報が正しくありません')
+    else manifest.map = parsed
+  }
+  return { manifest, issues }
+}

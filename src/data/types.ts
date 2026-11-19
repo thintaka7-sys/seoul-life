@@ -232,6 +232,24 @@ export interface Character {
   themeColor?: string
 }
 
+/** 加工済みの画像1枚（npm run assets が src/data/assets/manifest.json に書き出す） */
+export interface ImageAsset {
+  /** public/ からの相対パス（キャッシュを更新するための ?v=… つき） */
+  src: string
+  width: number
+  height: number
+}
+
+/** 加工済みの画像の一覧。画像がないものは載らない（画面では仮の絵を出す） */
+export interface AssetManifest {
+  /** キャラクターID → 表情ごとの立ち絵（どの表情も同じ大きさで、体の位置がそろっている） */
+  characters: Record<string, Partial<Record<Expression, ImageAsset>>>
+  /** 施設ID → 背景 */
+  backgrounds: Record<string, ImageAsset>
+  /** 街のマップ */
+  map: ImageAsset | null
+}
+
 /** ゲームの調整用の数値（src/data/game/balance.json） */
 export interface Balance {
   xp: {
