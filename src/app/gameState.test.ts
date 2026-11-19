@@ -38,8 +38,16 @@ function completeCurrentStep(state: GameState, method: 'choice' | 'write' = 'cho
   switch (step?.type) {
     case 'learn':
       return reducer(state, { type: 'learnDone', now: T1 })
-    case 'conversation':
-      return reducer(state, { type: 'conversationDone', method, now: T1 })
+    case 'conversation': {
+      // 返事のある往復にすべて答えてから、会話を終える
+      const conversation = content.conversations.find((c) => c.id === step.id)
+      if (conversation === undefined) throw new Error(step.id)
+      let s = state
+      conversation.turns.forEach((turn, i) => {
+        if (turn.choices !== undefined) s = reducer(s, { type: 'conversationAnswered', turn: i, method, now: T1 })
+      })
+      return reducer(s, { type: 'conversationDone', now: T1 })
+    }
     default:
       return reducer(state, { type: 'stepDone', now: T1 })
   }
@@ -93,7 +101,8 @@ describe('最初の1日を通して遊ぶ', () => {
     const s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
     // event_001 の最初は message
     expect(reducer(s, { type: 'learnDone', now: T1 })).toBe(s)
-    expect(reducer(s, { type: 'conversationDone', method: 'choice', now: T1 })).toBe(s)
+    expect(reducer(s, { type: 'conversationDone', now: T1 })).toBe(s)
+    expect(reducer(s, { type: 'conversationAnswered', turn: 0, method: 'choice', now: T1 })).toBe(s)
   })
 })
 
@@ -158,7 +167,9 @@ describe('遊び直しと経験値', () => {
     s = completeCurrentStep(completeCurrentStep(s))
     const xpBefore = s.save?.stats.xp
     const stepBefore = s.run?.step ?? 0
-    s = reducer(s, { type: 'conversationDone', method: 'revealed', now: T1 })
+    s = reducer(s, { type: 'conversationAnswered', turn: 0, method: 'revealed', now: T1 })
+    expect(s.save?.stats.xp).toBe(xpBefore)
+    s = reducer(s, { type: 'conversationDone', now: T1 })
     expect(s.save?.stats.xp).toBe(xpBefore)
     expect(s.run?.step).toBe(stepBefore + 1)
   })
@@ -227,7 +238,7 @@ describe('起動（boot と createInitialState）', () => {
     const s = createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS)
     expect(s.scene).toMatchObject({ name: 'saveError', reason: 'parse_error', backupKey: b.backupKey })
     const started = reducer(s, { type: 'startNew', now: T1 })
-    expect(started.save?.version).toBe(2)
+    expect(started.save?.version).toBe(3)
   })
 
   it('v1 のデータは移行前の形を退避してから読み込む', () => {

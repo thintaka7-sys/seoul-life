@@ -11,7 +11,8 @@ export interface BootResult {
   settings: SettingsLoadResult
 }
 
-export function boot(storage: KeyValueStorage | null, now: Date): BootResult {
+/** prefersReducedMotion：端末で「動きを減らす」設定がオンか（設定の初期値に使う） */
+export function boot(storage: KeyValueStorage | null, now: Date, prefersReducedMotion = false): BootResult {
   const load = loadSave(storage)
   let backupKey: string | null = null
   if (storage !== null) {
@@ -20,7 +21,7 @@ export function boot(storage: KeyValueStorage | null, now: Date): BootResult {
     // 移行したデータは、移行後の形式で上書き保存する前に移行前の形を残しておく
     if (load.kind === 'ok' && load.migratedFrom !== null) backupKey = backupRawSave(storage, load.raw, 'pre-migration', now)
   }
-  const settings = loadSettings(storage)
+  const settings = loadSettings(storage, { prefersReducedMotion })
   if (settings.kind === 'repaired') console.warn(`[設定] ${settings.detail}`)
   return { storage, load, backupKey, settings }
 }

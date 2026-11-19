@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Balance, GameEvent } from '../data/types'
 import { createNewSave, type SaveData } from '../storage/saveData'
 import { allEventsCompleted, completedEventsAt, nextEvent, nextEventAt } from './events/events'
-import { advanceEvent, clearConversation, learnItems, startEvent } from './progression/progression'
+import { advanceEvent, clearConversationTurn, learnItems, startEvent } from './progression/progression'
 
 const T0 = '2026-11-18T10:00:00.000Z'
 const T1 = '2026-11-18T10:05:00.000Z'
@@ -103,19 +103,23 @@ describe('進行と経験値', () => {
     expect(again.save.stats.xp).toBe(6)
   })
 
-  it('会話は、選んで・書いて、それぞれ初めて正解したときだけ経験値が付く', () => {
-    const c1 = clearConversation(createNewSave(T0), 'cafe_001', 'choice', balance, T1)
+  it('会話は往復ごとに、選んで・書いて、それぞれ初めて正解したときだけ経験値が付く', () => {
+    const c1 = clearConversationTurn(createNewSave(T0), 'cafe_001', 0, 'choice', balance, T1)
     expect(c1.reward.xp).toBe(10)
-    const c2 = clearConversation(c1.save, 'cafe_001', 'choice', balance, T1)
+    const c2 = clearConversationTurn(c1.save, 'cafe_001', 0, 'choice', balance, T1)
     expect(c2.reward.xp).toBe(0)
-    const c3 = clearConversation(c2.save, 'cafe_001', 'write', balance, T1)
+    expect(c2.save).toBe(c1.save)
+    const c3 = clearConversationTurn(c2.save, 'cafe_001', 0, 'write', balance, T1)
     expect(c3.reward.xp).toBe(15)
-    expect(c3.save.learning.conversations['cafe_001']).toEqual({ choice: true, write: true })
+    expect(c3.save.learning.conversations['cafe_001#0']).toEqual({ choice: true, write: true })
     expect(c3.save.stats.xp).toBe(25)
+    const c4 = clearConversationTurn(c3.save, 'cafe_001', 1, 'choice', balance, T1)
+    expect(c4.reward.xp).toBe(10)
+    expect(c4.save.learning.conversations['cafe_001#1']).toEqual({ choice: true, write: false })
   })
 
   it('「答えを見る」で進んだ会話には経験値も記録も付けない', () => {
     const save = createNewSave(T0)
-    expect(clearConversation(save, 'cafe_001', 'revealed', balance, T1)).toEqual({ save, reward: { xp: 0, newWords: 0 } })
+    expect(clearConversationTurn(save, 'cafe_001', 0, 'revealed', balance, T1)).toEqual({ save, reward: { xp: 0, newWords: 0 } })
   })
 })

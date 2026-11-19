@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
+import { contrastRatio, readableTextOn } from '../game/theme/color'
 import { formatIssue } from './validate'
 
 describe('data/ の実データ', () => {
@@ -31,6 +32,18 @@ describe('data/ の実データ', () => {
   it('すべての会話は、どこかのイベントで使われている', () => {
     const used = new Set(content.events.flatMap((e) => e.steps.flatMap((s) => (s.type === 'conversation' ? [s.id] : []))))
     expect(content.conversations.map((c) => c.id).filter((id) => !used.has(id))).toEqual([])
+  })
+
+  it('すべてのコラムは、どこかのイベントで使われている', () => {
+    const used = new Set(content.events.flatMap((e) => e.steps.flatMap((s) => (s.type === 'column' ? [s.id] : []))))
+    expect(content.columns.map((c) => c.id).filter((id) => !used.has(id))).toEqual([])
+  })
+
+  it('キャラクターのテーマカラーの上の文字は、読みやすさの基準（コントラスト比4.5以上）を満たす', () => {
+    for (const c of content.characters) {
+      if (c.themeColor === undefined) continue
+      expect(contrastRatio(c.themeColor, readableTextOn(c.themeColor)), c.id).toBeGreaterThanOrEqual(4.5)
+    }
   })
 
   it('前提のないイベントが、最初にいる施設に1つ以上ある（はじめからで進められる）', () => {

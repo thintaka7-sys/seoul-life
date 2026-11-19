@@ -1,5 +1,17 @@
 [
   { "id": "friend", "roleJa": "近所の友人" },
-  { "id": "cafe_staff", "roleJa": "カフェの店員" },
-  { "id": "neighbor", "roleJa": "近所の住人" }
+  {
+    "id": "cafe_staff",
+    "roleJa": "カフェの店員",
+    "name": { "korean": "한지훈", "pronunciation": "ハンジフン", "reviewed": true },
+    "profileJa": "20代半ば。落ち着いていて、接客は丁寧。実は甘いものに目がない。",
+    "themeColor": "#B9783F"
+  },
+  {
+    "id": "neighbor",
+    "roleJa": "近所の住人",
+    "name": { "korean": "이수진", "pronunciation": "イスジン", "reviewed": true },
+    "profileJa": "30代後半。主人公の家の隣に住んでいる。穏やかで面倒見がよく、料理が得意。",
+    "themeColor": "#F2A07B"
+  }
 ]

@@ -3,7 +3,7 @@
 
 import type { Balance, GameEvent } from '../data/types'
 import { findEvent, nextEvent } from '../game/events/events'
-import { advanceEvent, clearConversation, learnItems, startEvent, type ClearMethod, type Reward } from '../game/progression/progression'
+import { advanceEvent, clearConversationTurn, learnItems, startEvent, type ClearMethod, type Reward } from '../game/progression/progression'
 import { createNewSave, type SaveData } from '../storage/saveData'
 import type { CorruptReason, LoadResult } from '../storage/saveStore'
 import type { Settings } from '../storage/settings'
@@ -59,7 +59,10 @@ export type GameAction =
   | { type: 'stepDone'; now: string }
   /** learn の段階（単語カード）を見終えた */
   | { type: 'learnDone'; now: string }
-  | { type: 'conversationDone'; method: ClearMethod; now: string }
+  /** 会話の1往復に答えた（往復ごとに経験値を付ける） */
+  | { type: 'conversationAnswered'; turn: number; method: ClearMethod; now: string }
+  /** 会話を最後まで見た */
+  | { type: 'conversationDone'; now: string }
   /** イベントを途中でやめる（続きから再開できる） */
   | { type: 'leaveEvent' }
   /** ブラウザの「戻る」。画面内の「戻る」ボタンと同じ動きにする */
@@ -223,6 +226,7 @@ export function createGameReducer(deps: GameDeps) {
       case 'stepDone': {
         const step = currentStep(state)
         if (step === undefined || step.type === 'learn' || step.type === 'conversation') return state
+        // message・column・dictionary・dayEnd は見終えたら次へ（経験値なし）
         return finishStep(state, { xp: 0, newWords: 0 }, action.now)
       }
 
@@ -236,13 +240,18 @@ export function createGameReducer(deps: GameDeps) {
         return finishStep({ ...state, save: learned.save }, learned.reward, action.now)
       }
 
-      case 'conversationDone': {
+      case 'conversationAnswered': {
         const step = currentStep(state)
         const run = state.run
-        if (step?.type !== 'conversation' || run === null || state.save === null) return state
-        if (run.replay) return finishStep(state, { xp: 0, newWords: 0 }, action.now)
-        const cleared = clearConversation(state.save, step.id, action.method, balance, action.now)
-        return finishStep({ ...state, save: cleared.save }, cleared.reward, action.now)
+        if (step?.type !== 'conversation' || run === null || state.save === null || run.replay) return state
+        const cleared = clearConversationTurn(state.save, step.id, action.turn, action.method, balance, action.now)
+        if (cleared.save === state.save) return state
+        return { ...state, save: cleared.save, reward: addReward(state, cleared.reward) }
+      }
+
+      case 'conversationDone': {
+        if (currentStep(state)?.type !== 'conversation') return state
+        return finishStep(state, { xp: 0, newWords: 0 }, action.now)
       }
 
       case 'leaveEvent': {

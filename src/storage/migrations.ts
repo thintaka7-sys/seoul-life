@@ -28,6 +28,15 @@ export const MIGRATIONS: MigrationTable = {
       stats: { xp: 0 },
     }
   },
+  // v2（Phase 1）→ v3（Phase 1.5）：会話の記録を往復ごとにする。
+  // Phase 1 の会話はすべて1往復なので、「会話ID」の記録を「会話ID#0」に移す。ほかはそのまま
+  2: (d) => {
+    const learning = isObj(d['learning']) ? d['learning'] : {}
+    const old = isObj(learning['conversations']) ? learning['conversations'] : {}
+    const conversations: SaveObject = {}
+    for (const [key, record] of Object.entries(old)) conversations[key.includes('#') ? key : `${key}#0`] = record
+    return { ...d, version: 3, learning: { ...learning, conversations } }
+  },
 }
 
 export type MigrateResult =

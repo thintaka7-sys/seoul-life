@@ -37,11 +37,17 @@ export type VocabCategory = (typeof VOCAB_CATEGORIES)[number]
 /** 会話の話者IDのうち、主人公（プレイヤー）を表すもの */
 export const PLAYER_SPEAKER_ID = 'player'
 
+/** 立ち絵の表情（台詞の expression）。省略したら normal */
+export const EXPRESSIONS = ['normal', 'smile', 'troubled'] as const
+export type Expression = (typeof EXPRESSIONS)[number]
+export const DEFAULT_EXPRESSION: Expression = 'normal'
+
 /** ID の形式 */
 export const ID_PATTERNS = {
   vocabulary: /^vocab_\d{3,}$/,
   grammar: /^grammar_\d{3,}$/,
   conversation: /^[a-z][a-z0-9_]*_\d{3,}$/,
+  column: /^column_\d{3,}$/,
   event: /^event_\d{3,}$/,
   key: /^[a-z][a-z0-9_]*$/,
 } as const
@@ -97,6 +103,8 @@ export interface ConversationLine {
   /** 読み（カタカナ。韓国語と同じ位置で空白を入れる） */
   pronunciation: string
   japanese: string
+  /** 話すときの表情（主人公の台詞には付けない）。省略したら自動（ふだんは normal） */
+  expression?: Expression
 }
 
 export interface ConversationChoice {
@@ -105,6 +113,8 @@ export interface ConversationChoice {
   pronunciation: string
   japanese: string
   correct: boolean
+  /** この選択肢を選んだときの相手の反応 */
+  reply?: ConversationLine[]
 }
 
 export interface FreeAnswer {
@@ -112,18 +122,44 @@ export interface FreeAnswer {
   prompt: string
   /** 正解。先頭が模範解答、2つ目以降は別解 */
   answers: string[]
+  /** 書いて正解したときの相手の反応。省略したら、同じ文の選択肢（なければ最初の正解の選択肢）の reply を使う */
+  reply?: ConversationLine[]
 }
 
-/** 会話（GAME_SPEC 11-3）。1つの会話は「台詞 → プレイヤーの返事」の1往復 */
+/** 会話の1往復：台詞 → プレイヤーの返事 → 相手の反応。返事がない往復は、会話の最後の締めの台詞だけに使う */
+export interface ConversationTurn {
+  /** プレイヤーが答える前の台詞（2つ目以降の往復では省略できる） */
+  lines: ConversationLine[]
+  /** 選んで答えるときの選択肢。省略した往復は台詞だけ（最後の往復だけ） */
+  choices?: ConversationChoice[]
+  freeAnswer?: FreeAnswer
+}
+
+/** 会話（GAME_SPEC 11-3）。1つの会話は、1つ以上の往復（turns）からなる */
 export interface Conversation extends ContentBase {
   chapter: number
   /** 施設ID */
   location: string
   /** 会話の相手のキャラクターID */
   character: string
-  lines: ConversationLine[]
-  choices: ConversationChoice[]
-  freeAnswer?: FreeAnswer
+  turns: ConversationTurn[]
+}
+
+/** コラム（韓国生活の小ネタ）の1ブロック */
+export type ColumnBlock =
+  /** 日本語の文（ハングルは入れない） */
+  | { type: 'text'; textJa: string }
+  /** 韓国語の語句・文（読みと日本語訳つき） */
+  | { type: 'korean'; korean: string; pronunciation: string; japanese: string }
+
+export const COLUMN_BLOCK_TYPES = ['text', 'korean'] as const
+
+/** コラム（韓国生活の小ネタ） */
+export interface Column extends ContentBase {
+  chapter: number
+  /** 見出し（ハングルは入れない） */
+  titleJa: string
+  blocks: ColumnBlock[]
 }
 
 /** イベントの段階 */
@@ -134,12 +170,14 @@ export type EventStep =
   | { type: 'learn'; vocabulary: string[]; grammar: string[] }
   /** 会話を1つ行う */
   | { type: 'conversation'; id: string }
+  /** コラム（韓国生活の小ネタ）を読む */
+  | { type: 'column'; id: string }
   /** 図鑑を開いて見返す */
   | { type: 'dictionary'; textJa: string }
   /** 1日の終わりの画面を出す */
   | { type: 'dayEnd'; textJa: string }
 
-export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'dictionary', 'dayEnd'] as const
+export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'column', 'dictionary', 'dayEnd'] as const
 
 /** イベント：どの施設で、何を、どの順に行うか */
 export interface GameEvent {
@@ -157,16 +195,41 @@ export interface GameEvent {
   notes?: string
 }
 
+/** マップの絵の上での位置（絵の幅・高さに対する割合。0〜100） */
+export interface MapArea {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 /** 施設（ゲームデータ。韓国語を含まないので reviewed は持たない） */
 export interface Location {
   id: string
   nameJa: string
+  /** マップの絵の上で、施設を押せる範囲。省略したらマップの絵の上には出さない */
+  mapArea?: MapArea
 }
 
-/** キャラクター（ゲームデータ。名前や口調は Phase 3 で追加する） */
+/** キャラクターの名前（韓国語なので、読みと確認済みの印を持つ） */
+export interface CharacterName {
+  /** 韓国語の名前（例：한지훈） */
+  korean: string
+  /** 読み（カタカナ） */
+  pronunciation: string
+  reviewed: boolean
+}
+
+/** キャラクター（ゲームデータ） */
 export interface Character {
   id: string
   roleJa: string
+  /** 名前。まだ決めていないキャラクターでは省略する */
+  name?: CharacterName
+  /** プロフィール（日本語。ハングルは入れない） */
+  profileJa?: string
+  /** テーマカラー（#RRGGBB）。名前の札などに使う */
+  themeColor?: string
 }
 
 /** ゲームの調整用の数値（src/data/game/balance.json） */

@@ -3,7 +3,7 @@
 // 2. migrations.ts に「旧バージョン → 新バージョン」の変換を追加する
 // 3. 変換のテストを書く
 
-export const CURRENT_SAVE_VERSION = 2
+export const CURRENT_SAVE_VERSION = 3
 
 /** v1（Phase 0）。移行のために型を残しておく */
 export interface SaveDataV1 {
@@ -29,9 +29,8 @@ export interface ConversationRecord {
   write: boolean
 }
 
-/** v2（Phase 1） */
-export interface SaveDataV2 {
-  version: 2
+/** v2（Phase 1）・v3（Phase 1.5）。v3 は会話の記録を往復ごとにした（キーが「会話ID#往復の番号」） */
+interface SaveDataBody {
   /** 最初に始めた日時（ISO形式） */
   createdAt: string
   /** 最後に保存した日時（ISO形式） */
@@ -49,7 +48,7 @@ export interface SaveDataV2 {
     words: Record<string, LearnedRecord>
     /** 文法ID → 記録 */
     grammar: Record<string, LearnedRecord>
-    /** 会話ID → 記録 */
+    /** 「会話ID#往復の番号」（例：cafe_001#0）→ 記録。v2 では会話ID → 記録 */
     conversations: Record<string, ConversationRecord>
   }
   stats: {
@@ -57,12 +56,27 @@ export interface SaveDataV2 {
   }
 }
 
+/** v2（Phase 1）。移行のために型を残しておく */
+export interface SaveDataV2 extends SaveDataBody {
+  version: 2
+}
+
+/** v3（Phase 1.5） */
+export interface SaveDataV3 extends SaveDataBody {
+  version: 3
+}
+
 /** 現在のバージョンのセーブデータ */
-export type SaveData = SaveDataV2
+export type SaveData = SaveDataV3
+
+/** 会話の記録のキー（会話ID#往復の番号） */
+export function conversationTurnKey(conversationId: string, turn: number): string {
+  return `${conversationId}#${turn}`
+}
 
 export function createNewSave(nowIso: string): SaveData {
   return {
-    version: 2,
+    version: 3,
     createdAt: nowIso,
     updatedAt: nowIso,
     progress: { currentLocationId: null, completedEvents: [], activeEvent: null },
@@ -98,7 +112,7 @@ function isConversationRecord(v: unknown): boolean {
 /** 現在のバージョンのセーブデータとして正しい形かを確かめる */
 export function isSaveData(v: unknown): v is SaveData {
   if (!isObj(v)) return false
-  if (v['version'] !== 2) return false
+  if (v['version'] !== CURRENT_SAVE_VERSION) return false
   if (!isIsoDate(v['createdAt']) || !isIsoDate(v['updatedAt'])) return false
 
   const progress = v['progress']

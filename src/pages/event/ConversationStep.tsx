@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useState } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import { useGame, nowIso } from '../../app/GameContext'
 import { useFuriganaDisplay } from '../../app/hooks'
 import { AnswerInput } from '../../components/AnswerInput'
@@ -9,7 +9,7 @@ import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
 import { content, findCharacter } from '../../data'
 import { PLAYER_SPEAKER_ID, type Conversation, type ConversationChoice } from '../../data/types'
-import { availableModes, canReveal, createSessionReducer, initialSession, isAnswering } from '../../learning/conversation/session'
+import { availableModes, canReveal, createSessionReducer, initialSession, sessionPhase, shownLines, type ShownLine } from '../../learning/conversation/session'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
 
 function speakerName(speaker: string): string {
@@ -17,15 +17,15 @@ function speakerName(speaker: string): string {
   return findCharacter(speaker)?.roleJa ?? speaker
 }
 
-function Line({ speaker, korean, reading, japanese, display }: { speaker: string; korean: string; reading: string | null; japanese: string; display: FuriganaDisplay }) {
+function Line({ line, display }: { line: ShownLine; display: FuriganaDisplay }) {
   return (
-    <li className={`line${speaker === PLAYER_SPEAKER_ID ? ' line--player' : ''}`}>
-      <span className="line__speaker">{speakerName(speaker)}</span>
+    <li className={`line${line.speaker === PLAYER_SPEAKER_ID ? ' line--player' : ''}`}>
+      <span className="line__speaker">{speakerName(line.speaker)}</span>
       <div className="ko-row">
-        <KoreanText korean={korean} reading={reading} display={display} className="line__ko" />
-        <SpeakButton text={korean} />
+        <KoreanText korean={line.korean} reading={line.pronunciation} display={display} className="line__ko" />
+        <SpeakButton text={line.korean} />
       </div>
-      <p className="line__ja">{japanese}</p>
+      <p className="line__ja">{line.japanese}</p>
     </li>
   )
 }
@@ -53,31 +53,30 @@ export function ConversationStep({ conversation }: { conversation: Conversation 
   const { dispatch } = useGame()
   const display = useFuriganaDisplay(conversation.chapter)
   const reducer = useMemo(() => createSessionReducer(conversation, content.balance.writeAttemptsBeforeReveal), [conversation])
-  const [s, send] = useReducer(reducer, undefined, initialSession)
-  const modes = availableModes(conversation)
-  const answering = isAnswering(conversation, s)
+  const [s, send] = useReducer(reducer, conversation, initialSession)
+  const turn = conversation.turns[s.turn]
+  const modes = availableModes(turn)
+  const phase = sessionPhase(conversation, s)
   const lastWrong = s.wrongChoices.at(-1)
-  const lastWrongChoice = lastWrong === undefined ? undefined : conversation.choices[lastWrong]
+  const lastWrongChoice = lastWrong === undefined ? undefined : turn?.choices?.[lastWrong]
+
+  // 往復に答えたら、その場で経験値を付ける
+  const answer = s.answer
+  const answeredTurn = s.turn
+  useEffect(() => {
+    if (answer !== null) dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method, now: nowIso() })
+  }, [answer, answeredTurn, dispatch])
 
   return (
     <>
       <SpeechNotice />
       <ol className="lines">
-        {conversation.lines.slice(0, s.shownLines).map((line, i) => (
-          <Line key={i} speaker={line.speaker} korean={line.korean} reading={line.pronunciation} japanese={line.japanese} display={display} />
+        {shownLines(conversation, s).map((line, i) => (
+          <Line key={i} line={line} display={display} />
         ))}
-        {s.result !== null && (
-          <Line speaker={PLAYER_SPEAKER_ID} korean={s.result.line.korean} reading={s.result.line.pronunciation} japanese={s.result.line.japanese} display={display} />
-        )}
       </ol>
 
-      {!answering && s.result === null && (
-        <Button variant="primary" onClick={() => send({ type: 'nextLine' })}>
-          次へ
-        </Button>
-      )}
-
-      {answering && (
+      {phase === 'answer' && turn?.choices !== undefined && (
         <section className="answer" aria-label="返事をする">
           {modes.length > 1 && (
             <div className="mode-tabs" role="group" aria-label="答え方">
@@ -93,7 +92,7 @@ export function ConversationStep({ conversation }: { conversation: Conversation 
             <>
               <p className="step-heading">返事を選んでください</p>
               <ul className="choices">
-                {conversation.choices.map((choice, i) => (
+                {turn.choices.map((choice, i) => (
                   <ChoiceItem key={choice.korean} choice={choice} wrong={s.wrongChoices.includes(i)} display={display} onChoose={() => send({ type: 'choose', index: i })} />
                 ))}
               </ul>
@@ -105,34 +104,43 @@ export function ConversationStep({ conversation }: { conversation: Conversation 
             </>
           )}
 
-          {s.mode === 'write' && conversation.freeAnswer !== undefined && (
+          {s.mode === 'write' && turn.freeAnswer !== undefined && (
             <>
-              <p className="step-heading">「{conversation.freeAnswer.prompt}」を韓国語で書いてみましょう</p>
-              <AnswerInput onSubmit={(text) => send({ type: 'submitWrite', text })} />
+              <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で書いてみましょう</p>
+              <AnswerInput key={s.turn} onSubmit={(text) => send({ type: 'submitWrite', text })} />
               {s.lastJudge?.kind === 'incorrect' && <Notice tone="warn">ちがうようです。もう一度書いてみましょう。</Notice>}
-              {canReveal(s, content.balance.writeAttemptsBeforeReveal) && <Button onClick={() => send({ type: 'reveal' })}>答えを見る</Button>}
+              {canReveal(conversation, s, content.balance.writeAttemptsBeforeReveal) && <Button onClick={() => send({ type: 'reveal' })}>答えを見る</Button>}
             </>
           )}
         </section>
       )}
 
-      {s.result !== null && (
+      {answer !== null && s.shownReply === 0 && (
         <section className="result" aria-live="polite">
-          {s.result.method === 'revealed' ? (
+          {answer.method === 'revealed' ? (
             <Notice>
-              答え：<span lang="ko">{s.result.line.korean}</span>（次は書けるようにしてみましょう）
+              答え：<span lang="ko">{answer.line.korean}</span>（次は書けるようにしてみましょう）
             </Notice>
-          ) : s.result.spacingNote ? (
+          ) : answer.spacingNote ? (
             <Notice tone="warn">
-              正解。ただし分かち書きに注意：<span lang="ko">{s.result.line.korean}</span>
+              正解。ただし分かち書きに注意：<span lang="ko">{answer.line.korean}</span>
             </Notice>
           ) : (
             <p className="correct">正解！</p>
           )}
-          <Button variant="primary" onClick={() => s.result !== null && dispatch({ type: 'conversationDone', method: s.result.method, now: nowIso() })}>
+        </section>
+      )}
+
+      {phase === 'end' ? (
+        <Button variant="primary" onClick={() => dispatch({ type: 'conversationDone', now: nowIso() })}>
+          次へ
+        </Button>
+      ) : (
+        phase !== 'answer' && (
+          <Button variant="primary" onClick={() => send({ type: 'next' })}>
             次へ
           </Button>
-        </section>
+        )
       )}
     </>
   )

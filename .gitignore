@@ -10,3 +10,6 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# 元の画像（Geminiで作ったPNG）は公開リポジトリに入れない（加工したWebPだけをコミットする。Phase 1.5 計画 Q7）
+assets-inbox/*.png

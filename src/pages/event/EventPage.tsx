@@ -1,7 +1,8 @@
 import { useGame, nowIso } from '../../app/GameContext'
 import { Button } from '../../components/Button'
-import { content, findConversation, findGameEvent, findLocation } from '../../data'
+import { content, findColumn, findConversation, findGameEvent, findLocation } from '../../data'
 import { DictionaryList } from '../DictionaryPage'
+import { ColumnStep } from './ColumnStep'
 import { ConversationStep } from './ConversationStep'
 import { LearnStep } from './LearnStep'
 
@@ -76,6 +77,11 @@ export function EventPage() {
         ) : (
           <ConversationStep key={stepKey} conversation={conversation} />
         )
+      break
+    }
+    case 'column': {
+      const column = findColumn(step.id)
+      body = column === undefined ? <p>コラムが見つかりませんでした。</p> : <ColumnStep key={stepKey} column={column} />
       break
     }
     case 'dictionary':

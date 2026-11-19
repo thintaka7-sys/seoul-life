@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_BALANCE, emptyReferenceContext, koreanChunkCount, loadContent, validateFile, type ContentInput, type ReferenceContext } from './validate'
+import { DEFAULT_BALANCE, emptyReferenceContext, koreanChunkCount, loadContent, validateFile, type ContentInput, type ContentKind, type ReferenceContext } from './validate'
 
 const ctx: ReferenceContext = {
   ...emptyReferenceContext(),
@@ -32,16 +32,46 @@ const validConversation = {
   chapter: 3,
   location: 'cafe',
   character: 'cafe_staff',
-  lines: [
-    { speaker: 'cafe_staff', korean: '뭐 드릴까요?', pronunciation: 'ムォ ドゥリルッカヨ', japanese: '何になさいますか？' },
-    { speaker: 'player', korean: '커피 주세요.', pronunciation: 'コピ ジュセヨ', japanese: 'コーヒーをください。' },
+  turns: [
+    {
+      lines: [
+        { speaker: 'cafe_staff', korean: '뭐 드릴까요?', pronunciation: 'ムォ ドゥリルッカヨ', japanese: '何になさいますか？' },
+        { speaker: 'player', korean: '커피 주세요.', pronunciation: 'コピ ジュセヨ', japanese: 'コーヒーをください。' },
+      ],
+      choices: [
+        { korean: '커피 주세요.', pronunciation: 'コピ ジュセヨ', japanese: 'コーヒーをください。', correct: true },
+        { korean: '집에 가요.', pronunciation: 'チベ ガヨ', japanese: '家に帰ります。', correct: false },
+      ],
+      freeAnswer: { prompt: 'コーヒーをください', answers: ['커피 주세요.', '커피 한 잔 주세요.'] },
+    },
   ],
-  choices: [
-    { korean: '커피 주세요.', pronunciation: 'コピ ジュセヨ', japanese: 'コーヒーをください。', correct: true },
-    { korean: '집에 가요.', pronunciation: 'チベ ガヨ', japanese: '家に帰ります。', correct: false },
-  ],
-  freeAnswer: { prompt: 'コーヒーをください', answers: ['커피 주세요.', '커피 한 잔 주세요.'] },
   reviewed: true,
+}
+
+const staffLine = (korean: string, pronunciation: string, extra: Record<string, unknown> = {}) => ({
+  speaker: 'cafe_staff',
+  korean,
+  pronunciation,
+  japanese: '訳',
+  ...extra,
+})
+const correctChoice = { korean: '네.', pronunciation: 'ネ', japanese: 'はい。', correct: true }
+const wrongChoice = { korean: '아니요.', pronunciation: 'アニヨ', japanese: 'いいえ。', correct: false }
+
+/** 1往復目の中身を差し替えた会話 */
+const withTurn0 = (turn: Record<string, unknown>) => ({ ...validConversation, turns: [turn] })
+// 配列の要素は undefined の可能性があると型付けされるため、要素の型として扱う
+const turn0 = validConversation.turns[0] as (typeof validConversation.turns)[number]
+
+const validColumn = {
+  id: 'column_001',
+  chapter: 3,
+  titleJa: '韓国のカフェは注文が先',
+  blocks: [
+    { type: 'text', textJa: '席に着く前に、カウンターで注文することが多いです。' },
+    { type: 'korean', korean: '아이스 아메리카노', pronunciation: 'アイス アメリカノ', japanese: 'アイスアメリカーノ' },
+  ],
+  reviewed: false,
 }
 
 const validEvent = {
@@ -66,7 +96,7 @@ const validBalance = {
   writeAttemptsBeforeReveal: 2,
 }
 
-function issuesOf(kind: 'vocabulary' | 'grammar' | 'conversations', item: unknown) {
+function issuesOf(kind: ContentKind, item: unknown) {
   return validateFile(kind, 'test.json', [item], ctx).issues
 }
 
@@ -177,10 +207,10 @@ describe('読み（カタカナ）の検証', () => {
     expect(issuesOf('grammar', grammar)[0]?.path).toBe('examples[0].pronunciation')
 
     const lines = [{ speaker: 'cafe_staff', korean: '뭐 드릴까요?', japanese: '何になさいますか？' }]
-    expect(issuesOf('conversations', { ...validConversation, lines })[0]?.path).toBe('lines[0].pronunciation')
+    expect(issuesOf('conversations', withTurn0({ ...turn0, lines }))[0]?.path).toBe('turns[0].lines[0].pronunciation')
 
     const choices = [{ korean: '커피 주세요.', pronunciation: 'コピ', japanese: 'コーヒーをください。', correct: true }]
-    expect(issuesOf('conversations', { ...validConversation, choices })[0]?.path).toBe('choices[0].pronunciation')
+    expect(issuesOf('conversations', withTurn0({ ...turn0, choices }))[0]?.path).toBe('turns[0].choices[0].pronunciation')
   })
 })
 
@@ -206,21 +236,20 @@ describe('会話の検証', () => {
   })
 
   it('freeAnswer は省略できる', () => {
-    const item: Record<string, unknown> = { ...validConversation }
-    delete item['freeAnswer']
-    expect(issuesOf('conversations', item)).toEqual([])
+    const { freeAnswer: _omit, ...withoutFree } = turn0
+    expect(issuesOf('conversations', withTurn0(withoutFree))).toEqual([])
   })
 
   it('存在しない施設・キャラクター・話者は除外される', () => {
     expect(issuesOf('conversations', { ...validConversation, location: 'school' })[0]?.path).toBe('location')
     expect(issuesOf('conversations', { ...validConversation, character: 'staff' })[0]?.path).toBe('character')
     const lines = [{ speaker: 'staff', korean: '어서 오세요!', pronunciation: 'オソ オセヨ', japanese: 'いらっしゃいませ！' }]
-    expect(issuesOf('conversations', { ...validConversation, lines })[0]?.path).toBe('lines[0].speaker')
+    expect(issuesOf('conversations', withTurn0({ ...turn0, lines }))[0]?.path).toBe('turns[0].lines[0].speaker')
   })
 
   it('正解の選択肢がないと除外される', () => {
     const choices = [{ korean: '집에 가요.', pronunciation: 'チベ ガヨ', japanese: '家に帰ります。', correct: false }]
-    expect(issuesOf('conversations', { ...validConversation, choices })[0]?.path).toBe('choices')
+    expect(issuesOf('conversations', withTurn0({ ...turn0, choices }))[0]?.path).toBe('turns[0].choices')
   })
 
   it('章が範囲外だと除外される', () => {
@@ -229,7 +258,137 @@ describe('会話の検証', () => {
   })
 
   it('freeAnswer.answers が空だと除外される', () => {
-    expect(issuesOf('conversations', { ...validConversation, freeAnswer: { prompt: 'x', answers: [] } })[0]?.path).toBe('freeAnswer.answers')
+    expect(issuesOf('conversations', withTurn0({ ...turn0, freeAnswer: { prompt: 'x', answers: [] } }))[0]?.path).toBe('turns[0].freeAnswer.answers')
+  })
+
+  it('旧い書き方（turns を使わない）は、書き方が変わったことを知らせて除外する', () => {
+    const { turns: _omit, ...rest } = validConversation
+    const issues = issuesOf('conversations', { ...rest, lines: turn0.lines, choices: turn0.choices })
+    expect(issues).toHaveLength(1)
+    expect(issues[0]?.path).toBe('turns')
+    expect(issues[0]?.message).toContain('turns')
+  })
+})
+
+describe('会話の往復（turns）の検証', () => {
+  const twoTurns = (second: Record<string, unknown>) => ({
+    ...validConversation,
+    turns: [{ lines: [staffLine('네?', 'ネ')], choices: [correctChoice, wrongChoice] }, second],
+  })
+
+  it('数往復の会話と、選択肢の反応（reply）、締めの台詞だけの最後の往復を書ける', () => {
+    const conv = {
+      ...validConversation,
+      turns: [
+        {
+          lines: [staffLine('네?', 'ネ', { expression: 'smile' })],
+          choices: [{ ...correctChoice, reply: [staffLine('네.', 'ネ')] }, { ...wrongChoice, reply: [staffLine('네?', 'ネ', { expression: 'troubled' })] }],
+          freeAnswer: { prompt: 'はい', answers: ['네.'], reply: [staffLine('네.', 'ネ')] },
+        },
+        { choices: [correctChoice] },
+        { lines: [staffLine('네.', 'ネ')] },
+      ],
+    }
+    expect(issuesOf('conversations', conv)).toEqual([])
+  })
+
+  it('2つ目以降の返事のある往復は lines を省略できるが、最初の往復は lines が必要', () => {
+    expect(issuesOf('conversations', twoTurns({ choices: [correctChoice] }))).toEqual([])
+    expect(issuesOf('conversations', withTurn0({ choices: [correctChoice] }))[0]?.path).toBe('turns[0].lines')
+  })
+
+  it('返事のない往復は最後だけ。台詞が1つ以上必要', () => {
+    const conv = { ...validConversation, turns: [turn0, { lines: [staffLine('네.', 'ネ')] }, turn0] }
+    expect(issuesOf('conversations', conv).map((i) => i.path)).toEqual(['turns[1].choices'])
+    expect(issuesOf('conversations', twoTurns({ lines: [] }))[0]?.path).toBe('turns[1].lines')
+  })
+
+  it('返事のない往復に freeAnswer は書けない', () => {
+    expect(issuesOf('conversations', twoTurns({ lines: [staffLine('네.', 'ネ')], freeAnswer: { prompt: 'x', answers: ['네.'] } }))[0]?.path).toBe('turns[1].freeAnswer')
+  })
+
+  it('返事のある往復が1つもなければ除外される', () => {
+    expect(issuesOf('conversations', withTurn0({ lines: [staffLine('네.', 'ネ')] }))[0]?.path).toBe('turns')
+  })
+
+  it('turns が空だと除外される', () => {
+    expect(issuesOf('conversations', { ...validConversation, turns: [] })[0]?.path).toBe('turns')
+  })
+
+  it('表情は決められたキーだけ。主人公の台詞には付けられない', () => {
+    expect(issuesOf('conversations', withTurn0({ ...turn0, lines: [staffLine('네.', 'ネ', { expression: 'angry' })] }))[0]?.path).toBe('turns[0].lines[0].expression')
+    const playerLine = { speaker: 'player', korean: '네.', pronunciation: 'ネ', japanese: 'はい。', expression: 'smile' }
+    expect(issuesOf('conversations', withTurn0({ ...turn0, lines: [staffLine('네.', 'ネ'), playerLine] }))[0]?.path).toBe('turns[0].lines[1].expression')
+  })
+
+  it('reply の台詞も検証する（空の reply は不可、読みの区切りの数）', () => {
+    expect(issuesOf('conversations', withTurn0({ ...turn0, choices: [{ ...correctChoice, reply: [] }] }))[0]?.path).toBe('turns[0].choices[0].reply')
+    expect(issuesOf('conversations', withTurn0({ ...turn0, choices: [{ ...correctChoice, reply: [staffLine('네 네', 'ネ')] }] }))[0]?.path).toBe(
+      'turns[0].choices[0].reply[0].pronunciation',
+    )
+  })
+
+  it('知らない項目は除外される', () => {
+    expect(issuesOf('conversations', withTurn0({ ...turn0, answer: 'x' }))[0]?.path).toBe('turns[0].answer')
+  })
+})
+
+describe('コラムの検証', () => {
+  it('正しいデータは通る', () => {
+    expect(issuesOf('columns', validColumn)).toEqual([])
+  })
+
+  it('見出しと本文（text）にハングルは入れられない', () => {
+    expect(issuesOf('columns', { ...validColumn, titleJa: '카페 の話' })[0]?.path).toBe('titleJa')
+    expect(issuesOf('columns', { ...validColumn, blocks: [{ type: 'text', textJa: '「커피」です' }] })[0]?.path).toBe('blocks[0].textJa')
+  })
+
+  it('韓国語のブロックは読みの決まりを確かめる', () => {
+    const blocks = [{ type: 'korean', korean: '아이스 아메리카노', pronunciation: 'アイスアメリカノ', japanese: 'x' }]
+    expect(issuesOf('columns', { ...validColumn, blocks })[0]?.path).toBe('blocks[0].pronunciation')
+  })
+
+  it('ブロックの種類と項目を確かめる', () => {
+    expect(issuesOf('columns', { ...validColumn, blocks: [{ type: 'image', src: 'x' }] })[0]?.path).toBe('blocks[0].type')
+    expect(issuesOf('columns', { ...validColumn, blocks: [{ type: 'text', textJa: 'a', korean: 'b' }] })[0]?.path).toBe('blocks[0].korean')
+    expect(issuesOf('columns', { ...validColumn, blocks: [] })[0]?.path).toBe('blocks')
+  })
+
+  it('IDは column_番号', () => {
+    expect(issuesOf('columns', { ...validColumn, id: 'tip_001' })[0]?.path).toBe('id')
+  })
+})
+
+describe('キャラクター・施設の検証', () => {
+  const character = {
+    id: 'cafe_staff',
+    roleJa: 'カフェの店員',
+    name: { korean: '한지훈', pronunciation: 'ハンジフン', reviewed: true },
+    profileJa: '落ち着いている',
+    themeColor: '#B9783F',
+  }
+
+  it('名前・プロフィール・テーマカラーを持てる（どれも省略できる）', () => {
+    expect(issuesOf('characters', character)).toEqual([])
+    expect(issuesOf('characters', { id: 'friend', roleJa: '近所の友人' })).toEqual([])
+  })
+
+  it('名前は読みと確認済みの印が必要', () => {
+    expect(issuesOf('characters', { ...character, name: { korean: '한지훈', reviewed: true } })[0]?.path).toBe('name.pronunciation')
+    expect(issuesOf('characters', { ...character, name: { korean: '한지훈', pronunciation: 'ハンジフン' } })[0]?.path).toBe('name.reviewed')
+    expect(issuesOf('characters', { ...character, name: { korean: '한지훈', pronunciation: 'ハン ジフン', reviewed: true } })[0]?.path).toBe('name.pronunciation')
+  })
+
+  it('テーマカラーは #RRGGBB、プロフィールにハングルは入れない', () => {
+    expect(issuesOf('characters', { ...character, themeColor: 'caramel' })[0]?.path).toBe('themeColor')
+    expect(issuesOf('characters', { ...character, profileJa: '한지훈 です' })[0]?.path).toBe('profileJa')
+  })
+
+  it('施設のマップ上の位置は 0〜100 の割合で、絵からはみ出さない', () => {
+    expect(issuesOf('locations', { id: 'cafe', nameJa: 'カフェ', mapArea: { x: 10, y: 20, w: 30, h: 15 } })).toEqual([])
+    expect(issuesOf('locations', { id: 'cafe', nameJa: 'カフェ', mapArea: { x: 80, y: 20, w: 30, h: 15 } })[0]?.path).toBe('mapArea')
+    expect(issuesOf('locations', { id: 'cafe', nameJa: 'カフェ', mapArea: { x: -1, y: 20, w: 30, h: 15 } })[0]?.path).toBe('mapArea.x')
+    expect(issuesOf('locations', { id: 'cafe', nameJa: 'カフェ', mapArea: { x: 1, y: 2, w: 3 } })[0]?.path).toBe('mapArea.h')
   })
 })
 
@@ -254,6 +413,7 @@ const base: ContentInput = {
   vocabulary: { 'v.json': [validVocab] },
   grammar: { 'g.json': [validGrammar] },
   conversations: { 's.json': [validConversation] },
+  columns: { 'k.json': [validColumn] },
   events: { 'e.json': [validEvent] },
   balance: { 'balance.json': validBalance },
 }
@@ -316,6 +476,17 @@ describe('イベントの検証', () => {
     const result = load([{ ...validEvent, location: 'home' }])
     expect(result.events).toEqual([])
     expect(result.issues[0]?.path).toBe('steps[2].id')
+  })
+
+  it('コラムの段階は、存在するコラムだけを使える', () => {
+    expect(load([{ ...validEvent, steps: [{ type: 'column', id: 'column_001' }] }]).events).toHaveLength(1)
+    expect(load([{ ...validEvent, steps: [{ type: 'column', id: 'column_002' }] }]).events).toEqual([])
+  })
+
+  it('コラムのIDの重複は、後の方を除外する', () => {
+    const dup = loadContent({ ...base, columns: { 'a.json': [validColumn], 'b.json': [{ ...validColumn, titleJa: '別の話' }] } })
+    expect(dup.columns.map((c) => c.titleJa)).toEqual(['韓国のカフェは注文が先'])
+    expect(dup.issues[0]).toMatchObject({ file: 'b.json', id: 'column_001', path: 'id' })
   })
 
   it('知らない段階の種類は除外される', () => {

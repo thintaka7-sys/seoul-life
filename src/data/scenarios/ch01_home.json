@@ -4,40 +4,44 @@
     "chapter": 1,
     "location": "home",
     "character": "neighbor",
-    "lines": [
+    "turns": [
       {
-        "speaker": "neighbor",
-        "korean": "안녕하세요! 옆집에 살아요.",
-        "pronunciation": "アンニョンハセヨ ヨプチベ サラヨ",
-        "japanese": "こんにちは！隣に住んでいます。"
+        "lines": [
+          {
+            "speaker": "neighbor",
+            "korean": "안녕하세요! 옆집에 살아요.",
+            "pronunciation": "アンニョンハセヨ ヨプチベ サラヨ",
+            "japanese": "こんにちは！隣に住んでいます。"
+          }
+        ],
+        "choices": [
+          {
+            "korean": "안녕하세요.",
+            "pronunciation": "アンニョンハセヨ",
+            "japanese": "こんにちは。",
+            "correct": true
+          },
+          {
+            "korean": "안녕히 계세요.",
+            "pronunciation": "アンニョンヒ ゲセヨ",
+            "japanese": "さようなら。（その場に残る人に）",
+            "correct": false
+          },
+          {
+            "korean": "죄송합니다.",
+            "pronunciation": "チェソンハムニダ",
+            "japanese": "申し訳ありません。",
+            "correct": false
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "こんにちは",
+          "answers": [
+            "안녕하세요."
+          ]
+        }
       }
     ],
-    "choices": [
-      {
-        "korean": "안녕하세요.",
-        "pronunciation": "アンニョンハセヨ",
-        "japanese": "こんにちは。",
-        "correct": true
-      },
-      {
-        "korean": "안녕히 계세요.",
-        "pronunciation": "アンニョンヒ ゲセヨ",
-        "japanese": "さようなら。（その場に残る人に）",
-        "correct": false
-      },
-      {
-        "korean": "죄송합니다.",
-        "pronunciation": "チェソンハムニダ",
-        "japanese": "申し訳ありません。",
-        "correct": false
-      }
-    ],
-    "freeAnswer": {
-      "prompt": "こんにちは",
-      "answers": [
-        "안녕하세요."
-      ]
-    },
     "reviewed": true,
     "notes": "確認：ChatGPT（2026-11-18）"
   },
@@ -46,49 +50,53 @@
     "chapter": 1,
     "location": "home",
     "character": "neighbor",
-    "lines": [
+    "turns": [
       {
-        "speaker": "neighbor",
-        "korean": "한국에 오신 걸 환영해요.",
-        "pronunciation": "ハングゲ オシン ゴル ファニョンヘヨ",
-        "japanese": "韓国へようこそ。"
-      },
-      {
-        "speaker": "neighbor",
-        "korean": "이거 받으세요.",
-        "pronunciation": "イゴ バドゥセヨ",
-        "japanese": "これ、どうぞ。"
+        "lines": [
+          {
+            "speaker": "neighbor",
+            "korean": "한국에 오신 걸 환영해요.",
+            "pronunciation": "ハングゲ オシン ゴル ファニョンヘヨ",
+            "japanese": "韓国へようこそ。"
+          },
+          {
+            "speaker": "neighbor",
+            "korean": "이거 받으세요.",
+            "pronunciation": "イゴ バドゥセヨ",
+            "japanese": "これ、どうぞ。"
+          }
+        ],
+        "choices": [
+          {
+            "korean": "감사합니다.",
+            "pronunciation": "カムサハムニダ",
+            "japanese": "ありがとうございます。",
+            "correct": true
+          },
+          {
+            "korean": "고맙습니다.",
+            "pronunciation": "コマプスムニダ",
+            "japanese": "ありがとうございます。",
+            "correct": true
+          },
+          {
+            "korean": "안녕히 가세요.",
+            "pronunciation": "アンニョンヒ ガセヨ",
+            "japanese": "さようなら。（立ち去る人に）",
+            "correct": false
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "ありがとうございます",
+          "answers": [
+            "감사합니다.",
+            "고맙습니다.",
+            "감사해요.",
+            "고마워요."
+          ]
+        }
       }
     ],
-    "choices": [
-      {
-        "korean": "감사합니다.",
-        "pronunciation": "カムサハムニダ",
-        "japanese": "ありがとうございます。",
-        "correct": true
-      },
-      {
-        "korean": "고맙습니다.",
-        "pronunciation": "コマプスムニダ",
-        "japanese": "ありがとうございます。",
-        "correct": true
-      },
-      {
-        "korean": "안녕히 가세요.",
-        "pronunciation": "アンニョンヒ ガセヨ",
-        "japanese": "さようなら。（立ち去る人に）",
-        "correct": false
-      }
-    ],
-    "freeAnswer": {
-      "prompt": "ありがとうございます",
-      "answers": [
-        "감사합니다.",
-        "고맙습니다.",
-        "감사해요.",
-        "고마워요."
-      ]
-    },
     "reviewed": true,
     "notes": "감사해요・고마워요 も自然な丁寧語なので、書く問題の正解に含めた／確認：ChatGPT（2026-11-18）"
   }

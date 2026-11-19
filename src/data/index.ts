@@ -8,6 +8,7 @@ export const content: LoadedContent = loadContent({
   vocabulary: import.meta.glob<unknown>('./vocabulary/*.json', { eager: true, import: 'default' }),
   grammar: import.meta.glob<unknown>('./grammar/*.json', { eager: true, import: 'default' }),
   conversations: import.meta.glob<unknown>('./scenarios/*.json', { eager: true, import: 'default' }),
+  columns: import.meta.glob<unknown>('./columns/*.json', { eager: true, import: 'default' }),
   events: import.meta.glob<unknown>('./events/*.json', { eager: true, import: 'default' }),
   locations: import.meta.glob<unknown>('./locations/*.json', { eager: true, import: 'default' }),
   characters: import.meta.glob<unknown>('./characters/*.json', { eager: true, import: 'default' }),
@@ -45,4 +46,8 @@ export function findGrammar(id: string) {
 
 export function findGameEvent(id: string) {
   return content.events.find((e) => e.id === id)
+}
+
+export function findColumn(id: string) {
+  return content.columns.find((c) => c.id === id)
 }

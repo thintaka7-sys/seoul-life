@@ -2,7 +2,7 @@
 // 経験値は「初めてのとき」だけ付ける（同じ問題の繰り返しで無制限に増えないように。GAME_SPEC 7-1）。
 
 import type { Balance, GameEvent } from '../../data/types'
-import type { SaveData } from '../../storage/saveData'
+import { conversationTurnKey, type SaveData } from '../../storage/saveData'
 
 export interface Reward {
   xp: number
@@ -54,13 +54,14 @@ export function learnItems(
 /** 会話をどの方法で終えたか。revealed は「答えを見る」で進んだ場合（経験値なし） */
 export type ClearMethod = 'choice' | 'write' | 'revealed'
 
-/** 会話の正解を記録する。選んで・書いて、それぞれ初めて正解したときだけ経験値 */
-export function clearConversation(save: SaveData, conversationId: string, method: ClearMethod, balance: Balance, now: string): Updated {
+/** 会話の1往復の正解を記録する。往復ごとに、選んで・書いて、それぞれ初めて正解したときだけ経験値 */
+export function clearConversationTurn(save: SaveData, conversationId: string, turn: number, method: ClearMethod, balance: Balance, now: string): Updated {
   if (method === 'revealed') return { save, reward: NO_REWARD }
-  const record = save.learning.conversations[conversationId] ?? { choice: false, write: false }
+  const key = conversationTurnKey(conversationId, turn)
+  const record = save.learning.conversations[key] ?? { choice: false, write: false }
   if (record[method]) return { save, reward: NO_REWARD }
   const xp = method === 'choice' ? balance.xp.conversationChoice : balance.xp.conversationWrite
-  const conversations = { ...save.learning.conversations, [conversationId]: { ...record, [method]: true } }
+  const conversations = { ...save.learning.conversations, [key]: { ...record, [method]: true } }
   const next: SaveData = { ...save, learning: { ...save.learning, conversations } }
   return { save: addXp(next, xp, now), reward: { xp, newWords: 0 } }
 }
