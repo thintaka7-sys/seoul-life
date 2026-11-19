@@ -489,6 +489,16 @@ describe('イベントの検証', () => {
     expect(dup.issues[0]).toMatchObject({ file: 'b.json', id: 'column_001', path: 'id' })
   })
 
+  it('背景の段階は、場面の背景のIDか施設IDを使える。最後の段階には置けない', () => {
+    const msg = { type: 'message', textJa: 'a' }
+    expect(load([{ ...validEvent, steps: [{ type: 'background', id: 'entrance' }, msg, { type: 'background', id: 'cafe' }, msg] }]).events).toHaveLength(1)
+    expect(load([{ ...validEvent, steps: [{ type: 'background', id: 'rooftop' }, msg] }]).events).toEqual([])
+    expect(load([{ ...validEvent, steps: [{ type: 'background' }, msg] }]).events).toEqual([])
+    const last = load([{ ...validEvent, steps: [msg, { type: 'background', id: 'entrance' }] }])
+    expect(last.events).toEqual([])
+    expect(last.issues[0]?.path).toBe('steps')
+  })
+
   it('知らない段階の種類は除外される', () => {
     expect(load([{ ...validEvent, steps: [{ type: 'quiz' }] }]).events).toEqual([])
   })

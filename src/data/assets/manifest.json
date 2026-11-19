@@ -45,6 +45,11 @@
       "src": "assets/bg/cafe.webp?v=869d3afcac",
       "width": 1080,
       "height": 1935
+    },
+    "entrance": {
+      "src": "assets/bg/entrance.webp?v=810b7db841",
+      "width": 1080,
+      "height": 1935
     }
   },
   "map": {

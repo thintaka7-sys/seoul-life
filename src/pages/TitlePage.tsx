@@ -27,7 +27,7 @@ export function TitlePage() {
           <Button variant="primary" onClick={startNew}>
             はじめから
           </Button>
-          <Button onClick={() => dispatch({ type: 'continue' })} disabled={!hasSave} aria-describedby={hasSave ? undefined : 'no-save-hint'}>
+          <Button onClick={() => dispatch({ type: 'continue', now: nowIso() })} disabled={!hasSave} aria-describedby={hasSave ? undefined : 'no-save-hint'}>
             つづきから
           </Button>
           {!hasSave && (

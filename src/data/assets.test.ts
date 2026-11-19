@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { emptyAssetManifest, parseAssetManifest } from './assets'
 import { assetIssues, assets, characterImage } from './index'
 
-const ids = { characterIds: new Set(['cafe_staff']), locationIds: new Set(['cafe']) }
+const ids = { characterIds: new Set(['cafe_staff']), backgroundIds: new Set(['cafe', 'entrance']) }
 const image = { src: 'assets/char/cafe_staff/normal.webp?v=abc123', width: 718, height: 1200 }
 
 describe('画像の一覧', () => {
@@ -13,11 +13,12 @@ describe('画像の一覧', () => {
   })
 
   it('正しい項目を読み込む', () => {
-    const raw = { characters: { cafe_staff: { normal: image, smile: image } }, backgrounds: { cafe: { ...image, src: 'assets/bg/cafe.webp' } }, map: { ...image, src: 'assets/map/town.webp' } }
+    const raw = { characters: { cafe_staff: { normal: image, smile: image } }, backgrounds: { cafe: { ...image, src: 'assets/bg/cafe.webp' }, entrance: { ...image, src: 'assets/bg/entrance.webp' } }, map: { ...image, src: 'assets/map/town.webp' } }
     const { manifest, issues } = parseAssetManifest(raw, ids)
     expect(issues).toEqual([])
     expect(manifest.characters['cafe_staff']?.smile).toEqual(image)
     expect(manifest.backgrounds['cafe']?.src).toBe('assets/bg/cafe.webp')
+    expect(manifest.backgrounds['entrance']?.src).toBe('assets/bg/entrance.webp')
     expect(manifest.map?.src).toBe('assets/map/town.webp')
   })
 

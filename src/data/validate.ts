@@ -5,6 +5,7 @@
 import {
   COLUMN_BLOCK_TYPES,
   EVENT_STEP_TYPES,
+  SCENE_BACKGROUNDS,
   EXPRESSIONS,
   ID_PATTERNS,
   PARTS_OF_SPEECH,
@@ -640,6 +641,7 @@ const STEP_KEYS: Record<EventStep['type'], readonly string[]> = {
   column: ['type', 'id'],
   dictionary: ['type', 'textJa'],
   dayEnd: ['type', 'textJa'],
+  background: ['type', 'id'],
 }
 
 function parseStep(value: Obj, path: string, eventLocation: string | undefined, ctx: ReferenceContext, errs: FieldError[]): EventStep | undefined {
@@ -685,6 +687,15 @@ function parseStep(value: Obj, path: string, eventLocation: string | undefined, 
       }
       return { type, id }
     }
+    case 'background': {
+      const id = text(value, 'id', path, errs)
+      if (id === undefined) return undefined
+      if (!(SCENE_BACKGROUNDS as readonly string[]).includes(id) && !ctx.locationIds.has(id)) {
+        errs.push({ path: joinPath(path, 'id'), message: `存在しない背景IDです：${id}（場面の背景 ${SCENE_BACKGROUNDS.join('・')} か、施設ID）` })
+        return undefined
+      }
+      return { type, id }
+    }
   }
 }
 
@@ -703,6 +714,9 @@ function parseEvent(o: Obj, ctx: ReferenceContext, errs: FieldError[]): GameEven
   for (const { value, path } of objArray(o, 'steps', '', errs, 1) ?? []) {
     const step = parseStep(value, path, location, ctx, errs)
     if (step !== undefined) steps.push(step)
+  }
+  if (steps.at(-1)?.type === 'background') {
+    errs.push({ path: 'steps', message: '最後の段階に background は置けません（イベントが終わると、施設のふだんの背景に戻ります）' })
   }
   const conversationIds = steps.flatMap((s) => (s.type === 'conversation' ? [s.id] : []))
   if (new Set(conversationIds).size !== conversationIds.length) {

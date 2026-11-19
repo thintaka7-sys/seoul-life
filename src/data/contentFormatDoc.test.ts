@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
-import { EVENT_STEP_TYPES, EXPRESSIONS, PARTS_OF_SPEECH, PLAYER_SPEAKER_ID, VOCAB_CATEGORIES } from './types'
+import { EVENT_STEP_TYPES, EXPRESSIONS, PARTS_OF_SPEECH, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_CATEGORIES } from './types'
 import { formatIssue, loadContent } from './validate'
 
 const docPath = fileURLToPath(new URL('../../docs/CONTENT_FORMAT.md', import.meta.url))
@@ -98,6 +98,10 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
 
   it('イベントの段階の種類（10-5）がプログラムと一致する', () => {
     expect(sorted(keysInSection(doc, '### 10-5.'))).toEqual(sorted(EVENT_STEP_TYPES))
+  })
+
+  it('場面の背景のID（10-7）がプログラムと一致する', () => {
+    expect(sorted(keysInSection(doc, '### 10-7.'))).toEqual(sorted(SCENE_BACKGROUNDS))
   })
 
   it('表情（10-6）がプログラムと一致する', () => {

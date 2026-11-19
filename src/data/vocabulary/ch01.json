@@ -127,5 +127,19 @@
     "exampleJapanese": "家に帰ります。",
     "reviewed": true,
     "notes": "確認：ChatGPT（2026-11-18）"
+  },
+  {
+    "id": "vocab_024",
+    "korean": "떡",
+    "pronunciation": "ットク",
+    "japanese": "韓国のお餅",
+    "partOfSpeech": "noun",
+    "category": "food",
+    "level": 1,
+    "example": "떡 좋아해요?",
+    "examplePronunciation": "ットク チョアヘヨ",
+    "exampleJapanese": "お餅、好きですか？",
+    "reviewed": true,
+    "notes": "米の粉などで作る韓国のお餅の総称。語頭の ㄸ（濃音）は「ッ」で表した／確認：ChatGPT（2026-11-19）"
   }
 ]

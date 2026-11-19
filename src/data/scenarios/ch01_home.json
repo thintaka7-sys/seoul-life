@@ -1,6 +1,6 @@
 [
   {
-    "id": "home_001",
+    "id": "home_003",
     "chapter": 1,
     "location": "home",
     "character": "neighbor",
@@ -19,19 +19,43 @@
             "korean": "안녕하세요.",
             "pronunciation": "アンニョンハセヨ",
             "japanese": "こんにちは。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "반가워요. 저는 이수진이에요.",
+                "pronunciation": "パンガウォヨ チョヌン イスジニエヨ",
+                "japanese": "はじめまして。私はイ・スジンです。"
+              }
+            ]
           },
           {
             "korean": "안녕히 계세요.",
             "pronunciation": "アンニョンヒ ゲセヨ",
             "japanese": "さようなら。（その場に残る人に）",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "어... 저 이제 막 왔는데요.",
+                "pronunciation": "オ チョ イジェ マク ワンヌンデヨ",
+                "japanese": "えっ…私、今来たばかりなんですけど。"
+              }
+            ]
           },
           {
             "korean": "죄송합니다.",
             "pronunciation": "チェソンハムニダ",
             "japanese": "申し訳ありません。",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "어머, 괜찮아요. 놀라셨어요?",
+                "pronunciation": "オモ ケンチャナヨ ノルラショッソヨ",
+                "japanese": "あら、大丈夫ですよ。驚かせちゃいました？"
+              }
+            ]
           }
         ],
         "freeAnswer": {
@@ -40,13 +64,74 @@
             "안녕하세요."
           ]
         }
+      },
+      {
+        "lines": [
+          {
+            "speaker": "neighbor",
+            "korean": "한국은 처음이에요?",
+            "pronunciation": "ハンググン チョウミエヨ",
+            "japanese": "韓国は初めてですか？"
+          }
+        ],
+        "choices": [
+          {
+            "korean": "네.",
+            "pronunciation": "ネ",
+            "japanese": "はい。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "그렇군요! 모르는 거 있으면 언제든지 물어보세요.",
+                "pronunciation": "クロクンニョ モルヌン ゴ イッスミョン オンジェドゥンジ ムロボセヨ",
+                "japanese": "そうなんですね！わからないことがあったら、いつでも聞いてくださいね。"
+              }
+            ]
+          },
+          {
+            "korean": "아니요.",
+            "pronunciation": "アニヨ",
+            "japanese": "いいえ。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "아, 그래요? 그럼 한국어 잘하시겠네요!",
+                "pronunciation": "ア クレヨ クロム ハングゴ チャラシゲンネヨ",
+                "japanese": "あら、そうなんですか？じゃあ韓国語、お上手なんでしょうね！"
+              }
+            ]
+          },
+          {
+            "korean": "죄송합니다.",
+            "pronunciation": "チェソンハムニダ",
+            "japanese": "申し訳ありません。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "아니에요, 사과하실 필요 없어요.",
+                "pronunciation": "アニエヨ サグァハシル ピリョ オプソヨ",
+                "japanese": "いえいえ、謝らなくていいんですよ。"
+              }
+            ]
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "はい",
+          "answers": [
+            "네.",
+            "예."
+          ]
+        }
       }
     ],
     "reviewed": true,
-    "notes": "確認：ChatGPT（2026-11-18）"
+    "notes": "2往復目は「はい／いいえ」のどちらも正解にし、答えによって反応を変えた。いいえと答えると、初心者なのに韓国語が上手だと思われる小さな笑いになる／間違えたときの返事を、とまどいが伝わる 이제 막 왔는데요 に修正／確認：ChatGPT（2026-11-19）"
   },
   {
-    "id": "home_002",
+    "id": "home_004",
     "chapter": 1,
     "location": "home",
     "character": "neighbor",
@@ -55,15 +140,9 @@
         "lines": [
           {
             "speaker": "neighbor",
-            "korean": "한국에 오신 걸 환영해요.",
-            "pronunciation": "ハングゲ オシン ゴル ファニョンヘヨ",
-            "japanese": "韓国へようこそ。"
-          },
-          {
-            "speaker": "neighbor",
-            "korean": "이거 받으세요.",
-            "pronunciation": "イゴ バドゥセヨ",
-            "japanese": "これ、どうぞ。"
+            "korean": "이거 받으세요. 제가 만든 떡이에요.",
+            "pronunciation": "イゴ バドゥセヨ チェガ マンドゥン ットギエヨ",
+            "japanese": "これ、どうぞ。私が作ったお餅です。"
           }
         ],
         "choices": [
@@ -71,19 +150,43 @@
             "korean": "감사합니다.",
             "pronunciation": "カムサハムニダ",
             "japanese": "ありがとうございます。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "맛있게 드세요.",
+                "pronunciation": "マシッケ ドゥセヨ",
+                "japanese": "おいしく召し上がってくださいね。"
+              }
+            ]
           },
           {
             "korean": "고맙습니다.",
             "pronunciation": "コマプスムニダ",
             "japanese": "ありがとうございます。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "맛있게 드세요.",
+                "pronunciation": "マシッケ ドゥセヨ",
+                "japanese": "おいしく召し上がってくださいね。"
+              }
+            ]
           },
           {
             "korean": "안녕히 가세요.",
             "pronunciation": "アンニョンヒ ガセヨ",
             "japanese": "さようなら。（立ち去る人に）",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "저 아직 안 가요.",
+                "pronunciation": "チョ アジク アン ガヨ",
+                "japanese": "私、まだ帰りませんよ。"
+              }
+            ]
           }
         ],
         "freeAnswer": {
@@ -95,9 +198,70 @@
             "고마워요."
           ]
         }
+      },
+      {
+        "lines": [
+          {
+            "speaker": "neighbor",
+            "korean": "그럼 저는 이만 가 볼게요.",
+            "pronunciation": "クロム ジョヌン イマン ガ ボルッケヨ",
+            "japanese": "じゃあ、私はこれで失礼しますね。"
+          }
+        ],
+        "choices": [
+          {
+            "korean": "안녕히 가세요.",
+            "pronunciation": "アンニョンヒ ガセヨ",
+            "japanese": "さようなら。（立ち去る人に）",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "네, 또 봐요!",
+                "pronunciation": "ネ ット ボァヨ",
+                "japanese": "はい、また会いましょう！"
+              }
+            ]
+          },
+          {
+            "korean": "안녕히 계세요.",
+            "pronunciation": "アンニョンヒ ゲセヨ",
+            "japanese": "さようなら。（その場に残る人に）",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "아, 가는 건 저예요.",
+                "pronunciation": "ア カヌン ゴン ジョエヨ",
+                "japanese": "あ、帰るのは私のほうですよ。"
+              }
+            ]
+          },
+          {
+            "korean": "안녕하세요.",
+            "pronunciation": "アンニョンハセヨ",
+            "japanese": "こんにちは。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "하하, 그건 만났을 때 하는 인사예요.",
+                "pronunciation": "ハハ クゴン マンナッスル ッテ ハヌン インサエヨ",
+                "japanese": "ふふ、それは会ったときのあいさつですよ。",
+                "expression": "smile"
+              }
+            ]
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "さようなら（帰っていく人に）",
+          "answers": [
+            "안녕히 가세요."
+          ]
+        }
       }
     ],
     "reviewed": true,
-    "notes": "감사해요・고마워요 も自然な丁寧語なので、書く問題の正解に含めた／確認：ChatGPT（2026-11-18）"
+    "notes": "帰る人（お隣さん）を見送るので 안녕히 가세요 が正解。間違えたときの反応で、가세요／계세요 の違いを思い出せるようにした（grammar_001）／確認：ChatGPT（2026-11-19）"
   }
 ]

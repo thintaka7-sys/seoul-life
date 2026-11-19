@@ -2,7 +2,7 @@
 // 新しい教材ファイルは、各フォルダに .json を置くだけで読み込まれる（docs/CONTENT_FORMAT.md）。
 
 import { parseAssetManifest } from './assets'
-import type { Expression } from './types'
+import { SCENE_BACKGROUNDS, type Expression } from './types'
 import { formatIssue, loadContent, type LoadedContent } from './validate'
 
 // import.meta.glob のオプションは Vite がビルド時に読むため、変数にせずその場に書く必要がある
@@ -58,7 +58,7 @@ export function findColumn(id: string) {
 
 const assetResult = parseAssetManifest(import.meta.glob<unknown>('./assets/manifest.json', { eager: true, import: 'default' })['./assets/manifest.json'], {
   characterIds: new Set(content.characters.map((c) => c.id)),
-  locationIds: new Set(content.locations.map((l) => l.id)),
+  backgroundIds: new Set([...content.locations.map((l) => l.id), ...SCENE_BACKGROUNDS]),
 })
 for (const issue of assetResult.issues) console.error(`[画像] ${formatIssue(issue)}`)
 
@@ -72,9 +72,9 @@ export function characterImage(characterId: string, expression: Expression) {
   return images?.[expression] ?? images?.normal
 }
 
-/** 施設の背景。なければ undefined（仮の絵を出す） */
-export function backgroundImage(locationId: string) {
-  return assets.backgrounds[locationId]
+/** 背景（施設ID か場面の背景のID）。なければ undefined（仮の絵を出す） */
+export function backgroundImage(backgroundId: string) {
+  return assets.backgrounds[backgroundId]
 }
 
 /** そのキャラクターと最初に話す会話のID（イベントの順。初めて会ったときの紹介を出すのに使う） */

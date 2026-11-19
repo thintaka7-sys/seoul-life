@@ -197,5 +197,33 @@
     "exampleJapanese": "カフェに行きます。",
     "reviewed": true,
     "notes": "確認：ChatGPT（2026-11-18）"
+  },
+  {
+    "id": "vocab_025",
+    "korean": "아이스",
+    "pronunciation": "アイス",
+    "japanese": "アイスの／冷たい（飲み物）",
+    "partOfSpeech": "noun",
+    "category": "drink",
+    "level": 1,
+    "example": "아이스 아메리카노 주세요.",
+    "examplePronunciation": "アイス アメリカノ ジュセヨ",
+    "exampleJapanese": "アイスアメリカーノをください。",
+    "reviewed": true,
+    "notes": "飲み物の種類を表す使い方が中心なので「アイスの」とした／確認：ChatGPT（2026-11-19）"
+  },
+  {
+    "id": "vocab_026",
+    "korean": "괜찮아요",
+    "pronunciation": "ケンチャナヨ",
+    "japanese": "大丈夫です／結構です",
+    "partOfSpeech": "expression",
+    "category": "daily_life",
+    "level": 1,
+    "example": "네, 괜찮아요.",
+    "examplePronunciation": "ネ ケンチャナヨ",
+    "exampleJapanese": "はい、大丈夫です。",
+    "reviewed": true,
+    "notes": "「아니요, 괜찮아요」で、すすめられたものを丁寧に断る言い方にもなる／確認：ChatGPT（2026-11-19）"
   }
 ]

@@ -3,6 +3,7 @@
 
 import type { Balance, GameEvent } from '../../data/types'
 import { conversationTurnKey, type SaveData } from '../../storage/saveData'
+import { playableStep, resumeStep } from '../events/events'
 
 export interface Reward {
   xp: number
@@ -21,10 +22,15 @@ function addXp(save: SaveData, xp: number, now: string): SaveData {
   return { ...save, updatedAt: now, stats: { ...save.stats, xp: save.stats.xp + xp } }
 }
 
-/** イベントを始める（途中から再開する場合は段階を保つ） */
-export function startEvent(save: SaveData, eventId: string, now: string): SaveData {
-  if (save.progress.activeEvent?.id === eventId) return save
-  return { ...save, updatedAt: now, progress: { ...save.progress, activeEvent: { id: eventId, step: 0 } } }
+/**
+ * イベントを始める（途中から再開する場合は段階を保つ）。
+ * 段階の番号は、画面に出す段階に合わせる（background を飛ばす。データが変わって番号が範囲外なら収める）
+ */
+export function startEvent(save: SaveData, event: GameEvent, now: string): SaveData {
+  const active = save.progress.activeEvent
+  const step = resumeStep(event, active?.id === event.id ? active.step : 0)
+  if (active?.id === event.id && active.step === step) return save
+  return { ...save, updatedAt: now, progress: { ...save.progress, activeEvent: { id: event.id, step } } }
 }
 
 /** 単語・文法を覚えた記録を付ける。初めての単語ごとに経験値 */
@@ -67,13 +73,13 @@ export function clearConversationTurn(save: SaveData, conversationId: string, tu
 }
 
 /**
- * 途中のイベントの段階を1つ進める。最後の段階を終えたら、イベントを完了にして経験値を付ける。
+ * 途中のイベントの段階を1つ進める（background の段階は飛ばす）。最後の段階を終えたら、イベントを完了にして経験値を付ける。
  * 途中のイベントが event でなければ何もしない。
  */
 export function advanceEvent(save: SaveData, event: GameEvent, balance: Balance, now: string): Updated & { finished: boolean } {
   const active = save.progress.activeEvent
   if (active?.id !== event.id) return { save, reward: NO_REWARD, finished: false }
-  const step = active.step + 1
+  const step = playableStep(event, active.step + 1)
   if (step < event.steps.length) {
     return { save: { ...save, updatedAt: now, progress: { ...save.progress, activeEvent: { id: event.id, step } } }, reward: NO_REWARD, finished: false }
   }

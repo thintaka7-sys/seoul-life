@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
+import { eventBackdrop } from '../../app/backdrop'
 import { useGame, nowIso } from '../../app/GameContext'
 import { playSfx } from '../../audio/sfx'
 import { useFuriganaDisplay } from '../../app/hooks'
@@ -14,7 +15,7 @@ import { Notice } from '../../components/Notice'
 import { Stage } from '../../components/scene/Stage'
 import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
-import { backgroundImage, content, findCharacter, firstConversationWith } from '../../data'
+import { content, findCharacter, firstConversationWith } from '../../data'
 import type { Conversation, ConversationChoice } from '../../data/types'
 import {
   availableModes,
@@ -172,7 +173,7 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
         characterId={conversation.character}
         expression={characterExpression(conversation, s)}
         size={writing ? 'compact' : 'normal'}
-        hasBackground={backgroundImage(conversation.location) !== undefined}
+        hasBackground={eventBackdrop(conversation.location, state.run) !== undefined}
       />
       <SpeechNotice />
       {current !== undefined && (

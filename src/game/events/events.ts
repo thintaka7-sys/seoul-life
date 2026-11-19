@@ -60,3 +60,37 @@ export function vocabularyOf(events: readonly GameEvent[]): string[] {
 export function conversationsOf(events: readonly GameEvent[]): string[] {
   return events.flatMap((e) => e.steps.flatMap((s) => (s.type === 'conversation' ? [s.id] : [])))
 }
+
+// ---------- 背景を切り替える段階（background） ----------
+// background の段階は画面に何も出さず、すぐ次へ進む。進行の番号（activeEvent.step）が background を指さないようにする。
+
+/** step から先で、画面に出す最初の段階の番号（background を飛ばす。なければ段階の数） */
+export function playableStep(event: GameEvent, step: number): number {
+  let i = Math.max(step, 0)
+  while (i < event.steps.length && event.steps[i]?.type === 'background') i++
+  return i
+}
+
+/**
+ * 途中から再開するときの段階の番号。データが変わって番号がずれていても、範囲に収め、background を飛ばす。
+ * （最後の段階は background にできないので、必ず画面に出す段階になる）
+ */
+export function resumeStep(event: GameEvent, step: number): number {
+  const clamped = Math.min(Math.max(step, 0), event.steps.length - 1)
+  return Math.min(playableStep(event, clamped), event.steps.length - 1)
+}
+
+/** step の段階を出しているときの背景のID（それより前の最後の background。なければイベントの施設） */
+export function backgroundAt(event: GameEvent, step: number): string {
+  for (let i = Math.min(step, event.steps.length) - 1; i >= 0; i--) {
+    const s = event.steps[i]
+    if (s?.type === 'background') return s.id
+  }
+  return event.location
+}
+
+/** 進み具合の表示用：画面に出す段階の数と、step より前に終えた数 */
+export function stepProgress(event: GameEvent, step: number): { done: number; total: number } {
+  const playable = event.steps.map((s, i) => ({ s, i })).filter(({ s }) => s.type !== 'background')
+  return { done: playable.filter(({ i }) => i < step).length, total: playable.length }
+}

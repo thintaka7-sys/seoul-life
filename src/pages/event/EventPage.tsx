@@ -1,6 +1,7 @@
 import { useGame, nowIso } from '../../app/GameContext'
 import { Button } from '../../components/Button'
 import { findColumn, findConversation, findGameEvent, findLocation } from '../../data'
+import { stepProgress } from '../../game/events/events'
 import { DictionaryList } from '../DictionaryPage'
 import { ColumnStep } from './ColumnStep'
 import { ConversationStep } from './ConversationStep'
@@ -24,6 +25,7 @@ export function EventPage() {
   }
 
   const location = findLocation(event.location)
+  const progress = stepProgress(event, run.step)
   const stepKey = `${event.id}-${run.step}`
 
   let body
@@ -70,6 +72,10 @@ export function EventPage() {
     case 'dayEnd':
       body = <DayEndStep key={stepKey} textJa={step.textJa} eventId={event.id} />
       break
+    case 'background':
+      // 背景の切り替えは進行の処理で飛ばすので、ここには来ない（来た場合は何も出さない）
+      body = null
+      break
   }
 
   return (
@@ -91,7 +97,7 @@ export function EventPage() {
           </button>
         </div>
       </header>
-      <progress className="event-progress" max={event.steps.length} value={run.step} aria-label="イベントの進み具合" />
+      <progress className="event-progress" max={progress.total} value={progress.done} aria-label="イベントの進み具合" />
       <div className="screen__body">
         <div key={stepKey} className="step-enter">
           {step.type === 'conversation' ? body : <div className="panel">{body}</div>}

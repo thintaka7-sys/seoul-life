@@ -1,5 +1,5 @@
 // 加工済みの画像の一覧（src/data/assets/manifest.json。npm run assets が書き出す）を読み、確かめる。
-// 一覧がない・壊れている・知らないキャラクターや施設を指している場合は、その画像を使わない（画面では仮の絵を出す）。
+// 一覧がない・壊れている・知らないキャラクターや背景を指している場合は、その画像を使わない（画面では仮の絵を出す）。
 
 import { EXPRESSIONS, type AssetManifest, type Expression, type ImageAsset, type ValidationIssue } from './types'
 
@@ -24,7 +24,7 @@ export function emptyAssetManifest(): AssetManifest {
 /** 画像の一覧を確かめる。使えない項目は除き、問題の一覧を返す */
 export function parseAssetManifest(
   raw: unknown,
-  ids: { characterIds: ReadonlySet<string>; locationIds: ReadonlySet<string> },
+  ids: { characterIds: ReadonlySet<string>; backgroundIds: ReadonlySet<string> },
 ): { manifest: AssetManifest; issues: ValidationIssue[] } {
   const manifest = emptyAssetManifest()
   const issues: ValidationIssue[] = []
@@ -55,7 +55,7 @@ export function parseAssetManifest(
   const backgrounds = isObj(raw['backgrounds']) ? raw['backgrounds'] : {}
   for (const [id, image] of Object.entries(backgrounds)) {
     const parsed = parseImage(image)
-    if (!ids.locationIds.has(id)) issue(`backgrounds.${id}`, `存在しない施設IDです：${id}`)
+    if (!ids.backgroundIds.has(id)) issue(`backgrounds.${id}`, `存在しない背景IDです（施設IDか場面の背景のID）：${id}`)
     else if (parsed === null) issue(`backgrounds.${id}`, '画像の情報が正しくありません')
     else manifest.backgrounds[id] = parsed
   }

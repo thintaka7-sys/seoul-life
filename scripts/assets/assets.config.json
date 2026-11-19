@@ -21,7 +21,8 @@
   ],
   "backgrounds": [
     { "id": "home", "file": "bg_home.png" },
-    { "id": "cafe", "file": "bg_cafe.png" }
+    { "id": "cafe", "file": "bg_cafe.png" },
+    { "id": "entrance", "file": "bg_entrance.png" }
   ],
   "map": { "file": "map_town.png" }
 }

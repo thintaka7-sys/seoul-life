@@ -2,7 +2,7 @@
 // reducer は純粋な関数にする（日時は action で受け取る）ので、画面なしでテストできる。
 
 import type { Balance, GameEvent } from '../data/types'
-import { findEvent, nextEvent } from '../game/events/events'
+import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
 import { advanceEvent, clearConversationTurn, learnItems, startEvent, type ClearMethod, type Reward } from '../game/progression/progression'
 import { createNewSave, type SaveData } from '../storage/saveData'
 import type { CorruptReason, LoadResult } from '../storage/saveStore'
@@ -45,7 +45,7 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'startNew'; now: string }
-  | { type: 'continue' }
+  | { type: 'continue'; now: string }
   | { type: 'goToLocation'; locationId: string; now: string }
   | { type: 'backToMap'; now: string }
   | { type: 'backToTitle' }
@@ -104,11 +104,6 @@ function sumRewards(a: Reward, b: Reward): Reward {
   return { xp: a.xp + b.xp, newWords: a.newWords + b.newWords }
 }
 
-/** 段階の番号を、データの段階数の範囲に収める（データが変わって段階が減った場合に備える） */
-function clampStep(event: GameEvent, step: number): number {
-  return Math.min(Math.max(step, 0), event.steps.length - 1)
-}
-
 /** 画面内で「戻る」を押したときの行き先。戻れない画面では null */
 export function backTarget(state: GameState): GameAction['type'] | null {
   switch (state.scene.name) {
@@ -139,7 +134,7 @@ export function createGameReducer(deps: GameDeps) {
     if (event === undefined) return { ...state, run: null, scene: { name: 'main' } }
 
     if (run.replay) {
-      const step = run.step + 1
+      const step = playableStep(event, run.step + 1)
       if (step >= event.steps.length) return { ...state, run: null, scene: { name: 'location', locationId: event.location } }
       return { ...state, run: { ...run, step } }
     }
@@ -172,7 +167,9 @@ export function createGameReducer(deps: GameDeps) {
         const active = save.progress.activeEvent
         const event = active === null ? undefined : findEvent(events, active.id)
         if (active !== null && event !== undefined) {
-          return { ...state, run: { eventId: event.id, step: clampStep(event, active.step), replay: false }, scene: { name: 'event', locationId: event.location } }
+          const started = startEvent(save, event, action.now)
+          const step = started.progress.activeEvent?.step ?? 0
+          return { ...state, save: started, run: { eventId: event.id, step, replay: false }, scene: { name: 'event', locationId: event.location } }
         }
         const loc = save.progress.currentLocationId
         if (loc !== null && locationIds.has(loc)) return { ...state, scene: { name: 'location', locationId: loc } }
@@ -215,11 +212,11 @@ export function createGameReducer(deps: GameDeps) {
         const done = save.progress.completedEvents.includes(event.id)
         // 終えたイベントは遊び直し（記録しない）。未完了のものは、いま進められるイベントだけ始められる
         if (done && !isActive) {
-          return { ...state, run: { eventId: event.id, step: 0, replay: true }, scene: { name: 'event', locationId: event.location } }
+          return { ...state, run: { eventId: event.id, step: resumeStep(event, 0), replay: true }, scene: { name: 'event', locationId: event.location } }
         }
         if (nextEvent(events, save.progress)?.id !== event.id) return state
-        const started = startEvent(save, event.id, action.now)
-        const step = clampStep(event, started.progress.activeEvent?.step ?? 0)
+        const started = startEvent(save, event, action.now)
+        const step = started.progress.activeEvent?.step ?? 0
         return { ...state, save: started, run: { eventId: event.id, step, replay: false }, scene: { name: 'event', locationId: event.location } }
       }
 

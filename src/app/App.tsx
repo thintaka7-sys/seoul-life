@@ -79,7 +79,7 @@ export function App() {
     window.scrollTo(0, 0)
   }, [state.scene, state.run?.step])
 
-  const backdrop = backdropFor(state.scene)
+  const backdrop = backdropFor(state.scene, state.run)
 
   return (
     <div className={`app${backdrop === undefined ? '' : ' app--backdrop'}`} data-effects={state.settings.effects}>

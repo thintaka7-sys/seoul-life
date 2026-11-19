@@ -7,46 +7,176 @@
     "objectiveJa": "近所の人にあいさつしよう",
     "actionJa": "玄関に出る",
     "steps": [
-      { "type": "message", "textJa": "ソウルでの新しい生活が始まりました。朝、玄関のチャイムが鳴りました。隣に住んでいる人のようです。" },
-      { "type": "learn", "vocabulary": ["vocab_001", "vocab_004", "vocab_005", "vocab_006", "vocab_009"] },
-      { "type": "conversation", "id": "home_001" },
-      { "type": "learn", "vocabulary": ["vocab_002", "vocab_003", "vocab_007", "vocab_008"], "grammar": ["grammar_001"] },
-      { "type": "conversation", "id": "home_002" },
-      { "type": "message", "textJa": "近所の人にあいさつできました。次は、街のカフェに行ってみましょう。" }
+      {
+        "type": "message",
+        "textJa": "ソウルでの新しい生活が始まりました。朝、玄関のチャイムが鳴りました。隣に住んでいる人のようです。"
+      },
+      {
+        "type": "background",
+        "id": "entrance"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_001",
+          "vocab_004",
+          "vocab_005",
+          "vocab_006",
+          "vocab_009"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "home_003"
+      },
+      {
+        "type": "message",
+        "textJa": "お隣さんが、包みを差し出してくれました。お礼とお別れのあいさつを覚えましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_002",
+          "vocab_003",
+          "vocab_007",
+          "vocab_008",
+          "vocab_024"
+        ],
+        "grammar": [
+          "grammar_001"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "home_004"
+      },
+      {
+        "type": "background",
+        "id": "home"
+      },
+      {
+        "type": "column",
+        "id": "column_001"
+      },
+      {
+        "type": "message",
+        "textJa": "近所の人にあいさつできました。次は、街のカフェに行ってみましょう。"
+      }
     ],
-    "notes": "Phase 1 で Claude Code が作成。案内文は開発者の確認待ち"
+    "notes": "教材側で作成（2026-11-19）。会話を home_003・home_004 に差し替え、コラムを追加"
   },
   {
     "id": "event_002",
     "chapter": 3,
     "location": "cafe",
-    "requires": ["event_001"],
+    "requires": [
+      "event_001"
+    ],
     "objectiveJa": "カフェで注文してみよう",
     "actionJa": "カウンターへ行く",
     "steps": [
-      { "type": "message", "textJa": "カフェに入ると、カウンターの上にメニューがあります。まずはメニューを読んでみましょう。" },
-      { "type": "learn", "vocabulary": ["vocab_010", "vocab_023", "vocab_012", "vocab_013", "vocab_014", "vocab_015", "vocab_016"] },
-      { "type": "conversation", "id": "cafe_001" },
-      { "type": "learn", "vocabulary": ["vocab_017", "vocab_018", "vocab_019", "vocab_020", "vocab_021", "vocab_022"], "grammar": ["grammar_002", "grammar_003"] },
-      { "type": "conversation", "id": "cafe_002" },
-      { "type": "learn", "vocabulary": ["vocab_011"] },
-      { "type": "conversation", "id": "cafe_003" },
-      { "type": "conversation", "id": "cafe_004" },
-      { "type": "message", "textJa": "初めての注文ができました。家に帰って、今日覚えた単語を見返しましょう。" }
+      {
+        "type": "message",
+        "textJa": "近所のカフェにやって来ました。韓国のカフェには、ちょっとした特徴があるようです。"
+      },
+      {
+        "type": "column",
+        "id": "column_002"
+      },
+      {
+        "type": "message",
+        "textJa": "カウンターの上にメニューがあります。まずはメニューを読んでみましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_010",
+          "vocab_023",
+          "vocab_012",
+          "vocab_013",
+          "vocab_014",
+          "vocab_015",
+          "vocab_016"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "cafe_005"
+      },
+      {
+        "type": "message",
+        "textJa": "店員さんが注文を待っています。注文のしかたと、数え方を覚えましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_017",
+          "vocab_019",
+          "vocab_020",
+          "vocab_022",
+          "vocab_025",
+          "vocab_026"
+        ],
+        "grammar": [
+          "grammar_002",
+          "grammar_003"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "cafe_006"
+      },
+      {
+        "type": "message",
+        "textJa": "しばらくすると、呼び出しベルが鳴りました。カウンターへ取りに行きましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_011"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "cafe_007"
+      },
+      {
+        "type": "message",
+        "textJa": "初めての注文ができました。家に帰って、今日覚えた単語を見返しましょう。"
+      }
     ],
-    "notes": "Phase 1 で Claude Code が作成。単語の割り当ては開発者の指定（2026-11-18）。案内文は開発者の確認待ち"
+    "notes": "教材側で作成（2026-11-19）。会話を cafe_005〜007 に差し替え、コラムを追加。빵・둘 は会話に出ないため event_003 へ移した"
   },
   {
     "id": "event_003",
     "chapter": 3,
     "location": "home",
-    "requires": ["event_002"],
+    "requires": [
+      "event_002"
+    ],
     "objectiveJa": "家に帰って、図鑑で今日の単語を見返そう",
     "actionJa": "図鑑を開く",
     "steps": [
-      { "type": "dictionary", "textJa": "今日覚えた単語を見返してみましょう。見終わったら「閉じる」を押してください。" },
-      { "type": "dayEnd", "textJa": "最初の1日が終わりました。おつかれさまでした！" }
+      {
+        "type": "message",
+        "textJa": "家に帰ってきました。カフェのショーケースで見かけたパンと、数え方の続きも覚えておきましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_018",
+          "vocab_021"
+        ]
+      },
+      {
+        "type": "dictionary",
+        "textJa": "今日覚えた単語を見返してみましょう。見終わったら「閉じる」を押してください。"
+      },
+      {
+        "type": "dayEnd",
+        "textJa": "最初の1日が終わりました。おつかれさまでした！"
+      }
     ],
-    "notes": "Phase 1 で Claude Code が作成。案内文は開発者の確認待ち"
+    "notes": "教材側で作成（2026-11-19）"
   }
 ]

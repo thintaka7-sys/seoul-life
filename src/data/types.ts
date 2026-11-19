@@ -176,8 +176,17 @@ export type EventStep =
   | { type: 'dictionary'; textJa: string }
   /** 1日の終わりの画面を出す */
   | { type: 'dayEnd'; textJa: string }
+  /**
+   * 背景を切り替える（画面には何も出さず、すぐ次の段階へ進む）。
+   * 切り替えた背景は、次の background の段階か、イベントの終わりまで続く。
+   * id は場面の背景（SCENE_BACKGROUNDS）か施設ID（その施設のふだんの背景に戻す）
+   */
+  | { type: 'background'; id: string }
 
-export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'column', 'dictionary', 'dayEnd'] as const
+export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'column', 'dictionary', 'dayEnd', 'background'] as const
+
+/** 施設のほかに使える、場面の背景のID（画像は docs/ART_GUIDE.md の手順で作る。画像がなければ施設の背景のまま） */
+export const SCENE_BACKGROUNDS = ['entrance'] as const
 
 /** イベント：どの施設で、何を、どの順に行うか */
 export interface GameEvent {

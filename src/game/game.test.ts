@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Balance, GameEvent } from '../data/types'
 import { createNewSave, type SaveData } from '../storage/saveData'
-import { allEventsCompleted, completedEventsAt, conversationsOf, eventsOfDay, nextEvent, nextEventAt, vocabularyOf } from './events/events'
+import { allEventsCompleted, backgroundAt, completedEventsAt, conversationsOf, eventsOfDay, nextEvent, nextEventAt, playableStep, resumeStep, stepProgress, vocabularyOf } from './events/events'
 import { advanceEvent, clearConversationTurn, learnItems, startEvent } from './progression/progression'
 
 const T0 = '2026-11-18T10:00:00.000Z'
@@ -67,15 +67,15 @@ describe('イベントの進み具合', () => {
 
 describe('進行と経験値', () => {
   it('イベントを始めると段階0から。途中のものを始め直しても段階は保つ', () => {
-    let save = startEvent(createNewSave(T0), 'event_001', T1)
+    let save = startEvent(createNewSave(T0), events[0] as GameEvent, T1)
     expect(save.progress.activeEvent).toEqual({ id: 'event_001', step: 0 })
     save = advanceEvent(save, events[0] as GameEvent, balance, T1).save
-    expect(startEvent(save, 'event_001', T1).progress.activeEvent).toEqual({ id: 'event_001', step: 1 })
+    expect(startEvent(save, events[0] as GameEvent, T1).progress.activeEvent).toEqual({ id: 'event_001', step: 1 })
   })
 
   it('最後の段階を終えるとイベントが完了し、経験値が付く', () => {
     const event = events[0] as GameEvent
-    let save = startEvent(createNewSave(T0), event.id, T0)
+    let save = startEvent(createNewSave(T0), event, T0)
     const r1 = advanceEvent(save, event, balance, T1)
     expect(r1.finished).toBe(false)
     save = r1.save
@@ -144,5 +144,57 @@ describe('1日のまとめ', () => {
     const today = eventsOfDay(list, 'event_003')
     expect(vocabularyOf(today)).toEqual(['vocab_001', 'vocab_002', 'vocab_003'])
     expect(conversationsOf(today)).toEqual(['home_001'])
+  })
+})
+
+describe('背景を切り替える段階（background）', () => {
+  const msg = { type: 'message', textJa: 'a' } as const
+  // 0 message, 1 background(entrance), 2 message, 3 message, 4 background(home), 5 message
+  const event: GameEvent = {
+    id: 'event_010',
+    chapter: 1,
+    location: 'home',
+    requires: [],
+    objectiveJa: 'x',
+    actionJa: 'y',
+    steps: [msg, { type: 'background', id: 'entrance' }, msg, msg, { type: 'background', id: 'home' }, msg],
+  }
+
+  it('切り替えた背景は、次の切り替えまで続く。切り替える前は施設の背景', () => {
+    expect([0, 1, 2, 3, 4, 5].map((i) => backgroundAt(event, i))).toEqual(['home', 'home', 'entrance', 'entrance', 'entrance', 'home'])
+  })
+
+  it('background の段階は飛ばして進む', () => {
+    let save = startEvent(createNewSave(T0), event, T0)
+    expect(save.progress.activeEvent?.step).toBe(0)
+    const steps: number[] = []
+    for (let i = 0; i < 10; i++) {
+      const r = advanceEvent(save, event, balance, T1)
+      save = r.save
+      if (r.finished) break
+      steps.push(save.progress.activeEvent?.step ?? -1)
+    }
+    expect(steps).toEqual([2, 3, 5])
+    expect(save.progress.completedEvents).toEqual(['event_010'])
+  })
+
+  it('最初の段階が background なら、その次から始める', () => {
+    const first: GameEvent = { ...event, steps: [{ type: 'background', id: 'entrance' }, msg] }
+    expect(startEvent(createNewSave(T0), first, T0).progress.activeEvent).toEqual({ id: 'event_010', step: 1 })
+    expect(backgroundAt(first, 1)).toBe('entrance')
+  })
+
+  it('セーブデータの段階が background や範囲外を指していても、画面に出す段階から再開する（教材が変わった場合）', () => {
+    expect(playableStep(event, 1)).toBe(2)
+    expect(resumeStep(event, 4)).toBe(5)
+    expect(resumeStep(event, 99)).toBe(5)
+    expect(resumeStep(event, -1)).toBe(0)
+    const old = { ...createNewSave(T0), progress: { ...createNewSave(T0).progress, activeEvent: { id: 'event_010', step: 4 } } }
+    expect(startEvent(old, event, T1).progress.activeEvent).toEqual({ id: 'event_010', step: 5 })
+  })
+
+  it('進み具合の表示では background を数えない', () => {
+    expect(stepProgress(event, 0)).toEqual({ done: 0, total: 4 })
+    expect(stepProgress(event, 3)).toEqual({ done: 2, total: 4 })
   })
 })

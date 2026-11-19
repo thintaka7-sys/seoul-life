@@ -1,6 +1,6 @@
 [
   {
-    "id": "cafe_001",
+    "id": "cafe_005",
     "chapter": 3,
     "location": "cafe",
     "character": "cafe_staff",
@@ -19,19 +19,43 @@
             "korean": "안녕하세요.",
             "pronunciation": "アンニョンハセヨ",
             "japanese": "こんにちは。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "천천히 보시고 말씀해 주세요.",
+                "pronunciation": "チョンチョニ ボシゴ マルッスメ ジュセヨ",
+                "japanese": "ごゆっくりご覧になって、お決まりになったらお声がけください。"
+              }
+            ]
           },
           {
             "korean": "안녕히 계세요.",
             "pronunciation": "アンニョンヒ ゲセヨ",
             "japanese": "さようなら。（その場に残る人に）",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네? 벌써 가세요?",
+                "pronunciation": "ネ ポルッソ ガセヨ",
+                "japanese": "えっ？もうお帰りですか？"
+              }
+            ]
           },
           {
             "korean": "아니요.",
             "pronunciation": "アニヨ",
             "japanese": "いいえ。",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네...?",
+                "pronunciation": "ネ",
+                "japanese": "えっと…？"
+              }
+            ]
           }
         ],
         "freeAnswer": {
@@ -43,10 +67,10 @@
       }
     ],
     "reviewed": true,
-    "notes": "確認：ChatGPT（2026-11-18）"
+    "notes": "あいさつの後の返事を、店でよく使う 천천히 보시고 말씀해 주세요 に修正／確認：ChatGPT（2026-11-19）"
   },
   {
-    "id": "cafe_002",
+    "id": "cafe_006",
     "chapter": 3,
     "location": "cafe",
     "character": "cafe_staff",
@@ -65,19 +89,43 @@
             "korean": "아메리카노 주세요.",
             "pronunciation": "アメリカノ ジュセヨ",
             "japanese": "アメリカーノをください。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네, 아메리카노 한 잔이요.",
+                "pronunciation": "ネ アメリカノ ハン ジャニヨ",
+                "japanese": "はい、アメリカーノ1杯ですね。"
+              }
+            ]
           },
           {
             "korean": "녹차 주세요.",
             "pronunciation": "ノクチャ ジュセヨ",
             "japanese": "緑茶をください。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네, 녹차 한 잔이요.",
+                "pronunciation": "ネ ノクチャ ハン ジャニヨ",
+                "japanese": "はい、緑茶1杯ですね。"
+              }
+            ]
           },
           {
             "korean": "안녕히 계세요.",
             "pronunciation": "アンニョンヒ ゲセヨ",
             "japanese": "さようなら。（その場に残る人に）",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네? 아직 주문 안 하셨어요.",
+                "pronunciation": "ネ アジク チュムン アン ハショッソヨ",
+                "japanese": "えっ？まだご注文されていませんよ。"
+              }
+            ]
           }
         ],
         "freeAnswer": {
@@ -87,13 +135,142 @@
             "아메리카노 하나 주세요."
           ]
         }
+      },
+      {
+        "lines": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "아이스로 드릴까요?",
+            "pronunciation": "アイスロ ドゥリルッカヨ",
+            "japanese": "アイスになさいますか？"
+          }
+        ],
+        "choices": [
+          {
+            "korean": "네.",
+            "pronunciation": "ネ",
+            "japanese": "はい。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네, 알겠습니다.",
+                "pronunciation": "ネ アルゲッスムニダ",
+                "japanese": "はい、かしこまりました。"
+              }
+            ]
+          },
+          {
+            "korean": "아니요.",
+            "pronunciation": "アニヨ",
+            "japanese": "いいえ。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "그럼 따뜻한 걸로 드릴게요.",
+                "pronunciation": "クロム ッタットゥタン ゴルロ ドゥリルッケヨ",
+                "japanese": "では、温かいものでご用意しますね。"
+              }
+            ]
+          },
+          {
+            "korean": "감사합니다.",
+            "pronunciation": "カムサハムニダ",
+            "japanese": "ありがとうございます。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네...? 아이스로 드릴까요?",
+                "pronunciation": "ネ アイスロ ドゥリルッカヨ",
+                "japanese": "えっと…アイスになさいますか？"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "lines": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "케이크도 같이 드실래요? 오늘 치즈케이크가 정말 맛있어요.",
+            "pronunciation": "ケイクド ガチ ドゥシルレヨ オヌル チジュケイクガ ジョンマル マシッソヨ",
+            "japanese": "ケーキもご一緒にいかがですか？今日のチーズケーキ、本当においしいんですよ。",
+            "expression": "smile"
+          }
+        ],
+        "choices": [
+          {
+            "korean": "네, 케이크 하나 주세요.",
+            "pronunciation": "ネ ケイク ハナ ジュセヨ",
+            "japanese": "はい、ケーキを1つください。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "잘 고르셨어요!",
+                "pronunciation": "チャル ゴルショッソヨ",
+                "japanese": "いい選択です！"
+              }
+            ]
+          },
+          {
+            "korean": "아니요, 괜찮아요.",
+            "pronunciation": "アニヨ ケンチャナヨ",
+            "japanese": "いいえ、結構です。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "아... 네, 알겠습니다.",
+                "pronunciation": "ア ネ アルゲッスムニダ",
+                "japanese": "あ…はい、かしこまりました。",
+                "expression": "troubled"
+              }
+            ]
+          },
+          {
+            "korean": "안녕히 계세요.",
+            "pronunciation": "アンニョンヒ ゲセヨ",
+            "japanese": "さようなら。（その場に残る人に）",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네? 음료가 아직 안 나왔어요.",
+                "pronunciation": "ネ ウムニョガ アジク アン ナワッソヨ",
+                "japanese": "えっ？お飲み物がまだですよ。"
+              }
+            ]
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "はい、ケーキを1つください",
+          "answers": [
+            "네, 케이크 하나 주세요.",
+            "케이크 하나 주세요.",
+            "네, 케이크 한 개 주세요.",
+            "케이크 한 개 주세요."
+          ]
+        }
+      },
+      {
+        "lines": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "진동벨이 울리면 가지러 와 주세요.",
+            "pronunciation": "チンドンベリ ウルリミョン ガジロ ワ ジュセヨ",
+            "japanese": "呼び出しベルが鳴ったら、取りに来てください。"
+          }
+        ]
       }
     ],
     "reviewed": true,
-    "notes": "選ぶ問題は、好きな飲み物を選べるよう正解を2つにした。書く問題は数（1杯）まで言えるかを確かめる。아메리카노 하나 주세요 も店でよく使う自然な言い方／確認：ChatGPT（2026-11-18）"
+    "notes": "3往復目は、甘いもの好きの店員がケーキをすすめる場面。断ると少し残念そうな顔になる（expression: troubled）。最後は締めの台詞だけの往復／確認：ChatGPT（2026-11-19）"
   },
   {
-    "id": "cafe_003",
+    "id": "cafe_007",
     "chapter": 3,
     "location": "cafe",
     "character": "cafe_staff",
@@ -102,9 +279,9 @@
         "lines": [
           {
             "speaker": "cafe_staff",
-            "korean": "여기 있습니다.",
-            "pronunciation": "ヨギ イッスムニダ",
-            "japanese": "はい、どうぞ。"
+            "korean": "주문하신 음료 나왔습니다. 여기 있습니다.",
+            "pronunciation": "チュムナシン ウムニョ ナワッスムニダ ヨギ イッスムニダ",
+            "japanese": "ご注文のお飲み物です。どうぞ。"
           }
         ],
         "choices": [
@@ -112,19 +289,44 @@
             "korean": "감사합니다.",
             "pronunciation": "カムサハムニダ",
             "japanese": "ありがとうございます。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "맛있게 드세요.",
+                "pronunciation": "マシッケ ドゥセヨ",
+                "japanese": "どうぞおいしく召し上がってください。"
+              }
+            ]
           },
           {
             "korean": "고맙습니다.",
             "pronunciation": "コマプスムニダ",
             "japanese": "ありがとうございます。",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "맛있게 드세요.",
+                "pronunciation": "マシッケ ドゥセヨ",
+                "japanese": "どうぞおいしく召し上がってください。"
+              }
+            ]
           },
           {
             "korean": "어서 오세요.",
             "pronunciation": "オソ オセヨ",
             "japanese": "いらっしゃいませ。",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "하하, 그건 제가 하는 말이에요.",
+                "pronunciation": "ハハ クゴン ジェガ ハヌン マリエヨ",
+                "japanese": "はは、それは僕が言うセリフですよ。",
+                "expression": "smile"
+              }
+            ]
           }
         ],
         "freeAnswer": {
@@ -136,24 +338,14 @@
             "고마워요."
           ]
         }
-      }
-    ],
-    "reviewed": true,
-    "notes": "감사해요・고마워요 も自然な丁寧語なので、書く問題の正解に含めた／確認：ChatGPT（2026-11-18）"
-  },
-  {
-    "id": "cafe_004",
-    "chapter": 3,
-    "location": "cafe",
-    "character": "cafe_staff",
-    "turns": [
+      },
       {
         "lines": [
           {
             "speaker": "cafe_staff",
-            "korean": "감사합니다. 안녕히 가세요.",
-            "pronunciation": "カムサハムニダ アンニョンヒ ガセヨ",
-            "japanese": "ありがとうございました。さようなら。"
+            "korean": "또 오세요!",
+            "pronunciation": "ット オセヨ",
+            "japanese": "またお越しください！"
           }
         ],
         "choices": [
@@ -161,19 +353,43 @@
             "korean": "안녕히 계세요.",
             "pronunciation": "アンニョンヒ ゲセヨ",
             "japanese": "さようなら。（その場に残る人に）",
-            "correct": true
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네, 안녕히 가세요!",
+                "pronunciation": "ネ アンニョンヒ ガセヨ",
+                "japanese": "はい、お気をつけて！"
+              }
+            ]
           },
           {
             "korean": "안녕히 가세요.",
             "pronunciation": "アンニョンヒ ガセヨ",
             "japanese": "さようなら。（立ち去る人に）",
-            "correct": false
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "어... 저는 여기 있을게요.",
+                "pronunciation": "オ チョヌン ヨギ イッスルッケヨ",
+                "japanese": "えっと…僕はここに残りますよ。"
+              }
+            ]
           },
           {
-            "korean": "어서 오세요.",
-            "pronunciation": "オソ オセヨ",
-            "japanese": "いらっしゃいませ。",
-            "correct": false
+            "korean": "죄송합니다.",
+            "pronunciation": "チェソンハムニダ",
+            "japanese": "申し訳ありません。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "네? 괜찮아요. 또 오세요!",
+                "pronunciation": "ネ ケンチャナヨ ット オセヨ",
+                "japanese": "えっ？大丈夫ですよ。またどうぞ！"
+              }
+            ]
           }
         ],
         "freeAnswer": {
@@ -185,6 +401,6 @@
       }
     ],
     "reviewed": true,
-    "notes": "店を出る自分が、店に残る店員に言うので 안녕히 계세요 が正解。안녕히 가세요 は初心者がよく間違えるため、あえて選択肢に入れた（grammar_001）／確認：ChatGPT（2026-11-18）"
+    "notes": "店を出る自分が、店に残る店員に言うので 안녕히 계세요 が正解（grammar_001）／맛있게 드세요 の訳を「おいしく召し上がってください」に修正／確認：ChatGPT（2026-11-19）"
   }
 ]
