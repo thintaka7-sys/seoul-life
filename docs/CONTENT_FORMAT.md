@@ -992,7 +992,7 @@ npm run test
 
 - 1テーマ **10〜20問**。
 - 漢数詞と固有数詞は、**テーマを分けます**（「数字（漢数詞）」「数字（固有数詞）」）。1つのドリルに混ぜるときは、`hintJa` で「漢数詞で」「固有数詞で」と示します。
-- 値段・時刻は、数字と単位を組み合わせた形にします（例：`삼천오백 원`、`세 시 삼십 분`）。読み（`pronunciation`）は CONTENT_STYLE 1章のとおり、実際の発音どおりに書きます（例：`삼천오백` → サムチョノベク）。
+- 値段・時刻は、数字と単位を組み合わせた形にします（例：`삼천오백 원`、`세 시 삼십 분`）。読み（`pronunciation`）は CONTENT_STYLE 1章のとおり、実際の発音どおりに書きます。数と単位の間（空白をまたぐところ）の連音化も反映します（例：`삼천오백 원` → サムチョノベ グォン、`오백 원` → オベ グォン）。
 - 固有数詞の数え方（`하나` と `한 개` など）、分かち書きのゆれ以外の別の言い方は、`alternatives` に入れます。空白の違いだけの別解は入れる必要はありません（プログラムが吸収します）。
 
 ### 見本（`src/data/drills/numbers.json` など）
@@ -1010,7 +1010,7 @@ npm run test
       { "id": "dq_002", "korean": "이", "pronunciation": "イ", "japanese": "2", "digits": "2" },
       { "id": "dq_003", "korean": "삼", "pronunciation": "サム", "japanese": "3", "digits": "3" },
       { "id": "dq_004", "korean": "십", "pronunciation": "シプ", "japanese": "10", "digits": "10" },
-      { "id": "dq_005", "korean": "삼천오백 원", "pronunciation": "サムチョノベク ウォン", "japanese": "3,500ウォン", "digits": "3500" }
+      { "id": "dq_005", "korean": "삼천오백 원", "pronunciation": "サムチョノベ グォン", "japanese": "3,500ウォン", "digits": "3500" }
     ],
     "reviewed": false
   },
