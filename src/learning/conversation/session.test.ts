@@ -326,3 +326,47 @@ describe('話して答える・答え方の引き継ぎ', () => {
     expect(s).toMatchObject({ turn: 2, mode: 'write', preferred: 'speak' })
   })
 })
+
+describe('選択の往復（kind: decision）', () => {
+  const decision: Conversation = {
+    ...single,
+    id: 'cafe_011',
+    turns: [
+      {
+        kind: 'decision',
+        lines: [staff('케이크도 드릴까요?')],
+        choices: [
+          { korean: '네, 주세요.', pronunciation: 'ネ ジュセヨ', japanese: 'はい、ください。', correct: false, reply: [staff('네, 알겠습니다.')] },
+          { korean: '아니요, 괜찮아요.', pronunciation: 'アニヨ ケンチャナヨ', japanese: 'いいえ、大丈夫です。', correct: false, reply: [staff('네.')] },
+        ],
+      },
+      { lines: [staff('맛있게 드세요.')] },
+    ],
+  }
+  const { reducer, play } = player(decision)
+
+  it('答え方は「選ぶ」だけ（書く・話すは出さない）', () => {
+    expect(availableModes(decision.turns[0], true)).toEqual(['choice'])
+    expect(initialSession(decision, 'speak', true).mode).toBe('choice')
+  })
+
+  it('どれを選んでも進み、選んだものへの反応を見せる（正解・不正解なし）', () => {
+    for (const [index, reply] of [
+      [0, '네, 알겠습니다.'],
+      [1, '네.'],
+    ] as const) {
+      let s = play(next, { type: 'choose', index })
+      expect(s.answer).toMatchObject({ method: 'decision', reply: [{ korean: reply }] })
+      expect(s.wrongChoices).toEqual([])
+      s = reducer(s, next)
+      expect(shownLines(decision, s).at(-1)).toMatchObject({ kind: 'reply', korean: reply })
+      s = reducer(s, next)
+      expect(s.turn).toBe(1)
+    }
+  })
+
+  it('選んだ後の相手は、笑顔にも困り顔にもならない（台詞の表情の指定がなければ normal）', () => {
+    const s = reducer(play({ type: 'choose', index: 1 }), next)
+    expect(characterExpression(decision, s)).toBe('normal')
+  })
+})

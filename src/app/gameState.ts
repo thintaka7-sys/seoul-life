@@ -4,7 +4,18 @@
 import type { Balance, GameEvent } from '../data/types'
 import type { AnswerMode } from '../learning/conversation/session'
 import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
-import { advanceEvent, clearConversationTurn, learnItems, passHangulLesson, recordListeningCorrect, startEvent, type ClearMethod, type Reward } from '../game/progression/progression'
+import {
+  advanceEvent,
+  answerReview,
+  clearConversationTurn,
+  learnItems,
+  passHangulLesson,
+  recordListeningCorrect,
+  startEvent,
+  type ClearMethod,
+  type ReviewSource,
+  type Reward,
+} from '../game/progression/progression'
 import { createNewSave, type SaveData } from '../storage/saveData'
 import type { CorruptReason, LoadResult } from '../storage/saveStore'
 import type { Settings } from '../storage/settings'
@@ -27,6 +38,10 @@ export type Scene =
   | { name: 'hangulLesson'; lessonId: string; back: Scene; onboarding: boolean }
   /** リスニング */
   | { name: 'listening'; back: Scene }
+  /** 今日の復習（GAME_SPEC 7-5） */
+  | { name: 'review'; back: Scene }
+  /** 練習（学んだものから自由に出題する。計画 Q13） */
+  | { name: 'practice'; back: Scene }
   | { name: 'saveError'; reason: CorruptReason; detail: string; backupKey: string | null }
 
 /** 進めているイベント。replay は終えたイベントの遊び直し（記録・経験値は付けない） */
@@ -86,12 +101,16 @@ export type GameAction =
   | { type: 'openHangul' }
   | { type: 'openHangulLesson'; lessonId: string }
   | { type: 'openListening' }
-  /** 学習画面・レッスン一覧・レッスン・リスニングを閉じて、開く前の画面に戻る */
+  | { type: 'openReview' }
+  | { type: 'openPractice' }
+  /** 学習画面・レッスン一覧・レッスン・リスニング・復習・練習を閉じて、開く前の画面に戻る */
   | { type: 'closeStudyScene' }
   /** ハングルのレッスンの小テストに合格した（score は 0〜100） */
   | { type: 'hangulLessonPassed'; lessonId: string; score: number; now: string }
   /** リスニングの問題に正解した（key は listeningKey） */
   | { type: 'listeningCorrect'; key: string; now: string }
+  /** 復習の問題に答えた（key は reviewKey。もう一度出した問題の答えは送らない） */
+  | { type: 'reviewAnswered'; key: string; correct: boolean; source: ReviewSource; now: string }
   /** 会話で答え方を選んだ */
   | { type: 'setAnswerPreference'; mode: AnswerMode }
   | { type: 'dismissReward' }
@@ -146,6 +165,8 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'hangul':
     case 'hangulLesson':
     case 'listening':
+    case 'review':
+    case 'practice':
       return 'closeStudyScene'
     case 'location':
     case 'main':
@@ -158,10 +179,12 @@ export function backTarget(state: GameState): GameAction['type'] | null {
 }
 
 /** 学習画面のなかまの画面（閉じると back に戻る） */
-type StudyScene = Extract<Scene, { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' }>
+type StudyScene = Extract<Scene, { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' }>
+
+const STUDY_SCENES: readonly Scene['name'][] = ['study', 'hangul', 'hangulLesson', 'listening', 'review', 'practice']
 
 function isStudyScene(scene: Scene): scene is StudyScene {
-  return scene.name === 'study' || scene.name === 'hangul' || scene.name === 'hangulLesson' || scene.name === 'listening'
+  return STUDY_SCENES.includes(scene.name)
 }
 
 export function createGameReducer(deps: GameDeps) {
@@ -226,6 +249,21 @@ export function createGameReducer(deps: GameDeps) {
       case 'openListening':
         if (state.scene.name !== 'study') return state
         return { ...state, scene: { name: 'listening', back: state.scene } }
+
+      case 'openReview':
+        if (state.scene.name !== 'study') return state
+        return { ...state, scene: { name: 'review', back: state.scene } }
+
+      case 'openPractice':
+        if (state.scene.name !== 'study') return state
+        return { ...state, scene: { name: 'practice', back: state.scene } }
+
+      case 'reviewAnswered': {
+        if (state.save === null) return state
+        const answered = answerReview(state.save, action.key, action.correct, action.source, balance, action.now)
+        if (answered.save === state.save) return state
+        return { ...state, save: answered.save, reward: addReward(state, answered.reward) }
+      }
 
       case 'closeStudyScene':
         return isStudyScene(state.scene) ? { ...state, scene: state.scene.back } : state

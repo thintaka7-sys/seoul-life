@@ -14,6 +14,7 @@ import { KoreanText } from '../../components/KoreanText'
 import { MicButton } from '../../components/MicButton'
 import { Notice } from '../../components/Notice'
 import { Stage } from '../../components/scene/Stage'
+import { TaskLabel } from '../../components/TaskLabel'
 import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
 import { content, findCharacter, firstConversationWith } from '../../data'
@@ -52,8 +53,9 @@ function ChoiceItem({ choice, wrong, display, onChoose }: { choice: Conversation
   )
 }
 
-/** 答えた直後に、主人公の返事の上に出す知らせ */
+/** 答えた直後に、主人公の返事の上に出す知らせ（選択の往復では出さない） */
 function AnswerBadge({ answer }: { answer: TurnAnswer }) {
+  if (answer.method === 'decision') return null
   if (answer.method === 'revealed') {
     return (
       <Notice>
@@ -164,9 +166,11 @@ function AnswerArea({
         </p>
       )}
 
+      {turn.task !== undefined && <TaskLabel task={turn.task} />}
+
       {s.mode === 'choice' && (
         <>
-          <p className="step-heading">返事を選んでください</p>
+          <p className="step-heading">{turn.kind === 'decision' ? 'どうしますか？ 選んでください' : '返事を選んでください'}</p>
           <ul className="choices">
             {turn.choices.map((choice, i) => (
               <ChoiceItem key={choice.korean} choice={choice} wrong={s.wrongChoices.includes(i)} display={display} onChoose={() => send({ type: 'choose', index: i })} />
@@ -231,11 +235,11 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
   const msPerChar = profileOpen || current?.kind === 'player' ? 0 : TEXT_SPEED_MS[state.settings.textSpeed]
   const typing = useTypewriter(lineKey, totalChars(segments), msPerChar)
 
-  // 往復に答えたら、その場で経験値を付ける
+  // 往復に答えたら、その場で経験値を付ける（選択の往復は、経験値・記録・復習なし。計画 Q3）
   const answer = s.answer
   const answeredTurn = s.turn
   useEffect(() => {
-    if (answer === null) return
+    if (answer === null || answer.method === 'decision') return
     if (answer.method !== 'revealed') playSfx('correct')
     // 話して正解は、書いて正解と同じ記録・経験値にする（計画 Q10）
     dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method === 'speak' ? 'write' : answer.method, now: nowIso() })
@@ -284,7 +288,7 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
       {phase === 'answer' && typing.done && !profileOpen && (
         <AnswerArea conversation={conversation} s={s} send={send} display={display} canSpeak={canSpeak} onChooseMode={chooseMode} />
       )}
-      {current?.kind === 'player' && answer?.method === 'choice' && canSpeak && <SayItPractice key={s.turn} korean={answer.line.korean} />}
+      {current?.kind === 'player' && (answer?.method === 'choice' || answer?.method === 'decision') && canSpeak && <SayItPractice key={s.turn} korean={answer.line.korean} />}
       {logOpen && <LogPanel lines={lines} display={display} onClose={() => setLogOpen(false)} />}
       {profileOpen && character !== undefined && <ProfileCard character={character} display={display} onClose={() => setProfileOpen(false)} />}
     </div>

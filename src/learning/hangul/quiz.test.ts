@@ -152,6 +152,33 @@ describe('questionCandidates', () => {
     expect(q?.options).toContain('눈이')
   })
 
+  it('音の変化：カタカナの読みを選ぶ・聞いてつづりを選ぶ（聞こえたとおりの形がまぎらわしい選択肢）を足す。どの変化かを選ぶ問題は出さない', () => {
+    const two: HangulLesson = {
+      ...soundChange,
+      rules: [
+        { titleJa: '連音化', explanationJa: '説明', examples: [{ korean: '음악', spoken: '으막', pronunciation: 'ウマク', japanese: '音楽' }] },
+        { titleJa: '鼻音化', explanationJa: '説明', examples: [{ korean: '작년', spoken: '장년', pronunciation: 'チャンニョン', japanese: '去年' }] },
+      ],
+    }
+    const qs = questionCandidates(two, all.slice(0, 4), findVocab, true, seeded(1))
+    expect(qs.map((q) => q.kind).sort()).toEqual(['listenSpelling', 'listenSpelling', 'reading', 'reading', 'spoken', 'spoken'])
+    const reading = qs.find((q) => q.kind === 'reading' && q.korean === '음악')
+    expect(reading).toMatchObject({ answer: 'ウマク' })
+    expect(reading?.kind === 'reading' && reading.options.sort()).toEqual(['ウマク', 'チャンニョン'])
+    const spelling = qs.find((q) => q.kind === 'listenSpelling' && q.korean === '음악')
+    expect(spelling?.kind === 'listenSpelling' && spelling.options.sort()).toEqual(['으막', '음악', '작년'].sort())
+    expect(spelling !== undefined && isCorrectAnswer(spelling, '음악')).toBe(true)
+    expect(spelling !== undefined && isCorrectAnswer(spelling, '으막')).toBe(false)
+    // 読み上げが使えなければ、聞く問題は出さない
+    expect(questionCandidates(two, all.slice(0, 4), findVocab, false, seeded(1)).some((q) => q.kind === 'listenSpelling')).toBe(false)
+  })
+
+  it('組み立てる問題は、空白のない5音節までの言葉に使う', () => {
+    const words = (korean: string[]): HangulLesson => ({ ...reading, vocabulary: [], words: korean.map((k, i) => ({ id: `hword_10${i}`, korean: k, pronunciation: 'カナ', japanese: `意味${i}` })) })
+    const builds = questionCandidates(words(['감사합니다', '아메리카노요', '괜찮아요', '안녕 하세요']), all, findVocab, false, seeded(1)).filter((q) => q.kind === 'build')
+    expect(builds.map((q) => q.korean).sort()).toEqual(['감사합니다', '괜찮아요'])
+  })
+
   it('reading のレッスンは、教材の単語（vocabulary）を読む問題にする', () => {
     expect(readingItems(reading, findVocab)).toEqual([{ korean: '아니요', pronunciation: 'アニヨ', japanese: 'いいえ' }])
     const qs = questionCandidates(reading, all, findVocab, true, seeded(1))
@@ -175,7 +202,7 @@ describe('buildQuiz', () => {
 
   it('候補が足りなければ、あるだけ出す', () => {
     const quiz = buildQuiz(soundChange, all, findVocab, { count: 8, audio: true, random: seeded(7) })
-    expect(quiz).toHaveLength(1)
+    expect(quiz.map((q) => q.kind).sort()).toEqual(['listenSpelling', 'spoken'])
   })
 
   it('同じ種を使えば同じ問題になる', () => {

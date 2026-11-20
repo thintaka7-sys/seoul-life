@@ -18,9 +18,9 @@ export interface PlayerLine {
   japanese: string
 }
 
-/** 往復の答え */
+/** 往復の答え。decision は選択の往復で選んだもの（正解・不正解なし） */
 export interface TurnAnswer {
-  method: 'choice' | 'write' | 'speak' | 'revealed'
+  method: 'choice' | 'write' | 'speak' | 'revealed' | 'decision'
   line: PlayerLine
   /** 書いた答えが分かち書きだけ違った */
   spacingNote: boolean
@@ -81,12 +81,12 @@ function turnAt(conversation: Conversation, index: number): ConversationTurn | u
 }
 
 /**
- * その往復で使える返事の方法（返事のない往復では空。書く問題がない往復では「選ぶ」だけ）。
+ * その往復で使える返事の方法（返事のない往復では空。書く問題がない往復・選択の往復では「選ぶ」だけ）。
  * 「話す」は、書く問題があり、音声認識が使える（speakAvailable）ときだけ。
  */
 export function availableModes(turn: ConversationTurn | undefined, speakAvailable = false): AnswerMode[] {
   if (turn?.choices === undefined) return []
-  if (turn.freeAnswer === undefined) return ['choice']
+  if (turn.freeAnswer === undefined || turn.kind === 'decision') return ['choice']
   return speakAvailable ? ['choice', 'write', 'speak'] : ['choice', 'write']
 }
 
@@ -186,6 +186,11 @@ export function createSessionReducer(conversation: Conversation, attemptsBeforeR
         if (phase !== 'answer' || s.mode !== 'choice') return s
         const choice = turn.choices?.[action.index]
         if (choice === undefined || s.wrongChoices.includes(action.index)) return s
+        // 選択の往復：どれを選んでも、その選択肢への反応を見せて進む（GAME_SPEC 4-4）
+        if (turn.kind === 'decision') {
+          const line = { korean: choice.korean, pronunciation: choice.pronunciation, japanese: choice.japanese }
+          return { ...s, wrongReply: null, answer: { method: 'decision', line, spacingNote: false, reply: choice.reply ?? [] } }
+        }
         if (!choice.correct) return { ...s, wrongChoices: [...s.wrongChoices, action.index], wrongReply: choice.reply ?? null }
         return {
           ...s,
@@ -253,7 +258,8 @@ function fromLine(kind: ShownLine['kind'], line: ConversationLine, autoExpressio
 }
 
 function fromAnswer(answer: TurnAnswer, shownReply: number): ShownLine[] {
-  const reaction: Expression = answer.method === 'revealed' ? DEFAULT_EXPRESSION : 'smile'
+  // 正解した後は笑顔。「答えを見る」と選択の往復は、ふだんの顔（台詞に表情が書かれていればそれ）
+  const reaction: Expression = answer.method === 'revealed' || answer.method === 'decision' ? DEFAULT_EXPRESSION : 'smile'
   const player: ShownLine = { kind: 'player', speaker: PLAYER_SPEAKER_ID, ...answer.line, expression: undefined, autoExpression: reaction }
   return [player, ...answer.reply.slice(0, shownReply).map((l) => fromLine('reply', l, reaction))]
 }

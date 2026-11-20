@@ -26,13 +26,15 @@ export type HangulQuestion =
   | { kind: 'meaning'; korean: string; reading: string; answer: string; options: string[] }
   /** 書いた形を見て、発音どおりの形を選ぶ（音の変化） */
   | { kind: 'spoken'; korean: string; reading: string; answer: string; options: string[] }
+  /** 音を聞いて、正しいつづりを選ぶ（音の変化。発音どおりに書いた形がまぎらわしい選択肢）。読み上げが使えるときだけ出す */
+  | { kind: 'listenSpelling'; korean: string; options: string[] }
 
 export type HangulQuestionKind = HangulQuestion['kind']
 
 /** 選択肢の数（正解を含む） */
 const OPTION_COUNT = 3
-/** 組み立てる問題に使う言葉の長さ（音節の数）の上限 */
-const BUILD_MAX_SYLLABLES = 3
+/** 組み立てる問題に使う言葉の長さ（音節の数）の上限（Phase 2.5 で 3 → 5。レッスン12で使える言葉を増やすため） */
+const BUILD_MAX_SYLLABLES = 5
 
 export function shuffle<T>(items: readonly T[], random: Random): T[] {
   const a = [...items]
@@ -187,12 +189,19 @@ export function questionCandidates(lesson: HangulLesson, known: readonly HangulL
     candidates.push({ kind: 'build', korean: sound.korean, reading: sound.pronunciation })
   }
 
+  // 音の変化：発音どおりの形を選ぶ・カタカナの読みを選ぶ・聞いてつづりを選ぶ（計画 Q12。どの変化かを選ぶ問題は出さない）
   for (const rule of lesson.rules) {
     for (const ex of rule.examples) {
       const others = lesson.rules.flatMap((r) => r.examples).filter((e) => e !== ex)
       // 書いたとおりの形（発音が変わらないと思った場合）を、いちばんまぎらわしい選択肢にする
       const wrong = distractors(ex.spoken, ex.korean === ex.spoken ? [] : [ex.korean], others.map((e) => e.spoken), random)
       if (wrong.length > 0) candidates.push({ kind: 'spoken', korean: ex.korean, reading: ex.pronunciation, answer: ex.spoken, options: shuffle([ex.spoken, ...wrong], random) })
+      candidates.push(readingQuestion(ex.korean, ex.pronunciation, others.map((e) => e.pronunciation), [], random))
+      if (audio) {
+        // 聞こえたとおりに書いた形（으막 など）を、いちばんまぎらわしい選択肢にする
+        const wrongSpelling = distractors(ex.korean, ex.korean === ex.spoken ? [] : [ex.spoken], others.map((e) => e.korean), random)
+        if (wrongSpelling.length > 0) candidates.push({ kind: 'listenSpelling', korean: ex.korean, options: shuffle([ex.korean, ...wrongSpelling], random) })
+      }
     }
   }
 
@@ -232,6 +241,7 @@ export function buildQuiz(
 export function questionAnswer(q: HangulQuestion): string {
   switch (q.kind) {
     case 'listen':
+    case 'listenSpelling':
     case 'build':
       return q.korean
     case 'reading':

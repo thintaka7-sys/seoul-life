@@ -12,6 +12,8 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { HangulLessonPage } from '../pages/study/HangulLessonPage'
 import { HangulListPage } from '../pages/study/HangulListPage'
 import { ListeningPage } from '../pages/study/ListeningPage'
+import { PracticePage } from '../pages/study/PracticePage'
+import { ReviewPage } from '../pages/study/ReviewPage'
 import { StudyPage } from '../pages/study/StudyPage'
 import { TitlePage } from '../pages/TitlePage'
 import { OVERLAY_ROOT_ID } from '../components/Overlay'
@@ -43,6 +45,10 @@ function SceneView({ scene }: { scene: Scene }) {
       return <HangulLessonPage lessonId={scene.lessonId} onboarding={scene.onboarding} />
     case 'listening':
       return <ListeningPage />
+    case 'review':
+      return <ReviewPage />
+    case 'practice':
+      return <PracticePage />
     case 'saveError':
       return <SaveErrorPage reason={scene.reason} detail={scene.detail} backupKey={scene.backupKey} />
   }

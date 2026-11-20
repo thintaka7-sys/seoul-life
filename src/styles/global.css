@@ -2022,3 +2022,146 @@ rt {
   display: grid;
   gap: 12px;
 }
+
+/* ---------- 会話の「言うこと」（Phase 2.5） ---------- */
+
+.task {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--color-primary);
+  border-radius: 6px;
+  background: var(--color-surface-soft);
+}
+
+.task__label {
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.task__text {
+  font-weight: 700;
+}
+
+/* ---------- 復習・練習の問題（Phase 2.5） ---------- */
+
+.practice-ja {
+  display: grid;
+  gap: 4px;
+}
+
+.practice-ja p {
+  margin: 0;
+}
+
+.practice-ja__text {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.practice-blank {
+  font-family: var(--font-ko);
+  font-size: 1.4rem;
+  line-height: 1.5;
+}
+
+.practice-blank__hole {
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.practice-scene {
+  display: grid;
+  gap: 8px;
+}
+
+.practice-scene__line {
+  display: grid;
+  gap: 2px;
+}
+
+.practice-scene__line p {
+  margin: 0;
+}
+
+.practice-feedback {
+  display: grid;
+  gap: 8px;
+}
+
+.practice-model {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-soft);
+}
+
+.practice-model p {
+  margin: 0;
+}
+
+.arrange {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.arrange__answer,
+.arrange__pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.arrange__answer {
+  align-items: center;
+  min-height: 56px;
+  padding: 6px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+}
+
+.arrange__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tile {
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-ko);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.tile:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tile--placed {
+  border-color: var(--color-primary);
+  background: var(--color-surface-soft);
+}
+
+.tile--placed:disabled {
+  opacity: 1;
+}
+
+.stats {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.2em;
+}

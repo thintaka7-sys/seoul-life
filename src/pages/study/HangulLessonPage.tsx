@@ -134,10 +134,19 @@ function QuestionPrompt({ q }: { q: HangulQuestion }) {
           </Button>
         </>
       )
+    case 'listenSpelling':
+      return (
+        <>
+          <p className="step-heading">音を聞いて、正しいつづりを選んでください</p>
+          <Button variant="primary" sound={null} onClick={() => speak(q.korean)}>
+            ▶ 音を聞く
+          </Button>
+        </>
+      )
     case 'reading':
       return (
         <>
-          <p className="step-heading">この文字の読みを選んでください</p>
+          <p className="step-heading">{[...q.korean].length > 1 ? 'この言葉の読みを選んでください' : 'この文字の読みを選んでください'}</p>
           <p className="quiz-target" lang="ko">
             {q.korean}
           </p>
@@ -224,7 +233,7 @@ function QuizRunner({ questions, onFinish }: { questions: readonly HangulQuestio
           answer={answer}
           selected={given}
           onSelect={answerWith}
-          lang={q.kind === 'listen' || q.kind === 'spoken' ? 'ko' : 'ja'}
+          lang={q.kind === 'listen' || q.kind === 'listenSpelling' || q.kind === 'spoken' ? 'ko' : 'ja'}
           render={q.kind === 'spoken' ? (o) => `[${o}]` : undefined}
         />
       )}
