@@ -12,18 +12,18 @@ function seeded(seed: number) {
   }
 }
 
-const v = (id: string, korean: string, category: Vocab['category']): Vocab => ({
+const v = (id: string, korean: string, genre: Vocab['genre']): Vocab => ({
   id,
   korean,
   pronunciation: 'カナ',
   japanese: `${korean}の意味`,
   partOfSpeech: 'noun',
-  category,
+  genre,
   level: 1,
   reviewed: true,
 })
 
-const vocabulary = [v('vocab_001', '커피', 'drink'), v('vocab_002', '녹차', 'drink'), v('vocab_003', '물', 'drink'), v('vocab_004', '빵', 'food'), v('vocab_005', '네', 'greeting')]
+const vocabulary = [v('vocab_001', '커피', 'food_drink'), v('vocab_002', '녹차', 'food_drink'), v('vocab_003', '물', 'food_drink'), v('vocab_004', '빵', 'daily_life'), v('vocab_005', '네', 'greeting')]
 
 const conversation: Conversation = {
   id: 'cafe_001',
@@ -91,6 +91,13 @@ describe('listeningCandidates', () => {
     expect(qs).toHaveLength(1)
     expect(qs[0]).toMatchObject({ key: 'reply:cafe_001#0', chapter: 3, audio: { korean: '뭐 드릴까요?' }, answers: ['커피 주세요.', '녹차 주세요.'] })
     expect(qs[0]?.options).toHaveLength(3)
+  })
+
+  it('選択の往復（kind: decision）は、返事を選ぶ問題にしない（正解がないため）', () => {
+    const decisionTurn = { ...conversation.turns[0], kind: 'decision' as const, lines: conversation.turns[0]?.lines ?? [] }
+    const withDecision: Conversation = { ...conversation, turns: [decisionTurn, ...conversation.turns.slice(1)] }
+    const qs = listeningCandidates({ ...sources, conversations: [withDecision] }, { words: {}, completedEvents: ['event_002'] }, seeded(1))
+    expect(qs.filter((q) => q.kind === 'reply')).toEqual([])
   })
 
   it('リスニングの文は、afterEvent のイベントを終えてから出す', () => {

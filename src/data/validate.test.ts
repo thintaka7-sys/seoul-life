@@ -13,7 +13,7 @@ const validVocab = {
   pronunciation: 'コピ',
   japanese: 'コーヒー',
   partOfSpeech: 'noun',
-  category: 'drink',
+  genre: 'food_drink',
   level: 1,
   reviewed: false,
 }
@@ -131,7 +131,7 @@ describe('単語の検証', () => {
     expect(issuesOf('vocabulary', item)).toEqual([])
   })
 
-  it.each(['id', 'korean', 'pronunciation', 'japanese', 'partOfSpeech', 'category', 'level', 'reviewed'])('必須項目 %s が欠けていると除外される', (key) => {
+  it.each(['id', 'korean', 'pronunciation', 'japanese', 'partOfSpeech', 'genre', 'level', 'reviewed'])('必須項目 %s が欠けていると除外される', (key) => {
     const item: Record<string, unknown> = { ...validVocab }
     delete item[key]
     const result = validateFile('vocabulary', 'test.json', [item], ctx)
@@ -155,7 +155,7 @@ describe('単語の検証', () => {
 
   it('決められたキー以外の品詞・カテゴリは除外される', () => {
     expect(issuesOf('vocabulary', { ...validVocab, partOfSpeech: '名詞' })[0]?.path).toBe('partOfSpeech')
-    expect(issuesOf('vocabulary', { ...validVocab, category: 'drinks' })[0]?.path).toBe('category')
+    expect(issuesOf('vocabulary', { ...validVocab, genre: 'drinks' })[0]?.path).toBe('genre')
   })
 
   it('知らない項目（綴りの間違い）は除外される', () => {
@@ -420,6 +420,8 @@ const base: ContentInput = {
   events: { 'e.json': [validEvent] },
   hangulLessons: {},
   listening: {},
+  drills: {},
+  chapterTests: {},
   balance: { 'balance.json': validBalance },
 }
 
@@ -800,5 +802,187 @@ describe('リスニングの文', () => {
     const result = loadContent({ ...base, listening: { 'a.json': [validListening], 'b.json': [validListening] } })
     expect(result.listening).toHaveLength(1)
     expect(messages(result).some((m) => m.startsWith('id: IDが重複しています'))).toBe(true)
+  })
+})
+
+// ---------- Phase 2.5：会話の問題・選択の往復、ジャンル、文法の穴埋め、ドリル、章末テスト ----------
+
+describe('単語のジャンル（genre）', () => {
+  it('category は genre に変わったことを知らせる', () => {
+    const { genre: _genre, ...withoutGenre } = validVocab
+    const issues = issuesOf('vocabulary', { ...withoutGenre, category: 'drink' })
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toMatchObject({ path: 'category' })
+    expect(issues[0]?.message).toContain('genre')
+  })
+})
+
+describe('文法の接続ルールと穴埋め（connectionJa・blank）', () => {
+  const example = { korean: '저는 학생이에요.', pronunciation: 'チョヌン ハクセンイエヨ', japanese: '私は学生です。' }
+  const withExample = (extra: Record<string, unknown>) => ({ ...validGrammar, connectionJa: 'パッチムがあれば 이에요', examples: [{ ...example, ...extra }] })
+
+  it('blank と blankWrong を書ける', () => {
+    const result = validateFile('grammar', 'g.json', [withExample({ blank: '이에요', blankWrong: ['예요'] })], ctx)
+    expect(result.issues).toEqual([])
+    expect(result.items[0]?.connectionJa).toBe('パッチムがあれば 이에요')
+    expect(result.items[0]?.examples[0]).toMatchObject({ blank: '이에요', blankWrong: ['예요'] })
+  })
+
+  it.each([
+    [{ blank: '예요입니다', blankWrong: ['예요'] }, 'ありません'],
+    [{ blank: '이에요' }, '必須項目'],
+    [{ blankWrong: ['예요'] }, 'blank（隠す部分）も'],
+    [{ blank: '이에요', blankWrong: ['이에요'] }, '同じ文字列'],
+    [{ blank: '저는 학생이에요.', blankWrong: ['예요'] }, '文全体'],
+  ])('blank の誤り %#', (extra, message) => {
+    expect(
+      issuesOf('grammar', withExample(extra))
+        .map((i) => i.message)
+        .join('\n'),
+    ).toContain(message)
+  })
+
+  it('blank が korean に2回出てくるとエラー', () => {
+    const twice = { korean: '이거 이거 주세요.', pronunciation: 'イゴ イゴ ジュセヨ', japanese: 'これ、これください。', blank: '이거', blankWrong: ['그거'] }
+    expect(issuesOf('grammar', { ...validGrammar, examples: [twice] })[0]?.message).toContain('2回')
+  })
+})
+
+describe('会話の問題の往復（task あり）', () => {
+  const wrongWithReply = { ...wrongChoice, reply: [staffLine('네?', 'ネ')] }
+  const question = (choices: unknown[], extra: Record<string, unknown> = {}) => withTurn0({ task: '返事をしよう', lines: turn0.lines, choices, ...extra })
+
+  it('正解が1つで、不正解に反応があれば通る', () => {
+    const result = validateFile('conversations', 's.json', [question([correctChoice, wrongWithReply])], ctx)
+    expect(result.issues).toEqual([])
+    expect(result.items[0]?.turns[0]).toMatchObject({ task: '返事をしよう' })
+    expect(result.items[0]?.turns[0]?.kind).toBeUndefined()
+  })
+
+  it('正解が2つ・0個ならエラー', () => {
+    const second = { ...correctChoice, korean: '예.', pronunciation: 'イェ' }
+    expect(issuesOf('conversations', question([correctChoice, second, wrongWithReply]))[0]?.message).toContain('ちょうど1つ')
+    expect(issuesOf('conversations', question([wrongWithReply]))[0]?.message).toContain('ちょうど1つ')
+  })
+
+  it('不正解の選択肢に反応（reply）がなければエラー', () => {
+    const issues = issuesOf('conversations', question([correctChoice, wrongChoice]))
+    expect(issues).toHaveLength(1)
+    expect(issues[0]?.path).toBe('turns[0].choices[1].reply')
+  })
+
+  it('task にハングルは入れられない', () => {
+    expect(issuesOf('conversations', question([correctChoice, wrongWithReply], { task: '네 と言おう' }))[0]?.path).toBe('turns[0].task')
+  })
+
+  it('kind は "decision" だけ', () => {
+    expect(issuesOf('conversations', question([correctChoice, wrongWithReply], { kind: 'question' }))[0]?.path).toBe('turns[0].kind')
+  })
+
+  it('締めの台詞の往復には task を書けない', () => {
+    const conv = { ...validConversation, turns: [turn0, { task: 'あいさつ', lines: [staffLine('또 오세요.', 'ト オセヨ')] }] }
+    expect(issuesOf('conversations', conv)[0]?.message).toContain('kind・task')
+  })
+
+  it('移行の間：task のない往復は前の形（正解が複数・不正解の反応なし）でも通る', () => {
+    const second = { ...correctChoice, korean: '예.', pronunciation: 'イェ' }
+    expect(issuesOf('conversations', withTurn0({ lines: turn0.lines, choices: [correctChoice, second, wrongChoice] }))).toEqual([])
+  })
+})
+
+describe('会話の選択の往復（kind: decision）', () => {
+  const yes = { korean: '네, 주세요.', pronunciation: 'ネ ジュセヨ', japanese: 'はい、ください。', reply: [staffLine('네.', 'ネ')] }
+  const no = { korean: '아니요, 괜찮아요.', pronunciation: 'アニヨ ケンチャナヨ', japanese: 'いいえ、大丈夫です。', reply: [staffLine('알겠습니다.', 'アルゲッスムニダ')] }
+  const decision = (choices: unknown[], extra: Record<string, unknown> = {}) => withTurn0({ kind: 'decision', lines: turn0.lines, choices, ...extra })
+
+  it('correct を書かず、すべてに反応があれば通る（correct は false として読み込む）', () => {
+    const result = validateFile('conversations', 's.json', [decision([yes, no])], ctx)
+    expect(result.issues).toEqual([])
+    expect(result.items[0]?.turns[0]?.kind).toBe('decision')
+    expect(result.items[0]?.turns[0]?.choices?.every((c) => !c.correct)).toBe(true)
+  })
+
+  it('correct を書くとエラー', () => {
+    expect(issuesOf('conversations', decision([{ ...yes, correct: true }, no]))[0]?.path).toBe('turns[0].choices[0].correct')
+  })
+
+  it('反応のない選択肢はエラー', () => {
+    const { reply: _reply, ...noReply } = no
+    expect(issuesOf('conversations', decision([yes, noReply]))[0]?.path).toBe('turns[0].choices[1].reply')
+  })
+
+  it('選択肢が1つだけ・freeAnswer があるとエラー', () => {
+    expect(issuesOf('conversations', decision([yes]))[0]?.message).toContain('2個以上')
+    expect(issuesOf('conversations', decision([yes, no], { freeAnswer: { prompt: 'はい', answers: ['네.'] } }))[0]?.path).toBe('turns[0].freeAnswer')
+  })
+})
+
+const validDrill = {
+  id: 'drill_001',
+  titleJa: '数字（漢数詞）',
+  items: [
+    { id: 'dq_001', korean: '일', pronunciation: 'イル', japanese: '1', digits: '1' },
+    { id: 'dq_002', korean: '이', pronunciation: 'イ', japanese: '2', digits: '2' },
+    { id: 'dq_003', korean: '삼', pronunciation: 'サム', japanese: '3', digits: '3' },
+    { id: 'dq_004', korean: '세 시 삼십 분', pronunciation: 'セ シ サムシプ プン', japanese: '3時30分', digits: '3:30' },
+  ],
+  reviewed: false,
+}
+const validTest = { id: 'test_001', chapter: 1, titleJa: '第1章のテスト', reviewed: false }
+const withItem = (extra: Record<string, unknown>) => ({ ...validDrill, items: [...validDrill.items.slice(1), { ...validDrill.items[0], ...extra }] })
+
+describe('基礎ドリル', () => {
+  it('正しいドリルを読み込む', () => {
+    const result = validateFile('drills', 'd.json', [validDrill], ctx)
+    expect(result.issues).toEqual([])
+    expect(result.items[0]?.items.map((i) => i.digits)).toEqual(['1', '2', '3', '3:30'])
+  })
+
+  it('問題は4個以上', () => {
+    expect(issuesOf('drills', { ...validDrill, items: validDrill.items.slice(0, 3) })[0]?.message).toContain('4個以上')
+  })
+
+  it.each(['3,500', '３', '3時', '3:', '-1'])('digits の形が違えばエラー（%s）', (digits) => {
+    expect(issuesOf('drills', withItem({ digits }))[0]?.path).toMatch(/digits$/)
+  })
+
+  it('別解（alternatives）を書ける。ただし数字だけの別解は入れられない', () => {
+    expect(issuesOf('drills', withItem({ korean: '하나', pronunciation: 'ハナ', alternatives: ['한 개'] }))).toEqual([])
+    expect(issuesOf('drills', withItem({ alternatives: ['1'] }))[0]?.message).toContain('数字だけの答え')
+  })
+
+  it('問題のIDの形式・重複、日本語のハングルを確かめる', () => {
+    expect(issuesOf('drills', withItem({ id: 'drill_q1' }))[0]?.message).toContain('dq_001')
+    expect(issuesOf('drills', withItem({ id: 'dq_002' }))[0]?.message).toContain('同じIDの問題')
+    expect(issuesOf('drills', withItem({ japanese: '일（1）' }))[0]?.path).toMatch(/japanese$/)
+    expect(issuesOf('drills', withItem({ hintJa: '고유어で' }))[0]?.path).toMatch(/hintJa$/)
+  })
+})
+
+describe('章末テスト', () => {
+  const load = (tests: unknown[], drills: unknown[] = []) => loadContent({ ...base, chapterTests: { 't.json': tests }, drills: { 'd.json': drills } })
+
+  it('items を省略できる（[] として読み込む）。章の順に並べる', () => {
+    const result = load([{ ...validTest, id: 'test_002', chapter: 3 }, validTest])
+    expect(result.issues).toEqual([])
+    expect(result.chapterTests.map((t) => t.chapter)).toEqual([1, 3])
+    expect(result.chapterTests[0]?.items).toEqual([])
+  })
+
+  it('1つの章にテストは1つまで', () => {
+    const result = load([validTest, { ...validTest, id: 'test_002' }])
+    expect(result.chapterTests.map((t) => t.id)).toEqual(['test_001'])
+    expect(result.issues[0]?.message).toContain('第1章のテストは')
+  })
+
+  it('問題のIDは、ドリルとテストをまたいで一意', () => {
+    const result = load([{ ...validTest, items: [validDrill.items[0]] }], [validDrill])
+    expect(result.drills).toHaveLength(1)
+    expect(result.chapterTests).toEqual([])
+    expect(result.issues[0]?.message).toContain('dq_001')
+  })
+
+  it('passPercent は 0〜100', () => {
+    expect(issuesOf('chapterTests', { ...validTest, passPercent: 120 })[0]?.path).toBe('passPercent')
   })
 })

@@ -52,8 +52,8 @@ export interface ListeningProgress {
 function wordQuestions(sources: ListeningSources, progress: ListeningProgress, random: Random): ListeningQuestion[] {
   const learned = sources.vocabulary.filter((v) => progress.words[v.id] !== undefined)
   return learned.flatMap((v) => {
-    const sameCategory = learned.filter((o) => o.id !== v.id && o.category === v.category && o.korean !== v.korean)
-    const others = learned.filter((o) => o.id !== v.id && o.category !== v.category && o.korean !== v.korean)
+    const sameCategory = learned.filter((o) => o.id !== v.id && o.genre === v.genre && o.korean !== v.korean)
+    const others = learned.filter((o) => o.id !== v.id && o.genre !== v.genre && o.korean !== v.korean)
     const picked: Vocab[] = []
     for (const o of [...shuffle(sameCategory, random), ...shuffle(others, random)]) {
       if (picked.length >= WORD_OPTIONS - 1) break
@@ -81,10 +81,11 @@ function replyQuestions(sources: ListeningSources, progress: ListeningProgress, 
     .filter((c) => conversationIds.has(c.id))
     .flatMap((c) =>
       c.turns.flatMap((turn, i) => {
-        // 相手の最後の台詞を読み上げる（主人公の台詞や、台詞のない往復は使わない）
+        // 相手の最後の台詞を読み上げる（主人公の台詞や、台詞のない往復は使わない）。
+        // 選択の往復（正解・不正解を付けない）は問題にしない
         const prompt = turn.lines.findLast((l) => l.speaker === c.character)
         const choices = turn.choices ?? []
-        if (prompt === undefined || choices.length < 2) return []
+        if (prompt === undefined || choices.length < 2 || turn.kind === 'decision') return []
         return [
           {
             kind: 'reply' as const,

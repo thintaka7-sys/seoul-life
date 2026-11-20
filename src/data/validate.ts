@@ -11,13 +11,16 @@ import {
   ID_PATTERNS,
   PARTS_OF_SPEECH,
   PLAYER_SPEAKER_ID,
-  VOCAB_CATEGORIES,
+  VOCAB_GENRES,
   type Balance,
+  type ChapterTest,
   type Character,
   type CharacterName,
   type Column,
   type ColumnBlock,
   type Conversation,
+  type Drill,
+  type DrillItem,
   type ConversationChoice,
   type ConversationLine,
   type ConversationTurn,
@@ -86,7 +89,18 @@ export function emptyReferenceContext(): ReferenceContext {
   }
 }
 
-export type ContentKind = 'vocabulary' | 'grammar' | 'conversations' | 'columns' | 'events' | 'locations' | 'characters' | 'hangulLessons' | 'listening'
+export type ContentKind =
+  | 'vocabulary'
+  | 'grammar'
+  | 'conversations'
+  | 'columns'
+  | 'events'
+  | 'locations'
+  | 'characters'
+  | 'hangulLessons'
+  | 'listening'
+  | 'drills'
+  | 'chapterTests'
 
 const MAX_CHAPTER = 10
 
@@ -320,7 +334,7 @@ const VOCAB_KEYS = [
   'pronunciation',
   'japanese',
   'partOfSpeech',
-  'category',
+  'genre',
   'level',
   'example',
   'examplePronunciation',
@@ -330,6 +344,10 @@ const VOCAB_KEYS = [
 ] as const
 
 function parseVocab(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Vocab | undefined {
+  if (o['category'] !== undefined && o['genre'] === undefined) {
+    errs.push({ path: 'category', message: 'category は genre（ジャンル）に変わりました（GAME_SPEC v2.5）。キーの一覧は CONTENT_FORMAT.md の 10-2 を見てください' })
+    return undefined
+  }
   checkKnownKeys(o, VOCAB_KEYS, '', errs)
   const id = idField(o, ID_PATTERNS.vocabulary, 'vocab_001', errs)
   const korean = text(o, 'korean', '', errs)
@@ -337,7 +355,7 @@ function parseVocab(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Vocab |
   const pronunciation = reading(o, 'pronunciation', '', errs, korean)
   const japanese = text(o, 'japanese', '', errs)
   const partOfSpeech = oneOf(o, 'partOfSpeech', '', errs, PARTS_OF_SPEECH)
-  const category = oneOf(o, 'category', '', errs, VOCAB_CATEGORIES)
+  const genre = oneOf(o, 'genre', '', errs, VOCAB_GENRES)
   const level = integer(o, 'level', '', errs, 1)
   const reviewed = bool(o, 'reviewed', '', errs)
   const notes = optionalText(o, 'notes', '', errs)
@@ -366,13 +384,13 @@ function parseVocab(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Vocab |
     pronunciation === undefined ||
     japanese === undefined ||
     partOfSpeech === undefined ||
-    category === undefined ||
+    genre === undefined ||
     level === undefined ||
     reviewed === undefined
   ) {
     return undefined
   }
-  const vocab: Vocab = { id, korean, pronunciation, japanese, partOfSpeech, category, level, reviewed }
+  const vocab: Vocab = { id, korean, pronunciation, japanese, partOfSpeech, genre, level, reviewed }
   if (alternatives !== undefined) vocab.alternatives = alternatives
   if (example !== undefined && examplePronunciation !== undefined && exampleJapanese !== undefined) {
     vocab.example = example
@@ -383,8 +401,39 @@ function parseVocab(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Vocab |
   return vocab
 }
 
-const GRAMMAR_KEYS = ['id', 'title', 'level', 'explanation', 'examples', 'reviewed', 'notes'] as const
-const GRAMMAR_EXAMPLE_KEYS = ['korean', 'pronunciation', 'japanese', 'alternatives'] as const
+const GRAMMAR_KEYS = ['id', 'title', 'level', 'explanation', 'connectionJa', 'examples', 'reviewed', 'notes'] as const
+const GRAMMAR_EXAMPLE_KEYS = ['korean', 'pronunciation', 'japanese', 'alternatives', 'blank', 'blankWrong'] as const
+
+/** 穴埋め問題（blank・blankWrong）。blank は korean の中に1回だけ含まれ、文全体ではないこと */
+function parseBlank(value: Obj, path: string, korean: string | undefined, errs: FieldError[]): { blank: string; blankWrong: string[] } | undefined {
+  const hasBlank = value['blank'] !== undefined
+  const hasWrong = value['blankWrong'] !== undefined
+  if (!hasBlank && !hasWrong) return undefined
+  if (!hasBlank) {
+    errs.push({ path: joinPath(path, 'blank'), message: 'blankWrong を書くときは blank（隠す部分）も書いてください' })
+    return undefined
+  }
+  const blank = text(value, 'blank', path, errs)
+  const blankWrong = textArray(value, 'blankWrong', path, errs, { optional: false, min: 1 })
+  if (blank === undefined || blankWrong === undefined || korean === undefined) return undefined
+  const count = korean.split(blank).length - 1
+  if (count !== 1) {
+    errs.push({
+      path: joinPath(path, 'blank'),
+      message: count === 0 ? `blank「${blank}」が korean の中にありません（そのままの形で書いてください）` : `blank「${blank}」が korean の中に${count}回あります。1回だけ出てくる部分にしてください`,
+    })
+    return undefined
+  }
+  if (normalizeAnswer(blank) === normalizeAnswer(korean)) {
+    errs.push({ path: joinPath(path, 'blank'), message: '文全体は blank にできません。隠したい部分だけを書いてください' })
+    return undefined
+  }
+  if (blankWrong.includes(blank)) {
+    errs.push({ path: joinPath(path, 'blankWrong'), message: 'blank と同じ文字列は blankWrong に入れないでください' })
+    return undefined
+  }
+  return { blank, blankWrong }
+}
 
 function parseGrammar(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Grammar | undefined {
   checkKnownKeys(o, GRAMMAR_KEYS, '', errs)
@@ -392,6 +441,7 @@ function parseGrammar(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Gramm
   const title = text(o, 'title', '', errs)
   const level = integer(o, 'level', '', errs, 1)
   const explanation = text(o, 'explanation', '', errs)
+  const connectionJa = optionalText(o, 'connectionJa', '', errs)
   const reviewed = bool(o, 'reviewed', '', errs)
   const notes = optionalText(o, 'notes', '', errs)
 
@@ -405,9 +455,14 @@ function parseGrammar(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Gramm
     if (korean !== undefined && alternatives?.includes(korean)) {
       errs.push({ path: joinPath(path, 'alternatives'), message: 'korean と同じ文字列は alternatives に入れないでください' })
     }
+    const blank = parseBlank(value, path, korean, errs)
     if (korean === undefined || pronunciation === undefined || japanese === undefined) continue
     const ex: GrammarExample = { korean, pronunciation, japanese }
     if (alternatives !== undefined) ex.alternatives = alternatives
+    if (blank !== undefined) {
+      ex.blank = blank.blank
+      ex.blankWrong = blank.blankWrong
+    }
     examples.push(ex)
   }
 
@@ -415,12 +470,21 @@ function parseGrammar(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Gramm
     return undefined
   }
   const grammar: Grammar = { id, title, level, explanation, examples, reviewed }
+  if (connectionJa !== undefined) grammar.connectionJa = connectionJa
   if (notes !== undefined) grammar.notes = notes
   return grammar
 }
 
 const CONVERSATION_KEYS = ['id', 'chapter', 'location', 'character', 'turns', 'reviewed', 'notes'] as const
-const TURN_KEYS = ['lines', 'choices', 'freeAnswer'] as const
+const TURN_KEYS = ['kind', 'task', 'lines', 'choices', 'freeAnswer'] as const
+
+/**
+ * 往復の種類。
+ * - question：問題（正解が1つ。task が必須）
+ * - decision：選択（正解・不正解を付けない）
+ * - legacy：task のない問題の往復。1日目の会話が新しい形で届くまでの間だけ、古い形（正解が複数あってよい）として読み込む
+ */
+type TurnMode = 'question' | 'decision' | 'legacy'
 const LINE_KEYS = ['speaker', 'korean', 'pronunciation', 'japanese', 'expression'] as const
 const CHOICE_KEYS = ['korean', 'pronunciation', 'japanese', 'correct', 'reply'] as const
 const FREE_ANSWER_KEYS = ['prompt', 'answers', 'reply'] as const
@@ -457,8 +521,8 @@ function optionalLines(o: Obj, key: string, base: string, ctx: ReferenceContext,
   return o[key] === undefined ? undefined : parseLines(o, key, base, ctx, errs, 1)
 }
 
-function parseChoices(o: Obj, base: string, ctx: ReferenceContext, errs: FieldError[]): ConversationChoice[] | undefined {
-  const choiceItems = objArray(o, 'choices', base, errs, 1)
+function parseChoices(o: Obj, base: string, ctx: ReferenceContext, errs: FieldError[], mode: TurnMode): ConversationChoice[] | undefined {
+  const choiceItems = objArray(o, 'choices', base, errs, mode === 'decision' ? 2 : 1)
   if (choiceItems === undefined) return undefined
   const path = joinPath(base, 'choices')
   const choices: ConversationChoice[] = []
@@ -467,8 +531,22 @@ function parseChoices(o: Obj, base: string, ctx: ReferenceContext, errs: FieldEr
     const korean = text(value, 'korean', itemPath, errs)
     const pronunciation = reading(value, 'pronunciation', itemPath, errs, korean)
     const japanese = text(value, 'japanese', itemPath, errs)
-    const correct = bool(value, 'correct', itemPath, errs)
+    let correct: boolean | undefined = false
+    if (mode === 'decision') {
+      if (value['correct'] !== undefined) {
+        errs.push({ path: joinPath(itemPath, 'correct'), message: '選択の往復（"kind": "decision"）では correct を書かないでください（正解・不正解を付けません）' })
+      }
+    } else {
+      correct = bool(value, 'correct', itemPath, errs)
+    }
     const reply = optionalLines(value, 'reply', itemPath, ctx, errs)
+    if (value['reply'] === undefined) {
+      if (mode === 'decision') {
+        errs.push({ path: joinPath(itemPath, 'reply'), message: '選択の往復では、選択肢ごとに相手の反応（reply）を書いてください' })
+      } else if (mode === 'question' && correct === false) {
+        errs.push({ path: joinPath(itemPath, 'reply'), message: '不正解の選択肢には、相手の反応（reply）を書いてください（困った顔をする、聞き返す など。GAME_SPEC 4-4）' })
+      }
+    }
     if (korean !== undefined && pronunciation !== undefined && japanese !== undefined && correct !== undefined) {
       const choice: ConversationChoice = { korean, pronunciation, japanese, correct }
       if (reply !== undefined) choice.reply = reply
@@ -476,7 +554,11 @@ function parseChoices(o: Obj, base: string, ctx: ReferenceContext, errs: FieldEr
     }
   }
   const allChoicesBoolean = choiceItems.every(({ value }) => typeof value['correct'] === 'boolean')
-  if (choiceItems.length > 0 && allChoicesBoolean && !choiceItems.some(({ value }) => value['correct'] === true)) {
+  const correctCount = choiceItems.filter(({ value }) => value['correct'] === true).length
+  if (mode === 'question' && allChoicesBoolean && correctCount !== 1) {
+    errs.push({ path, message: `問題の往復では、"correct": true の選択肢をちょうど1つにしてください（今は${correctCount}つ）。話が変わるだけの場面なら "kind": "decision" にします` })
+  }
+  if (mode === 'legacy' && choiceItems.length > 0 && allChoicesBoolean && correctCount === 0) {
     errs.push({ path, message: '"correct": true の選択肢を1つ以上入れてください' })
   }
   if (new Set(choices.map((c) => c.korean)).size !== choices.length) {
@@ -506,17 +588,32 @@ function parseFreeAnswer(o: Obj, base: string, ctx: ReferenceContext, errs: Fiel
 function parseTurn(value: Obj, path: string, index: number, isLast: boolean, ctx: ReferenceContext, errs: FieldError[]): ConversationTurn | undefined {
   checkKnownKeys(value, TURN_KEYS, path, errs)
   const hasChoices = value['choices'] !== undefined
+  let decision = false
+  if (value['kind'] !== undefined) {
+    if (value['kind'] === 'decision') decision = true
+    else errs.push({ path: joinPath(path, 'kind'), message: 'kind に書けるのは "decision"（選択の往復）だけです。問題の往復では kind を省きます' })
+  }
+  const task = value['task'] === undefined ? undefined : japaneseText(value, 'task', path, errs)
+  const mode: TurnMode = decision ? 'decision' : value['task'] === undefined ? 'legacy' : 'question'
   // 最初の往復と、返事のない往復（締めの台詞）は、台詞が1つ以上必要
   const linesRequired = index === 0 || !hasChoices
   const lines = value['lines'] === undefined && !linesRequired ? [] : parseLines(value, 'lines', path, ctx, errs, linesRequired ? 1 : 0)
-  const choices = hasChoices ? parseChoices(value, path, ctx, errs) : undefined
+  const choices = hasChoices ? parseChoices(value, path, ctx, errs, mode) : undefined
   const freeAnswer = parseFreeAnswer(value, path, ctx, errs)
   if (!hasChoices) {
     if (!isLast) errs.push({ path: joinPath(path, 'choices'), message: '返事（choices）のない往復は、最後の往復（締めの台詞）にしか使えません' })
     if (value['freeAnswer'] !== undefined) errs.push({ path: joinPath(path, 'freeAnswer'), message: 'freeAnswer を書くときは choices も書いてください' })
+    if (value['kind'] !== undefined || value['task'] !== undefined) {
+      errs.push({ path, message: '返事（choices）のない往復（締めの台詞）には、kind・task を書けません' })
+    }
+  }
+  if (decision && value['freeAnswer'] !== undefined) {
+    errs.push({ path: joinPath(path, 'freeAnswer'), message: '選択の往復（"kind": "decision"）には freeAnswer を書けません（選ぶだけにします）' })
   }
   if (lines === undefined) return undefined
   const turn: ConversationTurn = { lines }
+  if (decision) turn.kind = 'decision'
+  if (task !== undefined) turn.task = task
   if (choices !== undefined) turn.choices = choices
   if (freeAnswer !== undefined) turn.freeAnswer = freeAnswer
   return turn
@@ -1006,6 +1103,120 @@ function parseListening(o: Obj, ctx: ReferenceContext, errs: FieldError[]): List
   return sentence
 }
 
+// ---------- 基礎ドリルと章末テスト（GAME_SPEC 4-9） ----------
+
+const DRILL_ITEM_KEYS = ['id', 'korean', 'alternatives', 'pronunciation', 'japanese', 'digits', 'hintJa'] as const
+/** 数字の問題の答え：半角数字。時刻・日付は : と / で区切る（例：3500、3:30、5/15） */
+const DIGITS_PATTERN = /^[0-9]+([:/][0-9]+)*$/
+/** 選ぶ問題で、正解のほかに選択肢を2つ作るため */
+export const MIN_DRILL_ITEMS = 4
+
+/** ドリル・テストの問題（items）。min 個以上。optional なら省略できる（省略したら []） */
+function parseDrillItems(o: Obj, errs: FieldError[], min: number, optional: boolean): DrillItem[] {
+  if (optional && o['items'] === undefined) return []
+  const items: DrillItem[] = []
+  for (const { value, path } of objArray(o, 'items', '', errs, min) ?? []) {
+    checkKnownKeys(value, DRILL_ITEM_KEYS, path, errs)
+    const id = text(value, 'id', path, errs)
+    if (id !== undefined && !ID_PATTERNS.drillItem.test(id)) errs.push({ path: joinPath(path, 'id'), message: 'IDの形式が違います（例：dq_001）' })
+    const korean = koreanText(value, 'korean', path, errs)
+    if (korean !== undefined && !HANGUL.test(korean)) errs.push({ path: joinPath(path, 'korean'), message: '韓国語（ハングル）で書いてください' })
+    const alternatives = textArray(value, 'alternatives', path, errs, { optional: true, min: 1 })
+    const pronunciation = reading(value, 'pronunciation', path, errs, korean)
+    const japanese = japaneseText(value, 'japanese', path, errs)
+    const digits = optionalText(value, 'digits', path, errs)
+    const hintJa = value['hintJa'] === undefined ? undefined : japaneseText(value, 'hintJa', path, errs)
+    if (digits !== undefined && !DIGITS_PATTERN.test(digits)) {
+      errs.push({ path: joinPath(path, 'digits'), message: '半角数字で書いてください。時刻・日付は : と / で区切ります（例：3500、3:30、5/15）。カンマ・単位は入れません' })
+    }
+    if (korean !== undefined && alternatives?.includes(korean)) {
+      errs.push({ path: joinPath(path, 'alternatives'), message: 'korean と同じ文字列は alternatives に入れないでください' })
+    }
+    // 日本語を見て韓国語を書く問題は、読み方を書く練習なので、数字だけの答えは正解にしない
+    for (const [i, alt] of (alternatives ?? []).entries()) {
+      if (!HANGUL.test(alt)) errs.push({ path: joinPath(joinPath(path, 'alternatives'), i), message: '別解も韓国語（ハングル）で書いてください（数字だけの答えは正解にしません）' })
+    }
+    if (id === undefined || korean === undefined || pronunciation === undefined || japanese === undefined) continue
+    const item: DrillItem = { id, korean, pronunciation, japanese }
+    if (alternatives !== undefined) item.alternatives = alternatives
+    if (digits !== undefined) item.digits = digits
+    if (hintJa !== undefined) item.hintJa = hintJa
+    items.push(item)
+  }
+  if (new Set(items.map((i) => i.id)).size !== items.length) errs.push({ path: 'items', message: '同じIDの問題が重複しています' })
+  if (new Set(items.map((i) => normalizeAnswer(i.korean))).size !== items.length) errs.push({ path: 'items', message: '同じ韓国語の問題が重複しています' })
+  return items
+}
+
+const DRILL_KEYS = ['id', 'titleJa', 'introJa', 'questionCount', 'items', 'reviewed', 'notes'] as const
+
+function parseDrill(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): Drill | undefined {
+  checkKnownKeys(o, DRILL_KEYS, '', errs)
+  const id = idField(o, ID_PATTERNS.drill, 'drill_001', errs)
+  const titleJa = japaneseText(o, 'titleJa', '', errs)
+  const introJa = optionalText(o, 'introJa', '', errs)
+  const questionCount = o['questionCount'] === undefined ? undefined : integer(o, 'questionCount', '', errs, 1, 50)
+  const items = parseDrillItems(o, errs, MIN_DRILL_ITEMS, false)
+  const reviewed = bool(o, 'reviewed', '', errs)
+  const notes = optionalText(o, 'notes', '', errs)
+  if (errs.length > 0 || id === undefined || titleJa === undefined || reviewed === undefined) return undefined
+  const drill: Drill = { id, titleJa, items, reviewed }
+  if (introJa !== undefined) drill.introJa = introJa
+  if (questionCount !== undefined) drill.questionCount = questionCount
+  if (notes !== undefined) drill.notes = notes
+  return drill
+}
+
+const CHAPTER_TEST_KEYS = ['id', 'chapter', 'titleJa', 'questionCount', 'passPercent', 'items', 'reviewed', 'notes'] as const
+
+function parseChapterTest(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): ChapterTest | undefined {
+  checkKnownKeys(o, CHAPTER_TEST_KEYS, '', errs)
+  const id = idField(o, ID_PATTERNS.chapterTest, 'test_001', errs)
+  const chapter = integer(o, 'chapter', '', errs, 1, MAX_CHAPTER)
+  const titleJa = japaneseText(o, 'titleJa', '', errs)
+  const questionCount = o['questionCount'] === undefined ? undefined : integer(o, 'questionCount', '', errs, 1, 50)
+  const passPercent = o['passPercent'] === undefined ? undefined : integer(o, 'passPercent', '', errs, 0, 100)
+  const items = parseDrillItems(o, errs, 1, true)
+  const reviewed = bool(o, 'reviewed', '', errs)
+  const notes = optionalText(o, 'notes', '', errs)
+  if (errs.length > 0 || id === undefined || chapter === undefined || titleJa === undefined || reviewed === undefined) return undefined
+  const test: ChapterTest = { id, chapter, titleJa, items, reviewed }
+  if (questionCount !== undefined) test.questionCount = questionCount
+  if (passPercent !== undefined) test.passPercent = passPercent
+  if (notes !== undefined) test.notes = notes
+  return test
+}
+
+/**
+ * ドリルとテストの問題のIDを、ほかの教材とまたいで一意にする（復習の記録が問題のIDで参照するため）。
+ * 章末テストは1章に1つまで。問題のあるものは除外する（後から出てきた方）
+ */
+function checkDrillItemIds<T extends { id: string; items: DrillItem[] }>(list: T[], contentIds: Map<string, string>, issues: ValidationIssue[]): T[] {
+  return list.filter((entry) => {
+    const file = contentIds.get(entry.id) ?? ''
+    const clash = entry.items.find((item) => contentIds.has(item.id))
+    if (clash !== undefined) {
+      issues.push({ file, index: null, id: entry.id, path: 'items', message: `問題のID ${clash.id} が重複しています（最初の定義：${contentIds.get(clash.id) ?? ''}）。後から出てきた方を除外しました` })
+      return false
+    }
+    for (const item of entry.items) contentIds.set(item.id, file)
+    return true
+  })
+}
+
+function checkOneTestPerChapter(tests: ChapterTest[], contentIds: Map<string, string>, issues: ValidationIssue[]): ChapterTest[] {
+  const owner = new Map<number, string>()
+  return tests.filter((t) => {
+    const first = owner.get(t.chapter)
+    if (first !== undefined) {
+      issues.push({ file: contentIds.get(t.id) ?? '', index: null, id: t.id, path: 'chapter', message: `第${t.chapter}章のテストは、すでに ${first} があります。後から出てきた方を除外しました` })
+      return false
+    }
+    owner.set(t.chapter, t.id)
+    return true
+  })
+}
+
 // ---------- ファイル単位の検証 ----------
 
 type ItemParser<T> = (o: Obj, ctx: ReferenceContext, errs: FieldError[]) => T | undefined
@@ -1045,6 +1256,8 @@ const PARSERS = {
   characters: parseCharacter,
   hangulLessons: parseHangulLesson,
   listening: parseListening,
+  drills: parseDrill,
+  chapterTests: parseChapterTest,
 } as const
 
 interface KindItem {
@@ -1057,6 +1270,8 @@ interface KindItem {
   characters: Character
   hangulLessons: HangulLesson
   listening: ListeningSentence
+  drills: Drill
+  chapterTests: ChapterTest
 }
 
 /** 1ファイル分を検証する。ファイル内の構造と参照だけを確かめ、ファイルをまたぐIDの重複は loadContent で確かめる */
@@ -1081,6 +1296,8 @@ export interface ContentInput {
   characters: FileMap
   hangulLessons: FileMap
   listening: FileMap
+  drills: FileMap
+  chapterTests: FileMap
   /** ゲームの調整用の数値。ファイルは1つだけ置く */
   balance: FileMap
 }
@@ -1097,6 +1314,10 @@ export interface LoadedContent {
   /** order の順に並べたもの */
   hangulLessons: HangulLesson[]
   listening: ListeningSentence[]
+  /** ファイルの名前順・ファイル内の順 */
+  drills: Drill[]
+  /** 章の順 */
+  chapterTests: ChapterTest[]
   balance: Balance
   issues: ValidationIssue[]
 }
@@ -1397,9 +1618,12 @@ export function loadContent(input: ContentInput): LoadedContent {
   const parsedLessons = validateKind('hangulLessons', input.hangulLessons, ctx, contentIds, issues)
   const hangulLessons = checkHangulCurriculum(parsedLessons, vocabulary, contentIds, issues)
   const listening = validateKind('listening', input.listening, { ...ctx, eventIds: new Set(events.map((e) => e.id)) }, contentIds, issues)
+  const drills = checkDrillItemIds(validateKind('drills', input.drills, ctx, contentIds, issues), contentIds, issues)
+  const parsedTests = validateKind('chapterTests', input.chapterTests, ctx, contentIds, issues)
+  const chapterTests = checkOneTestPerChapter(checkDrillItemIds(parsedTests, contentIds, issues), contentIds, issues).sort((a, b) => a.chapter - b.chapter)
   const balance = loadBalance(input.balance, ctx, issues)
 
-  return { vocabulary, grammar, conversations, columns, events, locations, characters, hangulLessons, listening, balance, issues }
+  return { vocabulary, grammar, conversations, columns, events, locations, characters, hangulLessons, listening, drills, chapterTests, balance, issues }
 }
 
 /** 問題を1行の文章にする（コンソール表示用） */

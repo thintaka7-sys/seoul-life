@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
-import { EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, PARTS_OF_SPEECH, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_CATEGORIES } from './types'
+import { EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, PARTS_OF_SPEECH, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_GENRES } from './types'
 import { formatIssue, loadContent } from './validate'
 
 const docPath = fileURLToPath(new URL('../../docs/CONTENT_FORMAT.md', import.meta.url))
@@ -42,9 +42,9 @@ const sorted = (xs: Iterable<string>) => [...xs].sort()
 
 describe('docs/CONTENT_FORMAT.md の見本', () => {
   const samples = extractSamples(doc)
-  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening'] as const
+  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests'] as const
 
-  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文の見本がそろっている', () => {
+  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テストの見本がそろっている', () => {
     expect(sorted(samples.keys())).toEqual(sorted(kinds))
   })
 
@@ -57,6 +57,8 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
       events: { 'sample-events': samples.get('events') },
       hangulLessons: { 'sample-hangulLessons': samples.get('hangulLessons') },
       listening: { 'sample-listening': samples.get('listening') },
+      drills: { 'sample-drills': samples.get('drills') },
+      chapterTests: { 'sample-chapterTests': samples.get('chapterTests') },
       // 施設・キャラクター・調整値は実際のデータを使う
       locations: { 'locations.json': content.locations },
       characters: { 'characters.json': content.characters },
@@ -71,6 +73,17 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
     // 見本のレッスンは、すべての種類（10-8）を含む
     expect(sorted(new Set(result.hangulLessons.map((l) => l.kind)))).toEqual(sorted(HANGUL_LESSON_KINDS))
     expect(result.listening.length).toBeGreaterThan(0)
+    // 見本の会話は、問題の往復（task あり）と選択の往復を含む
+    const turns = result.conversations.flatMap((c) => c.turns)
+    expect(turns.some((t) => t.task !== undefined && t.kind === undefined)).toBe(true)
+    expect(turns.some((t) => t.kind === 'decision')).toBe(true)
+    // 見本の文法は、穴埋め（blank）と接続ルール（connectionJa）を含む
+    expect(result.grammar.some((g) => g.connectionJa !== undefined && g.examples.some((e) => e.blank !== undefined))).toBe(true)
+    // 見本のドリルは、数字の問題（digits）とそうでない問題を含む
+    const items = result.drills.flatMap((d) => d.items)
+    expect(items.some((i) => i.digits !== undefined)).toBe(true)
+    expect(items.some((i) => i.digits === undefined)).toBe(true)
+    expect(result.chapterTests.length).toBeGreaterThan(0)
   })
 
   it('見本のIDは仮データ用の900番台を使っていない', () => {
@@ -89,8 +102,8 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
     expect(sorted(keysInSection(doc, '### 10-1.'))).toEqual(sorted(PARTS_OF_SPEECH))
   })
 
-  it('カテゴリ（10-2）がプログラムと一致する', () => {
-    expect(sorted(keysInSection(doc, '### 10-2.'))).toEqual(sorted(VOCAB_CATEGORIES))
+  it('ジャンル（10-2）がプログラムと一致する', () => {
+    expect(sorted(keysInSection(doc, '### 10-2.'))).toEqual(sorted(VOCAB_GENRES))
   })
 
   it('施設ID（10-3）が src/data/locations と一致する', () => {

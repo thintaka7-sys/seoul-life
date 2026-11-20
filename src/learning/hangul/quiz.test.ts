@@ -69,7 +69,7 @@ const soundChange: HangulLesson = {
   rules: [{ titleJa: '連音化', explanationJa: '説明', examples: [{ korean: '눈이', spoken: '누니', pronunciation: 'ヌニ', japanese: '目が' }] }],
 }
 
-const vocab: Vocab = { id: 'vocab_001', korean: '아니요', pronunciation: 'アニヨ', japanese: 'いいえ', partOfSpeech: 'interjection', category: 'greeting', level: 1, reviewed: true }
+const vocab: Vocab = { id: 'vocab_001', korean: '아니요', pronunciation: 'アニヨ', japanese: 'いいえ', partOfSpeech: 'interjection', genre: 'greeting', level: 1, reviewed: true }
 const reading: HangulLesson = { ...base, id: 'hangul_005', order: 5, kind: 'reading', vocabulary: ['vocab_001'] }
 
 const all = [vowels, consonants, batchim, soundChange, reading]

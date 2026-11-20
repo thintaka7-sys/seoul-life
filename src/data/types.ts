@@ -17,22 +17,21 @@ export const PARTS_OF_SPEECH = [
 ] as const
 export type PartOfSpeech = (typeof PARTS_OF_SPEECH)[number]
 
-/** 単語のカテゴリ（GAME_SPEC 4-2） */
-export const VOCAB_CATEGORIES = [
+/** 単語のジャンル（GAME_SPEC 7-4。図鑑のタブ） */
+export const VOCAB_GENRES = [
   'greeting',
   'people',
-  'food',
-  'drink',
-  'number',
+  'food_drink',
+  'number_money',
   'time',
   'place',
+  'transport',
   'shopping',
+  'body_health',
+  'feelings',
   'daily_life',
-  'emotion',
-  'verb',
-  'adjective',
 ] as const
-export type VocabCategory = (typeof VOCAB_CATEGORIES)[number]
+export type VocabGenre = (typeof VOCAB_GENRES)[number]
 
 /** 会話の話者IDのうち、主人公（プレイヤー）を表すもの */
 export const PLAYER_SPEAKER_ID = 'player'
@@ -52,6 +51,9 @@ export const ID_PATTERNS = {
   hangulLesson: /^hangul_\d{3,}$/,
   hangulWord: /^hword_\d{3,}$/,
   listening: /^listen_\d{3,}$/,
+  drill: /^drill_\d{3,}$/,
+  drillItem: /^dq_\d{3,}$/,
+  chapterTest: /^test_\d{3,}$/,
   key: /^[a-z][a-z0-9_]*$/,
 } as const
 
@@ -74,7 +76,8 @@ export interface Vocab extends ContentBase {
   pronunciation: string
   japanese: string
   partOfSpeech: PartOfSpeech
-  category: VocabCategory
+  /** ジャンル（図鑑のタブ） */
+  genre: VocabGenre
   level: number
   example?: string
   /** 例文の読み（カタカナ。韓国語と同じ位置で空白を入れる） */
@@ -89,6 +92,10 @@ export interface GrammarExample {
   japanese: string
   /** 正解として認める別表記 */
   alternatives?: string[]
+  /** 穴埋め問題で隠す部分（korean の中にそのまま含まれる文字列） */
+  blank?: string
+  /** 穴埋め問題のまぎらわしい選択肢（blank を書いたときは必須） */
+  blankWrong?: string[]
 }
 
 /** 文法（GAME_SPEC 11-2） */
@@ -96,6 +103,8 @@ export interface Grammar extends ContentBase {
   title: string
   level: number
   explanation: string
+  /** 接続ルールの説明（日本語。説明のためにハングルを入れてよい） */
+  connectionJa?: string
   examples: GrammarExample[]
 }
 
@@ -115,6 +124,7 @@ export interface ConversationChoice {
   /** 読み（カタカナ。韓国語と同じ位置で空白を入れる） */
   pronunciation: string
   japanese: string
+  /** 正解か（選択の往復では使わず、false として読み込む） */
   correct: boolean
   /** この選択肢を選んだときの相手の反応 */
   reply?: ConversationLine[]
@@ -129,8 +139,19 @@ export interface FreeAnswer {
   reply?: ConversationLine[]
 }
 
-/** 会話の1往復：台詞 → プレイヤーの返事 → 相手の反応。返事がない往復は、会話の最後の締めの台詞だけに使う */
+/**
+ * 会話の1往復：台詞 → プレイヤーの返事 → 相手の反応。返事がない往復は、会話の最後の締めの台詞だけに使う。
+ * - 問題の往復（kind を省略）：正解が1つの選択肢と、「言うこと」（task）。GAME_SPEC 4-4
+ * - 選択の往復（kind: "decision"）：話が変わるだけの場面。正解・不正解を付けず、選んだものに合わせて相手が反応する
+ */
 export interface ConversationTurn {
+  /** "decision" なら選択の往復。省略したら問題の往復 */
+  kind?: 'decision'
+  /**
+   * 何を言えばよいか（日本語。例：コーヒーを注文しよう）。問題の往復では必須。
+   * ※ 1日目の会話が新しい形で届くまでの間だけ、task のない問題の往復を「古い形」（正解が複数あってよい）として読み込む
+   */
+  task?: string
   /** プレイヤーが答える前の台詞（2つ目以降の往復では省略できる） */
   lines: ConversationLine[]
   /** 選んで答えるときの選択肢。省略した往復は台詞だけ（最後の往復だけ） */
@@ -270,6 +291,49 @@ export interface ListeningSentence extends ContentBase, ListeningOption {
   afterEvent: string
   /** まぎらわしい文（選択肢に混ぜる） */
   distractors: ListeningOption[]
+}
+
+// ---------- 基礎ドリルと章末テスト（GAME_SPEC 4-9） ----------
+
+/**
+ * ドリル・章末テストの1問。プログラムが問題の形（選ぶ・聞く・書く）を決める。
+ * digits があれば数字の問題（選択肢を出さず、入力で答える）
+ */
+export interface DrillItem {
+  /** 一意のID（dq_001 の形。ドリルとテストをまたいで一意） */
+  id: string
+  korean: string
+  /** 正解として認める別の言い方 */
+  alternatives?: string[]
+  pronunciation: string
+  /** 日本語（数字の問題では、画面に出す数の書き方。例：3,500ウォン） */
+  japanese: string
+  /** 数字の問題の答え（半角数字。時刻・日付は 3:30・5/15 のように : と / で区切る） */
+  digits?: string
+  /** 問題に添えるひとこと（例：固有数詞で） */
+  hintJa?: string
+}
+
+/** 基礎ドリル（テーマごとの練習） */
+export interface Drill extends ContentBase {
+  titleJa: string
+  /** 始める前の説明（日本語。説明のためにハングルを入れてよい） */
+  introJa?: string
+  /** 1回の問題数（省略したら balance.json の値） */
+  questionCount?: number
+  items: DrillItem[]
+}
+
+/** 章末テスト。問題は章の単語・文法・会話から作り、items があれば混ぜる */
+export interface ChapterTest extends ContentBase {
+  chapter: number
+  titleJa: string
+  /** 問題数（省略したら balance.json の値） */
+  questionCount?: number
+  /** 合格の基準（正解の割合、0〜100。省略したら balance.json の値） */
+  passPercent?: number
+  /** 自動で作る問題に足す問題（読み込んだ後は、書かなかったら []） */
+  items: DrillItem[]
 }
 
 /** イベントの段階 */
