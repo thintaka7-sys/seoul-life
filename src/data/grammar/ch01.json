@@ -8,15 +8,24 @@
       {
         "korean": "안녕히 계세요.",
         "pronunciation": "アンニョンヒ ゲセヨ",
-        "japanese": "さようなら。（自分が帰るとき、残る人に）"
+        "japanese": "さようなら。（自分が帰るとき、残る人に）",
+        "blank": "계세요",
+        "blankWrong": [
+          "가세요"
+        ]
       },
       {
         "korean": "안녕히 가세요.",
         "pronunciation": "アンニョンヒ ガセヨ",
-        "japanese": "さようなら。（相手が帰るとき、見送る側から）"
+        "japanese": "さようなら。（相手が帰るとき、見送る側から）",
+        "blank": "가세요",
+        "blankWrong": [
+          "계세요"
+        ]
       }
     ],
     "reviewed": true,
-    "notes": "確認：ChatGPT（2026-11-18）"
+    "notes": "確認：ChatGPT（2026-11-18、例文と説明）／2026-11-20：connectionJa と、穴埋め用の blank・blankWrong を追加／確認：ChatGPT（2026-11-20）",
+    "connectionJa": "相手がその場から立ち去るときは 가세요、相手がその場に残るときは 계세요 を使います。自分が帰るときは、残る人に 안녕히 계세요 と言います。"
   }
 ]

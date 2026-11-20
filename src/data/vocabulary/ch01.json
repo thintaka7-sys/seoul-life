@@ -67,7 +67,10 @@
     "examplePronunciation": "ネ チョアヨ",
     "exampleJapanese": "はい、いいですよ。",
     "reviewed": true,
-    "notes": "確認：ChatGPT（2026-11-18）"
+    "notes": "確認：ChatGPT（2026-11-18、見出し語と例文）／2026-11-20：예 を別の言い方として追加。예 も「はい」の正しい言い方（네 より少し改まった響き）で、音声認識でも 예 と聞き取られやすいため／確認：ChatGPT（2026-11-20）",
+    "alternatives": [
+      "예"
+    ]
   },
   {
     "id": "vocab_006",

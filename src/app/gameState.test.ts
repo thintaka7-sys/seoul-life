@@ -13,6 +13,7 @@ const T1 = '2026-11-18T10:05:00.000Z'
 
 const reducer = createGameReducer({
   events: content.events,
+  conversations: content.conversations,
   balance: content.balance,
   locationIds: new Set(content.locations.map((l) => l.id)),
 })
@@ -39,12 +40,12 @@ function completeCurrentStep(state: GameState, method: 'choice' | 'write' = 'cho
     case 'learn':
       return reducer(state, { type: 'learnDone', now: T1 })
     case 'conversation': {
-      // 返事のある往復にすべて答えてから、会話を終える
+      // 問題の往復にすべて答えてから、会話を終える（選択の往復は、画面が conversationAnswered を送らない）
       const conversation = content.conversations.find((c) => c.id === step.id)
       if (conversation === undefined) throw new Error(step.id)
       let s = state
       conversation.turns.forEach((turn, i) => {
-        if (turn.choices !== undefined) s = reducer(s, { type: 'conversationAnswered', turn: i, method, now: T1 })
+        if (turn.choices !== undefined && turn.kind !== 'decision') s = reducer(s, { type: 'conversationAnswered', turn: i, method, now: T1 })
       })
       return reducer(s, { type: 'conversationDone', now: T1 })
     }
@@ -83,7 +84,7 @@ describe('最初の1日を通して遊ぶ', () => {
     expect(Object.keys(s.save?.learning.grammar ?? {}).sort()).toEqual(content.grammar.map((g) => g.id).sort())
     // 経験値：単語 × learnWord ＋ 会話の往復（選ぶ）× conversationChoice ＋ イベント × eventComplete
     const { xp } = content.balance
-    const answeredTurns = content.conversations.reduce((n, c) => n + c.turns.filter((t) => t.choices !== undefined).length, 0)
+    const answeredTurns = content.conversations.reduce((n, c) => n + c.turns.filter((t) => t.choices !== undefined && t.kind !== 'decision').length, 0)
     expect(s.save?.stats.xp).toBe(content.vocabulary.length * xp.learnWord + answeredTurns * xp.conversationChoice + 3 * xp.eventComplete)
   })
 
@@ -184,7 +185,7 @@ describe('遊び直しと経験値', () => {
     s = completeCurrentStep(completeCurrentStep(s)) // message, learn
     const xpBefore = s.save?.stats.xp ?? 0
     s = completeCurrentStep(s, 'write') // 最初の会話の往復を、すべて書いて正解
-    const turns = content.conversations.find((c) => c.id === 'home_003')?.turns.filter((t) => t.choices !== undefined).length ?? 0
+    const turns = content.conversations.find((c) => c.id === 'home_005')?.turns.filter((t) => t.choices !== undefined && t.kind !== 'decision').length ?? 0
     expect(turns).toBeGreaterThan(0)
     expect((s.save?.stats.xp ?? 0) - xpBefore).toBe(turns * content.balance.xp.conversationWrite)
     expect(s.reward).toMatchObject({ xp: content.balance.xp.conversationWrite })
@@ -392,5 +393,21 @@ describe('復習・練習・ドリル・テスト・スタンプ（Phase 2.5）'
     expect(answered.save?.learning.review['word:vocab_001']).toMatchObject({ wrong: 1 })
     expect(answered.save?.learning.drills['dq_001']).toEqual({ correctAt: T1 })
     expect(answered.save?.stats.xp).toBe(content.balance.xp.drillItem)
+  })
+})
+
+describe('選択の往復（Phase 2.5）', () => {
+  it('選択の往復への答えは、経験値・記録・復習を付けない', () => {
+    const event = content.events.find((e) => e.steps.some((st) => st.type === 'conversation' && content.conversations.find((c) => c.id === st.id)?.turns.some((t) => t.kind === 'decision')))
+    if (event === undefined) throw new Error('選択の往復のある会話がない')
+    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: event.id, now: T1 })
+    for (let i = 0; i < 20 && s.run !== null && event.steps[s.run.step]?.type !== 'conversation'; i++) s = completeCurrentStep(s)
+    const step = s.run === null ? undefined : event.steps[s.run.step]
+    if (step?.type !== 'conversation') throw new Error('会話の段階がない')
+    const conversation = content.conversations.find((c) => c.id === step.id)
+    // 1日目の教材では、そのイベントの最初の会話に選択の往復がある
+    const decisionTurn = conversation?.turns.findIndex((t) => t.kind === 'decision') ?? -1
+    expect(decisionTurn).toBeGreaterThanOrEqual(0)
+    expect(reducer(s, { type: 'conversationAnswered', turn: decisionTurn, method: 'choice', now: T1 })).toBe(s)
   })
 })

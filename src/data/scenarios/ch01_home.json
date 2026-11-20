@@ -1,11 +1,12 @@
 [
   {
-    "id": "home_003",
+    "id": "home_005",
     "chapter": 1,
     "location": "home",
     "character": "neighbor",
     "turns": [
       {
+        "task": "お隣さんにあいさつしよう",
         "lines": [
           {
             "speaker": "neighbor",
@@ -66,6 +67,8 @@
         }
       },
       {
+        "kind": "decision",
+        "task": "韓国は初めてか答えよう",
         "lines": [
           {
             "speaker": "neighbor",
@@ -79,7 +82,6 @@
             "korean": "네.",
             "pronunciation": "ネ",
             "japanese": "はい。",
-            "correct": true,
             "reply": [
               {
                 "speaker": "neighbor",
@@ -93,7 +95,6 @@
             "korean": "아니요.",
             "pronunciation": "アニヨ",
             "japanese": "いいえ。",
-            "correct": true,
             "reply": [
               {
                 "speaker": "neighbor",
@@ -102,41 +103,21 @@
                 "japanese": "あら、そうなんですか？じゃあ韓国語、お上手なんでしょうね！"
               }
             ]
-          },
-          {
-            "korean": "죄송합니다.",
-            "pronunciation": "チェソンハムニダ",
-            "japanese": "申し訳ありません。",
-            "correct": false,
-            "reply": [
-              {
-                "speaker": "neighbor",
-                "korean": "아니에요, 사과하실 필요 없어요.",
-                "pronunciation": "アニエヨ サグァハシル ピリョ オプソヨ",
-                "japanese": "いえいえ、謝らなくていいんですよ。"
-              }
-            ]
           }
-        ],
-        "freeAnswer": {
-          "prompt": "はい",
-          "answers": [
-            "네.",
-            "예."
-          ]
-        }
+        ]
       }
     ],
     "reviewed": true,
-    "notes": "2往復目は「はい／いいえ」のどちらも正解にし、答えによって反応を変えた。いいえと答えると、初心者なのに韓国語が上手だと思われる小さな笑いになる／間違えたときの返事を、とまどいが伝わる 이제 막 왔는데요 に修正／確認：ChatGPT（2026-11-19）"
+    "notes": "home_003 を新しい形に作り直した。2往復目は「はい／いいえ」のどちらでも話が進むので、選択の往復にした（反応だけが変わる）。台詞と反応は home_003 から変えていない／確認：ChatGPT（2026-11-20）"
   },
   {
-    "id": "home_004",
+    "id": "home_006",
     "chapter": 1,
     "location": "home",
     "character": "neighbor",
     "turns": [
       {
+        "task": "お餅のお礼を言おう",
         "lines": [
           {
             "speaker": "neighbor",
@@ -146,20 +127,6 @@
           }
         ],
         "choices": [
-          {
-            "korean": "감사합니다.",
-            "pronunciation": "カムサハムニダ",
-            "japanese": "ありがとうございます。",
-            "correct": true,
-            "reply": [
-              {
-                "speaker": "neighbor",
-                "korean": "맛있게 드세요.",
-                "pronunciation": "マシッケ ドゥセヨ",
-                "japanese": "おいしく召し上がってくださいね。"
-              }
-            ]
-          },
           {
             "korean": "고맙습니다.",
             "pronunciation": "コマプスムニダ",
@@ -187,19 +154,34 @@
                 "japanese": "私、まだ帰りませんよ。"
               }
             ]
+          },
+          {
+            "korean": "죄송합니다.",
+            "pronunciation": "チェソンハムニダ",
+            "japanese": "申し訳ありません。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "neighbor",
+                "korean": "어머, 왜요? 그냥 드리는 거예요.",
+                "pronunciation": "オモ ウェヨ クニャン ドゥリヌン ゴエヨ",
+                "japanese": "あら、どうして？ただのお裾分けですよ。"
+              }
+            ]
           }
         ],
         "freeAnswer": {
           "prompt": "ありがとうございます",
           "answers": [
-            "감사합니다.",
             "고맙습니다.",
-            "감사해요.",
-            "고마워요."
+            "감사합니다.",
+            "고마워요.",
+            "감사해요."
           ]
         }
       },
       {
+        "task": "帰っていくお隣さんを見送ろう",
         "lines": [
           {
             "speaker": "neighbor",
@@ -262,6 +244,6 @@
       }
     ],
     "reviewed": true,
-    "notes": "帰る人（お隣さん）を見送るので 안녕히 가세요 が正解。間違えたときの反応で、가세요／계세요 の違いを思い出せるようにした（grammar_001）／確認：ChatGPT（2026-11-19）"
+    "notes": "home_004 を新しい形に作り直した。1往復目の正解は 고맙습니다 の1つにした（감사합니다 はカフェの会話で正解にしている。書いて答えるときはどちらも正解）。죄송합니다 を選んだときの反応を新しく書いた／確認：ChatGPT（2026-11-20）"
   }
 ]

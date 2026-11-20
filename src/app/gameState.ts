@@ -1,7 +1,7 @@
 // ゲーム全体の状態と、画面遷移の reducer。
 // reducer は純粋な関数にする（日時は action で受け取る）ので、画面なしでテストできる。
 
-import type { Balance, GameEvent, StampActivity } from '../data/types'
+import type { Balance, Conversation, GameEvent, StampActivity } from '../data/types'
 import type { AnswerMode } from '../learning/conversation/session'
 import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
 import {
@@ -144,6 +144,8 @@ export interface GameDeps {
   locationIds: ReadonlySet<string>
   /** 最初のハングルのレッスンのID。あれば「はじめから」の直後に、ハングルから学ぶかを聞く */
   firstHangulLessonId?: string | null
+  /** 会話（選択の往復への答えを記録しないために使う。省略したら確かめない） */
+  conversations?: readonly Conversation[]
 }
 
 export function createInitialState(load: LoadResult, backupKey: string | null, settings: Settings): GameState {
@@ -436,6 +438,8 @@ export function createGameReducer(deps: GameDeps) {
         const step = currentStep(state)
         const run = state.run
         if (step?.type !== 'conversation' || run === null || state.save === null || run.replay) return state
+        // 選択の往復には、経験値・記録・復習を付けない（計画 Q3）
+        if (deps.conversations?.find((c) => c.id === step.id)?.turns[action.turn]?.kind === 'decision') return state
         const cleared = clearConversationTurn(state.save, step.id, action.turn, action.method, balance, action.now)
         if (cleared.save === state.save) return state
         return { ...state, save: cleared.save, reward: addReward(state, cleared.reward) }

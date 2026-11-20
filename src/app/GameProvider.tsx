@@ -11,6 +11,7 @@ import { createGameReducer, createInitialState } from './gameState'
 const gameReducer = createGameReducer({
   events: content.events,
   balance: content.balance,
+  conversations: content.conversations,
   locationIds: new Set(content.locations.map((l) => l.id)),
   firstHangulLessonId: content.hangulLessons[0]?.id ?? null,
 })

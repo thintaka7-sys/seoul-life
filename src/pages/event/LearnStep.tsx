@@ -43,6 +43,12 @@ function GrammarCard({ grammar, display }: { grammar: Grammar; display: Furigana
         {grammar.title}
       </h2>
       <p>{grammar.explanation}</p>
+      {grammar.connectionJa !== undefined && (
+        <div className="learn-card__connection">
+          <p className="muted small">つなげ方</p>
+          <p>{grammar.connectionJa}</p>
+        </div>
+      )}
       <ul className="learn-card__examples">
         {grammar.examples.map((ex) => (
           <li key={ex.korean}>

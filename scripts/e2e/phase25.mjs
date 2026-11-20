@@ -198,13 +198,13 @@ const v4 = {
   learning: {
     words: { vocab_001: { learnedAt: NOW, chapter: 1 }, vocab_012: { learnedAt: NOW, chapter: 1 }, vocab_013: { learnedAt: NOW, chapter: 1 } },
     grammar: { grammar_002: { learnedAt: NOW, chapter: 1 } },
-    conversations: { 'cafe_006#0': { choice: true, write: false } },
+    conversations: { 'cafe_009#0': { choice: true, write: false } },
     hangul: {},
     listening: {},
   },
   stats: { xp: 100 },
 }
-const KEYS = ['word:vocab_001', 'word:vocab_012', 'word:vocab_013', 'grammar:grammar_002', 'turn:cafe_006#0']
+const KEYS = ['word:vocab_001', 'word:vocab_012', 'word:vocab_013', 'grammar:grammar_002', 'turn:cafe_009#0']
 
 /** 幅ごとの確認（途中で止まったら、そこまでの結果と NG を出す） */
 async function runWidth(W, H, mobile) {

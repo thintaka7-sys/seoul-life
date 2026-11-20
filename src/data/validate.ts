@@ -484,9 +484,8 @@ const TURN_KEYS = ['kind', 'task', 'lines', 'choices', 'freeAnswer'] as const
  * 往復の種類。
  * - question：問題（正解が1つ。task が必須）
  * - decision：選択（正解・不正解を付けない）
- * - legacy：task のない問題の往復。1日目の会話が新しい形で届くまでの間だけ、古い形（正解が複数あってよい）として読み込む
  */
-type TurnMode = 'question' | 'decision' | 'legacy'
+type TurnMode = 'question' | 'decision'
 const LINE_KEYS = ['speaker', 'korean', 'pronunciation', 'japanese', 'expression'] as const
 const CHOICE_KEYS = ['korean', 'pronunciation', 'japanese', 'correct', 'reply'] as const
 const FREE_ANSWER_KEYS = ['prompt', 'answers', 'reply'] as const
@@ -560,9 +559,6 @@ function parseChoices(o: Obj, base: string, ctx: ReferenceContext, errs: FieldEr
   if (mode === 'question' && allChoicesBoolean && correctCount !== 1) {
     errs.push({ path, message: `問題の往復では、"correct": true の選択肢をちょうど1つにしてください（今は${correctCount}つ）。話が変わるだけの場面なら "kind": "decision" にします` })
   }
-  if (mode === 'legacy' && choiceItems.length > 0 && allChoicesBoolean && correctCount === 0) {
-    errs.push({ path, message: '"correct": true の選択肢を1つ以上入れてください' })
-  }
   if (new Set(choices.map((c) => c.korean)).size !== choices.length) {
     errs.push({ path, message: '同じ韓国語の選択肢が重複しています' })
   }
@@ -595,8 +591,9 @@ function parseTurn(value: Obj, path: string, index: number, isLast: boolean, ctx
     if (value['kind'] === 'decision') decision = true
     else errs.push({ path: joinPath(path, 'kind'), message: 'kind に書けるのは "decision"（選択の往復）だけです。問題の往復では kind を省きます' })
   }
-  const task = value['task'] === undefined ? undefined : japaneseText(value, 'task', path, errs)
-  const mode: TurnMode = decision ? 'decision' : value['task'] === undefined ? 'legacy' : 'question'
+  const mode: TurnMode = decision ? 'decision' : 'question'
+  // 問題の往復では「言うこと」（task）が必須（GAME_SPEC 4-4）。選択の往復では任意。締めの台詞には書けない（下で確かめる）
+  const task = value['task'] === undefined && (decision || !hasChoices) ? undefined : japaneseText(value, 'task', path, errs)
   // 最初の往復と、返事のない往復（締めの台詞）は、台詞が1つ以上必要
   const linesRequired = index === 0 || !hasChoices
   const lines = value['lines'] === undefined && !linesRequired ? [] : parseLines(value, 'lines', path, ctx, errs, linesRequired ? 1 : 0)

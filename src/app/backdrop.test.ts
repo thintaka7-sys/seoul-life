@@ -31,12 +31,12 @@ describe('イベント中の背景（background の段階）', () => {
   const event = content.events.find((e) => e.id === 'event_001')
   const at = (type: string, id?: string) => event?.steps.findIndex((s) => s.type === type && (id === undefined || ('id' in s && s.id === id))) ?? -1
 
-  it('event_001：最初の案内文は部屋、玄関に切り替えてから home_004 までは玄関、コラムは部屋', () => {
+  it('event_001：最初の案内文は部屋、玄関に切り替えてから home_006 までは玄関、コラムは部屋', () => {
     const run = (step: number) => ({ eventId: 'event_001', step, replay: false })
     expect(eventBackdrop('home', run(0))).toBe(home)
     expect(eventBackdrop('home', run(at('learn')))).toBe(entrance)
-    expect(eventBackdrop('home', run(at('conversation', 'home_003')))).toBe(entrance)
-    expect(eventBackdrop('home', run(at('conversation', 'home_004')))).toBe(entrance)
+    expect(eventBackdrop('home', run(at('conversation', 'home_005')))).toBe(entrance)
+    expect(eventBackdrop('home', run(at('conversation', 'home_006')))).toBe(entrance)
     expect(eventBackdrop('home', run(at('column', 'column_001')))).toBe(home)
   })
 
@@ -45,7 +45,7 @@ describe('イベント中の背景（background の段階）', () => {
   })
 
   it('設定を開いても、イベント中の背景のまま', () => {
-    const run = { eventId: 'event_001', step: at('conversation', 'home_003'), replay: false }
+    const run = { eventId: 'event_001', step: at('conversation', 'home_005'), replay: false }
     expect(backdropFor({ name: 'settings', back: { name: 'event', locationId: 'home' } }, run)).toBe(entrance)
   })
 })

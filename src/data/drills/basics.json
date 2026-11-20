@@ -1,0 +1,458 @@
+[
+  {
+    "id": "drill_001",
+    "titleJa": "数字（漢数詞）",
+    "introJa": "일・이・삼 … は、値段・日付・電話番号・何分などに使う数え方です。10は 십、100は 백、1000は 천、10000は 만 です。11は 십일（10＋1）、20は 이십（2×10）のように組み合わせて作ります。",
+    "questionCount": 10,
+    "items": [
+      {
+        "id": "dq_001",
+        "korean": "일",
+        "pronunciation": "イル",
+        "japanese": "1",
+        "digits": "1",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_002",
+        "korean": "이",
+        "pronunciation": "イ",
+        "japanese": "2",
+        "digits": "2",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_003",
+        "korean": "삼",
+        "pronunciation": "サム",
+        "japanese": "3",
+        "digits": "3",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_004",
+        "korean": "사",
+        "pronunciation": "サ",
+        "japanese": "4",
+        "digits": "4",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_005",
+        "korean": "오",
+        "pronunciation": "オ",
+        "japanese": "5",
+        "digits": "5",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_006",
+        "korean": "육",
+        "pronunciation": "ユク",
+        "japanese": "6",
+        "digits": "6",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_007",
+        "korean": "칠",
+        "pronunciation": "チル",
+        "japanese": "7",
+        "digits": "7",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_008",
+        "korean": "팔",
+        "pronunciation": "パル",
+        "japanese": "8",
+        "digits": "8",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_009",
+        "korean": "구",
+        "pronunciation": "ク",
+        "japanese": "9",
+        "digits": "9",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_010",
+        "korean": "십",
+        "pronunciation": "シプ",
+        "japanese": "10",
+        "digits": "10",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_011",
+        "korean": "십일",
+        "pronunciation": "シビル",
+        "japanese": "11",
+        "digits": "11",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_012",
+        "korean": "십오",
+        "pronunciation": "シボ",
+        "japanese": "15",
+        "digits": "15",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_013",
+        "korean": "이십",
+        "pronunciation": "イシプ",
+        "japanese": "20",
+        "digits": "20",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_014",
+        "korean": "오십",
+        "pronunciation": "オシプ",
+        "japanese": "50",
+        "digits": "50",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_015",
+        "korean": "백",
+        "pronunciation": "ペク",
+        "japanese": "100",
+        "digits": "100",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_016",
+        "korean": "천",
+        "pronunciation": "チョン",
+        "japanese": "1,000",
+        "digits": "1000",
+        "hintJa": "漢数詞で"
+      },
+      {
+        "id": "dq_017",
+        "korean": "만",
+        "pronunciation": "マン",
+        "japanese": "10,000",
+        "digits": "10000",
+        "hintJa": "漢数詞で"
+      }
+    ],
+    "reviewed": true,
+    "notes": "11・15・20・50 は、組み合わせ方の練習用。カタカナは連音化を反映した（십일＝シビル、십오＝シボ）。10000 は 일만 ではなく 만 と言う／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "drill_002",
+    "titleJa": "数字（固有数詞）",
+    "introJa": "하나・둘・셋 … は、物の数や年齢、「〜時」などに使う数え方です。後ろに 개（〜個）や 잔（〜杯）などが付くと、하나→한、둘→두、셋→세、넷→네 のように形が変わります。",
+    "questionCount": 10,
+    "items": [
+      {
+        "id": "dq_021",
+        "korean": "하나",
+        "alternatives": [
+          "한 개"
+        ],
+        "pronunciation": "ハナ",
+        "japanese": "1つ",
+        "digits": "1",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_022",
+        "korean": "둘",
+        "alternatives": [
+          "두 개"
+        ],
+        "pronunciation": "トゥル",
+        "japanese": "2つ",
+        "digits": "2",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_023",
+        "korean": "셋",
+        "alternatives": [
+          "세 개"
+        ],
+        "pronunciation": "セッ",
+        "japanese": "3つ",
+        "digits": "3",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_024",
+        "korean": "넷",
+        "alternatives": [
+          "네 개"
+        ],
+        "pronunciation": "ネッ",
+        "japanese": "4つ",
+        "digits": "4",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_025",
+        "korean": "다섯",
+        "alternatives": [
+          "다섯 개"
+        ],
+        "pronunciation": "タソッ",
+        "japanese": "5つ",
+        "digits": "5",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_026",
+        "korean": "여섯",
+        "alternatives": [
+          "여섯 개"
+        ],
+        "pronunciation": "ヨソッ",
+        "japanese": "6つ",
+        "digits": "6",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_027",
+        "korean": "일곱",
+        "alternatives": [
+          "일곱 개"
+        ],
+        "pronunciation": "イルゴプ",
+        "japanese": "7つ",
+        "digits": "7",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_028",
+        "korean": "여덟",
+        "alternatives": [
+          "여덟 개"
+        ],
+        "pronunciation": "ヨドル",
+        "japanese": "8つ",
+        "digits": "8",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_029",
+        "korean": "아홉",
+        "alternatives": [
+          "아홉 개"
+        ],
+        "pronunciation": "アホプ",
+        "japanese": "9つ",
+        "digits": "9",
+        "hintJa": "固有数詞で"
+      },
+      {
+        "id": "dq_030",
+        "korean": "열",
+        "alternatives": [
+          "열 개"
+        ],
+        "pronunciation": "ヨル",
+        "japanese": "10（とお）",
+        "digits": "10",
+        "hintJa": "固有数詞で"
+      }
+    ],
+    "reviewed": true,
+    "notes": "別の言い方として「〜개（個）」を付けた形を入れた（1〜4は形が変わる）。여덟 のパッチム ㄼ は ㄹ の音で読む（ヨドル）。여덟 개 は濃音化して [여덜깨] になるが、別の言い方には読みを付けないので変更なし／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "drill_003",
+    "titleJa": "曜日と「今日・明日」",
+    "introJa": "曜日は、すべて 요일 で終わります。월（月）・화（火）・수（水）・목（木）・금（金）・토（土）・일（日）という、日本語と同じ漢字に由来する言葉です（読み方は韓国語の漢字の音です）。",
+    "questionCount": 10,
+    "items": [
+      {
+        "id": "dq_041",
+        "korean": "월요일",
+        "pronunciation": "ウォリョイル",
+        "japanese": "月曜日"
+      },
+      {
+        "id": "dq_042",
+        "korean": "화요일",
+        "pronunciation": "ファヨイル",
+        "japanese": "火曜日"
+      },
+      {
+        "id": "dq_043",
+        "korean": "수요일",
+        "pronunciation": "スヨイル",
+        "japanese": "水曜日"
+      },
+      {
+        "id": "dq_044",
+        "korean": "목요일",
+        "pronunciation": "モギョイル",
+        "japanese": "木曜日"
+      },
+      {
+        "id": "dq_045",
+        "korean": "금요일",
+        "pronunciation": "クミョイル",
+        "japanese": "金曜日"
+      },
+      {
+        "id": "dq_046",
+        "korean": "토요일",
+        "pronunciation": "トヨイル",
+        "japanese": "土曜日"
+      },
+      {
+        "id": "dq_047",
+        "korean": "일요일",
+        "pronunciation": "イリョイル",
+        "japanese": "日曜日"
+      },
+      {
+        "id": "dq_048",
+        "korean": "주말",
+        "pronunciation": "チュマル",
+        "japanese": "週末"
+      },
+      {
+        "id": "dq_049",
+        "korean": "평일",
+        "pronunciation": "ピョンイル",
+        "japanese": "平日"
+      },
+      {
+        "id": "dq_050",
+        "korean": "오늘",
+        "pronunciation": "オヌル",
+        "japanese": "今日"
+      },
+      {
+        "id": "dq_051",
+        "korean": "내일",
+        "pronunciation": "ネイル",
+        "japanese": "明日"
+      },
+      {
+        "id": "dq_052",
+        "korean": "어제",
+        "pronunciation": "オジェ",
+        "japanese": "昨日"
+      }
+    ],
+    "reviewed": true,
+    "notes": "曜日7つに、よく一緒に使う 주말・평일・오늘・내일・어제 を加えた。カタカナは連音化を反映した（월요일＝ウォリョイル）。説明文の「日本語と同じ漢字の音」は不正確との指摘（ChatGPT）を受けて、「同じ漢字に由来する言葉」に直した／確認：ChatGPT（2026-11-20）"
+  },
+  {
+    "id": "drill_004",
+    "titleJa": "値段",
+    "introJa": "値段は漢数詞で言い、最後に 원（ウォン）を付けます。1000は 천、10000は 만 です（일천・일만 とは言いません）。数字は、万の単位で区切って書きます（만 오천 원）。",
+    "questionCount": 10,
+    "items": [
+      {
+        "id": "dq_061",
+        "korean": "오백 원",
+        "pronunciation": "オベ グォン",
+        "japanese": "500ウォン",
+        "digits": "500"
+      },
+      {
+        "id": "dq_062",
+        "korean": "천 원",
+        "pronunciation": "チョ ヌォン",
+        "japanese": "1,000ウォン",
+        "digits": "1000"
+      },
+      {
+        "id": "dq_063",
+        "korean": "천오백 원",
+        "pronunciation": "チョノベ グォン",
+        "japanese": "1,500ウォン",
+        "digits": "1500"
+      },
+      {
+        "id": "dq_064",
+        "korean": "이천 원",
+        "pronunciation": "イチョ ヌォン",
+        "japanese": "2,000ウォン",
+        "digits": "2000"
+      },
+      {
+        "id": "dq_065",
+        "korean": "삼천 원",
+        "pronunciation": "サムチョ ヌォン",
+        "japanese": "3,000ウォン",
+        "digits": "3000"
+      },
+      {
+        "id": "dq_066",
+        "korean": "사천오백 원",
+        "pronunciation": "サチョノベ グォン",
+        "japanese": "4,500ウォン",
+        "digits": "4500"
+      },
+      {
+        "id": "dq_067",
+        "korean": "오천 원",
+        "pronunciation": "オチョ ヌォン",
+        "japanese": "5,000ウォン",
+        "digits": "5000"
+      },
+      {
+        "id": "dq_068",
+        "korean": "육천 원",
+        "pronunciation": "ユクチョ ヌォン",
+        "japanese": "6,000ウォン",
+        "digits": "6000"
+      },
+      {
+        "id": "dq_069",
+        "korean": "칠천 원",
+        "pronunciation": "チルチョ ヌォン",
+        "japanese": "7,000ウォン",
+        "digits": "7000"
+      },
+      {
+        "id": "dq_070",
+        "korean": "팔천오백 원",
+        "pronunciation": "パルチョノベ グォン",
+        "japanese": "8,500ウォン",
+        "digits": "8500"
+      },
+      {
+        "id": "dq_071",
+        "korean": "만 원",
+        "pronunciation": "マ ヌォン",
+        "japanese": "10,000ウォン",
+        "digits": "10000"
+      },
+      {
+        "id": "dq_072",
+        "korean": "만 오천 원",
+        "pronunciation": "マ ノチョ ヌォン",
+        "japanese": "15,000ウォン",
+        "digits": "15000"
+      },
+      {
+        "id": "dq_073",
+        "korean": "이만 원",
+        "pronunciation": "イマ ヌォン",
+        "japanese": "20,000ウォン",
+        "digits": "20000"
+      },
+      {
+        "id": "dq_074",
+        "korean": "삼만 오천 원",
+        "pronunciation": "サムマ ノチョ ヌォン",
+        "japanese": "35,000ウォン",
+        "digits": "35000"
+      }
+    ],
+    "reviewed": true,
+    "notes": "カフェやコンビニでよく見る値段を選んだ。値段は一息で言うので、数字と 원 の間（만 오천 のような数字の中の区切りも）で起こる連音化をカタカナに反映した。区切りの位置は韓国語に合わせた（오백 원＝オベ グォン、천 원＝チョ ヌォン。CONTENT_STYLE 1章）。分かち書きは、数は万の単位で区切る書き方にした（空白の違いはプログラムが吸収する）／確認：ChatGPT（2026-11-20）"
+  }
+]

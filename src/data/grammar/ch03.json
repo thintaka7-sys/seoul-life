@@ -8,12 +8,22 @@
       {
         "korean": "아메리카노 주세요.",
         "pronunciation": "アメリカノ ジュセヨ",
-        "japanese": "アメリカーノをください。"
+        "japanese": "アメリカーノをください。",
+        "blank": "주세요",
+        "blankWrong": [
+          "가세요",
+          "계세요"
+        ]
       },
       {
         "korean": "물 주세요.",
         "pronunciation": "ムル ジュセヨ",
-        "japanese": "水をください。"
+        "japanese": "水をください。",
+        "blank": "주세요",
+        "blankWrong": [
+          "가세요",
+          "계세요"
+        ]
       },
       {
         "korean": "이거 주세요.",
@@ -22,7 +32,8 @@
       }
     ],
     "reviewed": true,
-    "notes": "確認：ChatGPT（2026-11-18）"
+    "notes": "確認：ChatGPT（2026-11-18、例文と説明）／2026-11-20：connectionJa と、穴埋め用の blank・blankWrong を追加／確認：ChatGPT（2026-11-20）",
+    "connectionJa": "ほしい物の名前の後ろに、空白を入れて 주세요 を付けます（아메리카노 주세요）。"
   },
   {
     "id": "grammar_003",
@@ -33,15 +44,24 @@
       {
         "korean": "아메리카노 한 잔 주세요.",
         "pronunciation": "アメリカノ ハン ジャン ジュセヨ",
-        "japanese": "アメリカーノを1杯ください。"
+        "japanese": "アメリカーノを1杯ください。",
+        "blank": "한",
+        "blankWrong": [
+          "하나"
+        ]
       },
       {
         "korean": "커피 두 잔 주세요.",
         "pronunciation": "コピ ドゥ ジャン ジュセヨ",
-        "japanese": "コーヒーを2杯ください。"
+        "japanese": "コーヒーを2杯ください。",
+        "blank": "두",
+        "blankWrong": [
+          "둘"
+        ]
       }
     ],
     "reviewed": true,
-    "notes": "確認：ChatGPT（2026-11-18）"
+    "notes": "確認：ChatGPT（2026-11-18、例文と説明）／2026-11-20：connectionJa と、穴埋め用の blank・blankWrong を追加／確認：ChatGPT（2026-11-20）",
+    "connectionJa": "하나→한、둘→두、셋→세、넷→네 のように、後ろに 잔・개 などの単位が付くと形が変わります。順番は「物の名前 → 数 → 単位」です。"
   }
 ]

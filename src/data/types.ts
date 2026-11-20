@@ -185,10 +185,7 @@ export interface FreeAnswer {
 export interface ConversationTurn {
   /** "decision" なら選択の往復。省略したら問題の往復 */
   kind?: 'decision'
-  /**
-   * 何を言えばよいか（日本語。例：コーヒーを注文しよう）。問題の往復では必須。
-   * ※ 1日目の会話が新しい形で届くまでの間だけ、task のない問題の往復を「古い形」（正解が複数あってよい）として読み込む
-   */
+  /** 何を言えばよいか（日本語。例：コーヒーを注文しよう）。問題の往復では必須、選択の往復では任意 */
   task?: string
   /** プレイヤーが答える前の台詞（2つ目以降の往復では省略できる） */
   lines: ConversationLine[]

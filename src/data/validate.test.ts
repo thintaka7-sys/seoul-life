@@ -34,13 +34,14 @@ const validConversation = {
   character: 'cafe_staff',
   turns: [
     {
+      task: 'コーヒーを注文しよう',
       lines: [
         { speaker: 'cafe_staff', korean: '뭐 드릴까요?', pronunciation: 'ムォ ドゥリルッカヨ', japanese: '何になさいますか？' },
         { speaker: 'player', korean: '커피 주세요.', pronunciation: 'コピ ジュセヨ', japanese: 'コーヒーをください。' },
       ],
       choices: [
         { korean: '커피 주세요.', pronunciation: 'コピ ジュセヨ', japanese: 'コーヒーをください。', correct: true },
-        { korean: '집에 가요.', pronunciation: 'チベ ガヨ', japanese: '家に帰ります。', correct: false },
+        { korean: '집에 가요.', pronunciation: 'チベ ガヨ', japanese: '家に帰ります。', correct: false, reply: [{ speaker: 'cafe_staff', korean: '네?', pronunciation: 'ネ', japanese: 'はい？' }] },
       ],
       freeAnswer: { prompt: 'コーヒーをください', answers: ['커피 주세요.', '커피 한 잔 주세요.'] },
     },
@@ -56,7 +57,9 @@ const staffLine = (korean: string, pronunciation: string, extra: Record<string, 
   ...extra,
 })
 const correctChoice = { korean: '네.', pronunciation: 'ネ', japanese: 'はい。', correct: true }
-const wrongChoice = { korean: '아니요.', pronunciation: 'アニヨ', japanese: 'いいえ。', correct: false }
+/** 不正解の選択肢（問題の往復では反応 reply が必須） */
+const wrongChoice = { korean: '아니요.', pronunciation: 'アニヨ', japanese: 'いいえ。', correct: false, reply: [staffLine('네?', 'ネ')] }
+const { reply: _noReply, ...wrongNoReply } = wrongChoice
 
 /** 1往復目の中身を差し替えた会話 */
 const withTurn0 = (turn: Record<string, unknown>) => ({ ...validConversation, turns: [turn] })
@@ -257,7 +260,7 @@ describe('会話の検証', () => {
   })
 
   it('正解の選択肢がないと除外される', () => {
-    const choices = [{ korean: '집에 가요.', pronunciation: 'チベ ガヨ', japanese: '家に帰ります。', correct: false }]
+    const choices = [{ korean: '집에 가요.', pronunciation: 'チベ ガヨ', japanese: '家に帰ります。', correct: false, reply: [staffLine('네?', 'ネ')] }]
     expect(issuesOf('conversations', withTurn0({ ...turn0, choices }))[0]?.path).toBe('turns[0].choices')
   })
 
@@ -282,7 +285,7 @@ describe('会話の検証', () => {
 describe('会話の往復（turns）の検証', () => {
   const twoTurns = (second: Record<string, unknown>) => ({
     ...validConversation,
-    turns: [{ lines: [staffLine('네?', 'ネ')], choices: [correctChoice, wrongChoice] }, second],
+    turns: [{ task: '返事をしよう', lines: [staffLine('네?', 'ネ')], choices: [correctChoice, wrongChoice] }, second],
   })
 
   it('数往復の会話と、選択肢の反応（reply）、締めの台詞だけの最後の往復を書ける', () => {
@@ -290,11 +293,12 @@ describe('会話の往復（turns）の検証', () => {
       ...validConversation,
       turns: [
         {
+          task: 'はいと答えよう',
           lines: [staffLine('네?', 'ネ', { expression: 'smile' })],
           choices: [{ ...correctChoice, reply: [staffLine('네.', 'ネ')] }, { ...wrongChoice, reply: [staffLine('네?', 'ネ', { expression: 'troubled' })] }],
           freeAnswer: { prompt: 'はい', answers: ['네.'], reply: [staffLine('네.', 'ネ')] },
         },
-        { choices: [correctChoice] },
+        { task: 'もう一度はいと答えよう', choices: [correctChoice] },
         { lines: [staffLine('네.', 'ネ')] },
       ],
     }
@@ -302,8 +306,8 @@ describe('会話の往復（turns）の検証', () => {
   })
 
   it('2つ目以降の返事のある往復は lines を省略できるが、最初の往復は lines が必要', () => {
-    expect(issuesOf('conversations', twoTurns({ choices: [correctChoice] }))).toEqual([])
-    expect(issuesOf('conversations', withTurn0({ choices: [correctChoice] }))[0]?.path).toBe('turns[0].lines')
+    expect(issuesOf('conversations', twoTurns({ task: 'はい', choices: [correctChoice] }))).toEqual([])
+    expect(issuesOf('conversations', withTurn0({ task: 'はい', choices: [correctChoice] }))[0]?.path).toBe('turns[0].lines')
   })
 
   it('返事のない往復は最後だけ。台詞が1つ以上必要', () => {
@@ -899,7 +903,7 @@ describe('会話の問題の往復（task あり）', () => {
   })
 
   it('不正解の選択肢に反応（reply）がなければエラー', () => {
-    const issues = issuesOf('conversations', question([correctChoice, wrongChoice]))
+    const issues = issuesOf('conversations', question([correctChoice, wrongNoReply]))
     expect(issues).toHaveLength(1)
     expect(issues[0]?.path).toBe('turns[0].choices[1].reply')
   })
@@ -917,9 +921,16 @@ describe('会話の問題の往復（task あり）', () => {
     expect(issuesOf('conversations', conv)[0]?.message).toContain('kind・task')
   })
 
-  it('移行の間：task のない往復は前の形（正解が複数・不正解の反応なし）でも通る', () => {
-    const second = { ...correctChoice, korean: '예.', pronunciation: 'イェ' }
-    expect(issuesOf('conversations', withTurn0({ lines: turn0.lines, choices: [correctChoice, second, wrongChoice] }))).toEqual([])
+  it('問題の往復で task（言うこと）がなければエラー（移行の間の扱いは Phase 2.5 区切り4でなくした）', () => {
+    const issues = issuesOf('conversations', withTurn0({ lines: turn0.lines, choices: [correctChoice, wrongChoice] }))
+    expect(issues).toHaveLength(1)
+    expect(issues[0]?.path).toBe('turns[0].task')
+  })
+
+  it('選択の往復の task は任意', () => {
+    const yes = { korean: '네.', pronunciation: 'ネ', japanese: 'はい。', reply: [staffLine('네.', 'ネ')] }
+    const no = { korean: '아니요.', pronunciation: 'アニヨ', japanese: 'いいえ。', reply: [staffLine('네.', 'ネ')] }
+    expect(issuesOf('conversations', withTurn0({ kind: 'decision', lines: turn0.lines, choices: [yes, no] }))).toEqual([])
   })
 })
 

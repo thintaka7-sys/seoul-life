@@ -2324,3 +2324,15 @@ rt {
   background: var(--color-warn-bg);
   color: var(--color-warn-text);
 }
+
+/* 文法カードの「つなげ方」（connectionJa。Phase 2.5） */
+.learn-card__connection {
+  padding: 8px 12px;
+  border-left: 4px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-soft);
+}
+
+.learn-card__connection p {
+  margin: 0;
+}
