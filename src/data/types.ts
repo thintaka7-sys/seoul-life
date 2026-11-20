@@ -444,6 +444,12 @@ export interface Balance {
     hangulLesson: number
     /** リスニングの問題に初めて正解したとき（問題ごと） */
     listening: number
+    /** 今日の復習で、期限の来た問題に正解したとき */
+    review: number
+    /** 基礎ドリルの問題に初めて正解したとき（問題ごと） */
+    drillItem: number
+    /** 章末テストに初めて合格したとき */
+    chapterTest: number
   }
   /** フリガナを「おすすめ」設定でいつも表示する最後の章 */
   furiganaAlwaysUntilChapter: number
@@ -459,6 +465,22 @@ export interface Balance {
   hangulPassPercent: number
   /** リスニングの1回の問題数 */
   listeningQuestionsPerRound: number
+  /** 復習（GAME_SPEC 7-5） */
+  review: {
+    /** 次の出題までの間隔（日）。学んだ日・間違えた日から1つ目の間隔で出し、正解するたびに次の間隔へ延ばす（最後の間隔はくり返す） */
+    intervalsDays: number[]
+    /** この日数の間隔で出た問題に正解したら「覚えた」にする */
+    masteredDays: number
+    /** 今日の復習の、1日の問題数の上限 */
+    dailyLimit: number
+  }
+  /** 「練習」の1回の問題数 */
+  practiceQuestions: number
+  /** 基礎ドリルの1回の問題数（ドリルの questionCount を省略したとき） */
+  drillQuestions: number
+  /** 章末テストの問題数・合格の基準（テストの questionCount・passPercent を省略したとき） */
+  testQuestions: number
+  testPassPercent: number
 }
 
 /** 検証で見つかった問題 */

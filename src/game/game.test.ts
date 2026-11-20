@@ -1,22 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { Balance, GameEvent } from '../data/types'
+import { DEFAULT_BALANCE } from '../data/validate'
+import { daysBetween } from '../learning/review/dates'
+import { isMastered } from '../learning/review/review'
 import { createNewSave, type SaveData } from '../storage/saveData'
 import { allEventsCompleted, backgroundAt, completedEventsAt, conversationsOf, eventsOfDay, nextEvent, nextEventAt, playableStep, resumeStep, stepProgress, vocabularyOf } from './events/events'
-import { advanceEvent, clearConversationTurn, learnItems, passHangulLesson, recordListeningCorrect, startEvent } from './progression/progression'
+import { advanceEvent, answerReview, clearConversationTurn, learnItems, passHangulLesson, recordListeningCorrect, startEvent } from './progression/progression'
 
 const T0 = '2026-11-18T10:00:00.000Z'
 const T1 = '2026-11-18T10:05:00.000Z'
 
-const balance: Balance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3 },
-  furiganaAlwaysUntilChapter: 3,
-  initialLocations: ['home', 'cafe'],
-  startLocation: 'home',
-  writeAttemptsBeforeReveal: 2,
-  hangulQuizQuestions: 8,
-  hangulPassPercent: 80,
-  listeningQuestionsPerRound: 5,
-}
+const balance: Balance = DEFAULT_BALANCE
 
 const ev = (id: string, location: string, requires: string[], steps = 2): GameEvent => ({
   id,
@@ -121,9 +115,71 @@ describe('進行と経験値', () => {
     expect(c4.save.learning.conversations['cafe_001#1']).toEqual({ choice: true, write: false })
   })
 
-  it('「答えを見る」で進んだ会話には経験値も記録も付けない', () => {
+  it('「答えを見る」で進んだ会話には経験値も正解の記録も付けず、「間違えた」として翌日の復習に入れる', () => {
     const save = createNewSave(T0)
-    expect(clearConversationTurn(save, 'cafe_001', 0, 'revealed', balance, T1)).toEqual({ save, reward: { xp: 0, newWords: 0 } })
+    const result = clearConversationTurn(save, 'cafe_001', 0, 'revealed', balance, T1)
+    expect(result.reward).toEqual({ xp: 0, newWords: 0 })
+    expect(result.save.stats.xp).toBe(0)
+    expect(result.save.learning.conversations).toEqual({})
+    expect(result.save.learning.review).toEqual({ 'turn:cafe_001#0': { stage: 0, due: '2026-11-19', correct: 0, wrong: 1, lastAt: null } })
+  })
+
+  it('正解した往復と、初めて覚えた単語・文法は、翌日の復習に入る（すでにある記録は変えない）', () => {
+    const learned = learnItems(createNewSave(T0), { vocabulary: ['vocab_001'], grammar: ['grammar_001'] }, 1, balance, T0).save
+    expect(Object.keys(learned.learning.review).sort()).toEqual(['grammar:grammar_001', 'word:vocab_001'])
+    expect(learned.learning.review['word:vocab_001']?.due).toBe('2026-11-19')
+    const cleared = clearConversationTurn(learned, 'cafe_001', 1, 'choice', balance, T1).save
+    expect(cleared.learning.review['turn:cafe_001#1']).toEqual({ stage: 0, due: '2026-11-19', correct: 0, wrong: 0, lastAt: null })
+    const again = clearConversationTurn(cleared, 'cafe_001', 1, 'write', balance, '2026-11-25T10:00:00.000Z').save
+    expect(again.learning.review['turn:cafe_001#1']?.due).toBe('2026-11-19')
+  })
+})
+
+describe('復習の問題に答える（answerReview）', () => {
+  const key = 'word:vocab_001'
+  const learned = learnItems(createNewSave(T0), { vocabulary: ['vocab_001'], grammar: [] }, 1, balance, T0).save
+  const day = (d: string) => `2026-11-${d}T03:00:00.000Z`
+
+  it('期限前の今日の復習・練習で正解しても、予定は変わらない', () => {
+    expect(answerReview(learned, key, true, 'review', balance, day('18')).save).toBe(learned)
+    expect(answerReview(learned, key, true, 'practice', balance, day('25')).save).toBe(learned)
+  })
+
+  it('期限の来た今日の復習で正解すると、間隔を延ばして経験値（1日 → 3日 → 7日 → 14日 → 30日）。14日の間隔で正解したら「覚えた」', () => {
+    let save = learned
+    let today = '2026-11-19'
+    const gaps: number[] = []
+    const mastered: boolean[] = []
+    for (let i = 0; i < 5; i++) {
+      const result = answerReview(save, key, true, 'review', balance, `${today}T03:00:00.000Z`)
+      expect(result.reward.xp).toBe(balance.xp.review)
+      save = result.save
+      const record = save.learning.review[key]
+      if (record === undefined) throw new Error('記録がない')
+      gaps.push(daysBetween(today, record.due))
+      mastered.push(isMastered(record, balance.review))
+      today = record.due
+    }
+    expect(gaps).toEqual([3, 7, 14, 30, 30])
+    expect(mastered).toEqual([false, false, false, true, true])
+    expect(save.learning.review[key]).toMatchObject({ stage: 5, correct: 5, wrong: 0 })
+  })
+
+  it('期限の来た今日の復習で間違えると、翌日に戻す（経験値なし）', () => {
+    const result = answerReview(learned, key, false, 'review', balance, day('19'))
+    expect(result.reward.xp).toBe(0)
+    expect(result.save.learning.review[key]).toMatchObject({ stage: 0, due: '2026-11-20', wrong: 1, lastAt: day('19') })
+  })
+
+  it('練習で間違えると、翌日の復習に戻す。今日の復習の上限には数えない（lastAt は変えない）', () => {
+    const result = answerReview(learned, key, false, 'practice', balance, day('25'))
+    expect(result.reward.xp).toBe(0)
+    expect(result.save.learning.review[key]).toMatchObject({ stage: 0, due: '2026-11-26', wrong: 1, lastAt: null })
+  })
+
+  it('記録のない問題（ドリルなど）を間違えると、新しく復習に入れる', () => {
+    expect(answerReview(learned, 'drill:dq_001', false, 'practice', balance, day('25')).save.learning.review['drill:dq_001']).toEqual({ stage: 0, due: '2026-11-26', correct: 0, wrong: 1, lastAt: null })
+    expect(answerReview(learned, 'drill:dq_001', true, 'practice', balance, day('25')).save).toBe(learned)
   })
 })
 

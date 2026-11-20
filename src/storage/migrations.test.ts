@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MIGRATIONS, migrate } from './migrations'
-import { CURRENT_SAVE_VERSION, isSaveData, type SaveDataV1, type SaveDataV2, type SaveDataV3 } from './saveData'
+import { CURRENT_SAVE_VERSION, isSaveData, type SaveData, type SaveDataV1, type SaveDataV2, type SaveDataV3, type SaveDataV4 } from './saveData'
 import { SAVE_KEY, loadSave } from './saveStore'
 import { MemoryStorage } from './testing'
 
@@ -156,10 +156,9 @@ describe('v3 → v4', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.data).toEqual({ ...v3, version: 4, learning: { ...v3.learning, hangul: {}, listening: {} } })
-    expect(isSaveData(result.data)).toBe(true)
   })
 
-  it('保存されている v3 のデータを読み込むと v4 になる', () => {
+  it('保存されている v3 のデータを読み込むと、v4 を経て今のバージョンになる', () => {
     const storage = new MemoryStorage()
     storage.setItem(SAVE_KEY, JSON.stringify(v3))
     const result = loadSave(storage)
@@ -169,12 +168,64 @@ describe('v3 → v4', () => {
     expect(result.data.stats.xp).toBe(45)
   })
 
-  it('v4 の記録の値が正しくなければ、壊れたデータとして扱う', () => {
-    const v4 = { ...v3, version: 4, learning: { ...v3.learning, hangul: { hangul_001: { passedAt: 'x', bestScore: 80 } }, listening: {} } }
-    expect(isSaveData(v4)).toBe(false)
-    const over = { ...v4, learning: { ...v4.learning, hangul: { hangul_001: { passedAt: v3.createdAt, bestScore: 120 } } } }
+  it('ハングル・リスニングの記録の値が正しくなければ、壊れたデータとして扱う', () => {
+    const migrated = migrate(structuredClone(v3) as unknown as Record<string, unknown>, MIGRATIONS, CURRENT_SAVE_VERSION)
+    if (!migrated.ok) throw new Error(migrated.detail)
+    const v5 = migrated.data as unknown as SaveData
+    const bad = { ...v5, learning: { ...v5.learning, hangul: { hangul_001: { passedAt: 'x', bestScore: 80 } } } }
+    expect(isSaveData(bad)).toBe(false)
+    const over = { ...v5, learning: { ...v5.learning, hangul: { hangul_001: { passedAt: v3.createdAt, bestScore: 120 } } } }
     expect(isSaveData(over)).toBe(false)
-    const ok = { ...v4, learning: { ...v4.learning, hangul: { hangul_001: { passedAt: v3.createdAt, bestScore: 100 } }, listening: { 'word:vocab_001': { correctAt: v3.createdAt } } } }
+    const ok = { ...v5, learning: { ...v5.learning, hangul: { hangul_001: { passedAt: v3.createdAt, bestScore: 100 } }, listening: { 'word:vocab_001': { correctAt: v3.createdAt } } } }
     expect(isSaveData(ok)).toBe(true)
+  })
+})
+
+describe('v4 → v5', () => {
+  const v4: SaveDataV4 = {
+    version: 4,
+    createdAt: '2026-11-18T10:00:00.000Z',
+    updatedAt: '2026-11-19T03:00:00.000Z',
+    progress: { currentLocationId: 'home', completedEvents: ['event_001'], activeEvent: null },
+    learning: {
+      words: { vocab_001: { learnedAt: '2026-11-18T03:00:00.000Z', chapter: 1 } },
+      grammar: { grammar_001: { learnedAt: '2026-11-18T04:00:00.000Z', chapter: 1 } },
+      conversations: { 'home_003#0': { choice: true, write: false }, 'home_003#1': { choice: false, write: false } },
+      hangul: { hangul_001: { passedAt: '2026-11-18T05:00:00.000Z', bestScore: 100 } },
+      listening: {},
+    },
+    stats: { xp: 80 },
+  }
+
+  it('覚えた単語・文法と正解した往復を、覚えた日（往復は最後に保存した日）の翌日から復習に出す。ほかはそのまま', () => {
+    const result = migrate(structuredClone(v4) as unknown as Record<string, unknown>, MIGRATIONS, 5)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const fresh = (due: string) => ({ stage: 0, due, correct: 0, wrong: 0, lastAt: null })
+    expect(result.data).toEqual({
+      ...v4,
+      version: 5,
+      learning: {
+        ...v4.learning,
+        review: { 'word:vocab_001': fresh('2026-11-19'), 'grammar:grammar_001': fresh('2026-11-19'), 'turn:home_003#0': fresh('2026-11-20') },
+        drills: {},
+        tests: {},
+      },
+      daily: { stamps: [] },
+    })
+    expect(isSaveData(result.data)).toBe(true)
+  })
+
+  it('v5 の記録の値が正しくなければ、壊れたデータとして扱う', () => {
+    const migrated = migrate(structuredClone(v4) as unknown as Record<string, unknown>, MIGRATIONS, 5)
+    if (!migrated.ok) throw new Error(migrated.detail)
+    const v5 = migrated.data as unknown as SaveData
+    const withReview = (r: unknown) => ({ ...v5, learning: { ...v5.learning, review: { 'word:vocab_001': r } } })
+    expect(isSaveData(withReview({ stage: 0, due: '2026/11/19', correct: 0, wrong: 0, lastAt: null }))).toBe(false)
+    expect(isSaveData(withReview({ stage: -1, due: '2026-11-19', correct: 0, wrong: 0, lastAt: null }))).toBe(false)
+    expect(isSaveData(withReview({ stage: 1, due: '2026-11-19', correct: 1, wrong: 0, lastAt: v4.updatedAt }))).toBe(true)
+    expect(isSaveData({ ...v5, daily: { stamps: ['2026-11-19', 'x'] } })).toBe(false)
+    expect(isSaveData({ ...v5, learning: { ...v5.learning, tests: { test_001: { passedAt: null, bestScore: 60 } } } })).toBe(true)
+    expect(isSaveData({ ...v5, learning: { ...v5.learning, tests: { test_001: { passedAt: null, bestScore: 160 } } } })).toBe(false)
   })
 })

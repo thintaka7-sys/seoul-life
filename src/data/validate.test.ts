@@ -89,7 +89,7 @@ const validEvent = {
 }
 
 const validBalance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3 },
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3, review: 3, drillItem: 2, chapterTest: 30 },
   furiganaAlwaysUntilChapter: 3,
   initialLocations: ['home', 'cafe'],
   startLocation: 'home',
@@ -97,6 +97,11 @@ const validBalance = {
   hangulQuizQuestions: 8,
   hangulPassPercent: 80,
   listeningQuestionsPerRound: 5,
+  review: { intervalsDays: [1, 3, 7, 14, 30], masteredDays: 14, dailyLimit: 20 },
+  practiceQuestions: 10,
+  drillQuestions: 10,
+  testQuestions: 10,
+  testPassPercent: 80,
 }
 
 function issuesOf(kind: ContentKind, item: unknown) {
@@ -563,6 +568,17 @@ describe('balance の検証', () => {
   it('ファイルがなければ既定の値を使う', () => {
     const result = loadContent({ ...base, balance: {} })
     expect(result.balance).toEqual(DEFAULT_BALANCE)
+  })
+
+  it.each([
+    [{ intervalsDays: [], masteredDays: 14, dailyLimit: 20 }, 'review.intervalsDays'],
+    [{ intervalsDays: [1, 3, 3], masteredDays: 3, dailyLimit: 20 }, 'review.intervalsDays'],
+    [{ intervalsDays: [1, 3, 7], masteredDays: 14, dailyLimit: 20 }, 'review.masteredDays'],
+    [{ intervalsDays: [1, 3, 7], masteredDays: 7, dailyLimit: 0 }, 'review.dailyLimit'],
+  ])('復習の間隔の誤り %#', (review, path) => {
+    const result = loadContent({ ...base, balance: { 'balance.json': { ...validBalance, review } } })
+    expect(result.balance).toEqual(DEFAULT_BALANCE)
+    expect(result.issues[0]?.path).toBe(path)
   })
 })
 

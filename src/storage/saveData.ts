@@ -3,7 +3,9 @@
 // 2. migrations.ts に「旧バージョン → 新バージョン」の変換を追加する
 // 3. 変換のテストを書く
 
-export const CURRENT_SAVE_VERSION = 4
+import { isDateString } from '../learning/review/dates'
+
+export const CURRENT_SAVE_VERSION = 5
 
 /** v1（Phase 0）。移行のために型を残しておく */
 export interface SaveDataV1 {
@@ -41,6 +43,36 @@ export interface HangulLessonRecord {
 export interface ListeningRecord {
   /** 初めて正解した日時（ISO形式） */
   correctAt: string
+}
+
+/**
+ * 復習の記録（GAME_SPEC 7-5）。問題ごと（キーは reviewKey：word:vocab_001・grammar:grammar_001・turn:cafe_001#0・drill:dq_001）
+ */
+export interface ReviewRecord {
+  /** 続けて正解した回数。次の出題までの間隔は balance の review.intervalsDays[stage]（最後の間隔はくり返す） */
+  stage: number
+  /** 次に出題する日（端末の日付。YYYY-MM-DD） */
+  due: string
+  /** 正解した回数（今日の復習で） */
+  correct: number
+  /** 間違えた回数（今日の復習・練習・ドリル・テスト・「答えを見る」） */
+  wrong: number
+  /** 最後に今日の復習で答えた日時（ISO形式）。まだなら null。1日の上限の計算に使う */
+  lastAt: string | null
+}
+
+/** 基礎ドリルの問題の記録（経験値を初回だけにするため） */
+export interface DrillRecord {
+  /** 初めて正解した日時（ISO形式） */
+  correctAt: string
+}
+
+/** 章末テストの記録 */
+export interface TestRecord {
+  /** 初めて合格した日時（ISO形式）。まだ合格していなければ null */
+  passedAt: string | null
+  /** いちばん良い点（0〜100） */
+  bestScore: number
 }
 
 /** v2（Phase 1）・v3（Phase 1.5）。v3 は会話の記録を往復ごとにした（キーが「会話ID#往復の番号」） */
@@ -91,8 +123,25 @@ export interface SaveDataV4 extends Omit<SaveDataBody, 'learning'> {
   }
 }
 
+/** v5（Phase 2.5）：復習・ドリル・章末テストの記録と、毎日のスタンプを追加 */
+export interface SaveDataV5 extends Omit<SaveDataV4, 'version' | 'learning'> {
+  version: 5
+  learning: SaveDataV4['learning'] & {
+    /** 復習のキー → 記録 */
+    review: Record<string, ReviewRecord>
+    /** ドリル・テストの問題ID（dq_001）→ 記録 */
+    drills: Record<string, DrillRecord>
+    /** 章末テストのID → 記録 */
+    tests: Record<string, TestRecord>
+  }
+  daily: {
+    /** スタンプを押した日付（端末の日付。YYYY-MM-DD。古い順） */
+    stamps: string[]
+  }
+}
+
 /** 現在のバージョンのセーブデータ */
-export type SaveData = SaveDataV4
+export type SaveData = SaveDataV5
 
 /** 会話の記録のキー（会話ID#往復の番号） */
 export function conversationTurnKey(conversationId: string, turn: number): string {
@@ -101,12 +150,13 @@ export function conversationTurnKey(conversationId: string, turn: number): strin
 
 export function createNewSave(nowIso: string): SaveData {
   return {
-    version: 4,
+    version: 5,
     createdAt: nowIso,
     updatedAt: nowIso,
     progress: { currentLocationId: null, completedEvents: [], activeEvent: null },
-    learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {} },
+    learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {}, review: {}, drills: {}, tests: {} },
     stats: { xp: 0 },
+    daily: { stamps: [] },
   }
 }
 
@@ -139,8 +189,22 @@ function isHangulLessonRecord(v: unknown): boolean {
   return isObj(v) && isIsoDate(v['passedAt']) && isNonNegativeInt(score) && score <= 100
 }
 
-function isListeningRecord(v: unknown): boolean {
+/** 初めて正解した日時の記録（リスニング・ドリル） */
+function isCorrectAtRecord(v: unknown): boolean {
   return isObj(v) && isIsoDate(v['correctAt'])
+}
+
+function isReviewRecord(v: unknown): boolean {
+  if (!isObj(v)) return false
+  const lastAt = v['lastAt']
+  return isNonNegativeInt(v['stage']) && isDateString(v['due']) && isNonNegativeInt(v['correct']) && isNonNegativeInt(v['wrong']) && (lastAt === null || isIsoDate(lastAt))
+}
+
+function isTestRecord(v: unknown): boolean {
+  if (!isObj(v)) return false
+  const passedAt = v['passedAt']
+  const score = v['bestScore']
+  return (passedAt === null || isIsoDate(passedAt)) && isNonNegativeInt(score) && score <= 100
 }
 
 /** 現在のバージョンのセーブデータとして正しい形かを確かめる */
@@ -164,8 +228,14 @@ export function isSaveData(v: unknown): v is SaveData {
   if (!isRecordOf(learning['grammar'], isLearnedRecord)) return false
   if (!isRecordOf(learning['conversations'], isConversationRecord)) return false
   if (!isRecordOf(learning['hangul'], isHangulLessonRecord)) return false
-  if (!isRecordOf(learning['listening'], isListeningRecord)) return false
+  if (!isRecordOf(learning['listening'], isCorrectAtRecord)) return false
+  if (!isRecordOf(learning['review'], isReviewRecord)) return false
+  if (!isRecordOf(learning['drills'], isCorrectAtRecord)) return false
+  if (!isRecordOf(learning['tests'], isTestRecord)) return false
 
   const stats = v['stats']
-  return isObj(stats) && isNonNegativeInt(stats['xp'])
+  if (!isObj(stats) || !isNonNegativeInt(stats['xp'])) return false
+
+  const daily = v['daily']
+  return isObj(daily) && Array.isArray(daily['stamps']) && daily['stamps'].every(isDateString)
 }

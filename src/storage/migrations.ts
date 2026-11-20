@@ -2,6 +2,8 @@
 // MIGRATIONS[n] は「バージョン n のデータ」を「バージョン n+1 のデータ」に変換する。
 // 形式を変えるたびに1つずつ追加し、古いものは消さない（何世代前のデータからでも順に移行できるようにする）。
 
+import { addDays, localDate } from '../learning/review/dates'
+
 export type SaveObject = Record<string, unknown>
 export type Migration = (data: SaveObject) => SaveObject
 export type MigrationTable = Readonly<Record<number, Migration>>
@@ -41,6 +43,26 @@ export const MIGRATIONS: MigrationTable = {
   3: (d) => {
     const learning = isObj(d['learning']) ? d['learning'] : {}
     return { ...d, version: 4, learning: { ...learning, hangul: {}, listening: {} } }
+  },
+  // v4（Phase 2）→ v5（Phase 2.5）：復習・ドリル・章末テストの記録と、スタンプを足す。
+  // それまでに覚えた単語・文法と、正解した会話の往復を、覚えた日の翌日から復習に出す（計画 Q4）。
+  // 往復の記録には日時がないので、最後に保存した日の翌日にする。1日の上限があるので、一度に出すぎることはない
+  4: (d) => {
+    const learning = isObj(d['learning']) ? d['learning'] : {}
+    const review: SaveObject = {}
+    const fresh = (learnedAt: unknown) => ({ stage: 0, due: addDays(localDate(typeof learnedAt === 'string' ? learnedAt : String(d['updatedAt'])), 1), correct: 0, wrong: 0, lastAt: null })
+    for (const [kind, field] of [
+      ['word', 'words'],
+      ['grammar', 'grammar'],
+    ] as const) {
+      const records = isObj(learning[field]) ? learning[field] : {}
+      for (const [id, record] of Object.entries(records)) review[`${kind}:${id}`] = fresh(isObj(record) ? record['learnedAt'] : undefined)
+    }
+    const turns = isObj(learning['conversations']) ? learning['conversations'] : {}
+    for (const [key, record] of Object.entries(turns)) {
+      if (isObj(record) && (record['choice'] === true || record['write'] === true)) review[`turn:${key}`] = fresh(undefined)
+    }
+    return { ...d, version: 5, learning: { ...learning, review, drills: {}, tests: {} }, daily: { stamps: [] } }
   },
 }
 

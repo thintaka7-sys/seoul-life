@@ -1324,7 +1324,7 @@ export interface LoadedContent {
 
 /** balance.json が読めなかったときに使う値（ゲームを止めないため） */
 export const DEFAULT_BALANCE: Balance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3 },
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3, review: 3, drillItem: 2, chapterTest: 30 },
   furiganaAlwaysUntilChapter: 3,
   initialLocations: ['home', 'cafe'],
   startLocation: 'home',
@@ -1332,6 +1332,11 @@ export const DEFAULT_BALANCE: Balance = {
   hangulQuizQuestions: 8,
   hangulPassPercent: 80,
   listeningQuestionsPerRound: 5,
+  review: { intervalsDays: [1, 3, 7, 14, 30], masteredDays: 14, dailyLimit: 20 },
+  practiceQuestions: 10,
+  drillQuestions: 10,
+  testQuestions: 10,
+  testPassPercent: 80,
 }
 
 const BALANCE_KEYS = [
@@ -1343,8 +1348,40 @@ const BALANCE_KEYS = [
   'hangulQuizQuestions',
   'hangulPassPercent',
   'listeningQuestionsPerRound',
+  'review',
+  'practiceQuestions',
+  'drillQuestions',
+  'testQuestions',
+  'testPassPercent',
 ] as const
-const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening'] as const
+const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening', 'review', 'drillItem', 'chapterTest'] as const
+const REVIEW_KEYS = ['intervalsDays', 'masteredDays', 'dailyLimit'] as const
+
+/** 復習の間隔など（balance.json の review） */
+function parseReviewBalance(raw: unknown, errs: FieldError[]): Balance['review'] | undefined {
+  if (!isObj(raw)) {
+    errs.push({ path: 'review', message: 'オブジェクト（{ }）にしてください' })
+    return undefined
+  }
+  checkKnownKeys(raw, REVIEW_KEYS, 'review', errs)
+  const before = errs.length
+  const rawIntervals = raw['intervalsDays']
+  let intervalsDays: number[] | undefined
+  if (!Array.isArray(rawIntervals) || rawIntervals.length === 0 || !rawIntervals.every((d): d is number => typeof d === 'number' && Number.isInteger(d) && d >= 1)) {
+    errs.push({ path: 'review.intervalsDays', message: '1以上の整数（日数）を1個以上並べた配列にしてください（例：[1, 3, 7, 14, 30]）' })
+  } else if (rawIntervals.some((d, i) => i > 0 && d <= (rawIntervals[i - 1] ?? 0))) {
+    errs.push({ path: 'review.intervalsDays', message: '間隔は、だんだん長くなるように並べてください' })
+  } else {
+    intervalsDays = rawIntervals
+  }
+  const masteredDays = integer(raw, 'masteredDays', 'review', errs, 1)
+  const dailyLimit = integer(raw, 'dailyLimit', 'review', errs, 1, 200)
+  if (intervalsDays !== undefined && masteredDays !== undefined && !intervalsDays.includes(masteredDays)) {
+    errs.push({ path: 'review.masteredDays', message: 'masteredDays は intervalsDays のどれかの日数にしてください' })
+  }
+  if (errs.length > before || intervalsDays === undefined || masteredDays === undefined || dailyLimit === undefined) return undefined
+  return { intervalsDays, masteredDays, dailyLimit }
+}
 
 function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Balance | undefined {
   if (!isObj(raw)) {
@@ -1367,10 +1404,16 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
   const hangulQuizQuestions = integer(raw, 'hangulQuizQuestions', '', errs, 1, 50)
   const hangulPassPercent = integer(raw, 'hangulPassPercent', '', errs, 0, 100)
   const listeningQuestionsPerRound = integer(raw, 'listeningQuestionsPerRound', '', errs, 1, 50)
+  const review = parseReviewBalance(raw['review'], errs)
+  const practiceQuestions = integer(raw, 'practiceQuestions', '', errs, 1, 50)
+  const drillQuestions = integer(raw, 'drillQuestions', '', errs, 1, 50)
+  const testQuestions = integer(raw, 'testQuestions', '', errs, 1, 50)
+  const testPassPercent = integer(raw, 'testPassPercent', '', errs, 0, 100)
   if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
     errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
   }
-  const { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening } = xp
+  const { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening, drillItem, chapterTest } = xp
+  const reviewXp = xp.review
   if (
     errs.length > 0 ||
     learnWord === undefined ||
@@ -1379,18 +1422,26 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     eventComplete === undefined ||
     hangulLesson === undefined ||
     listening === undefined ||
+    reviewXp === undefined ||
+    drillItem === undefined ||
+    chapterTest === undefined ||
     furiganaAlwaysUntilChapter === undefined ||
     initialLocations === undefined ||
     startLocation === undefined ||
     writeAttemptsBeforeReveal === undefined ||
     hangulQuizQuestions === undefined ||
     hangulPassPercent === undefined ||
-    listeningQuestionsPerRound === undefined
+    listeningQuestionsPerRound === undefined ||
+    review === undefined ||
+    practiceQuestions === undefined ||
+    drillQuestions === undefined ||
+    testQuestions === undefined ||
+    testPassPercent === undefined
   ) {
     return undefined
   }
   return {
-    xp: { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening },
+    xp: { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening, review: reviewXp, drillItem, chapterTest },
     furiganaAlwaysUntilChapter,
     initialLocations,
     startLocation,
@@ -1398,6 +1449,11 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     hangulQuizQuestions,
     hangulPassPercent,
     listeningQuestionsPerRound,
+    review,
+    practiceQuestions,
+    drillQuestions,
+    testQuestions,
+    testPassPercent,
   }
 }
 

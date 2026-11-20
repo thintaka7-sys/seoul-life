@@ -2,7 +2,9 @@
 // 経験値は「初めてのとき」だけ付ける（同じ問題の繰り返しで無制限に増えないように。GAME_SPEC 7-1）。
 
 import type { Balance, GameEvent } from '../../data/types'
-import { conversationTurnKey, type SaveData } from '../../storage/saveData'
+import { localDate } from '../../learning/review/dates'
+import { answerScheduled, freshRecord, isDue, recordMistake, reviewKey } from '../../learning/review/review'
+import { conversationTurnKey, type ReviewRecord, type SaveData } from '../../storage/saveData'
 import { playableStep, resumeStep } from '../events/events'
 
 export interface Reward {
@@ -20,6 +22,10 @@ const NO_REWARD: Reward = { xp: 0, newWords: 0 }
 
 function addXp(save: SaveData, xp: number, now: string): SaveData {
   return { ...save, updatedAt: now, stats: { ...save.stats, xp: save.stats.xp + xp } }
+}
+
+function withReview(save: SaveData, review: Record<string, ReviewRecord>): SaveData {
+  return { ...save, learning: { ...save.learning, review } }
 }
 
 /**
@@ -43,33 +49,72 @@ export function learnItems(
 ): Updated {
   const words = { ...save.learning.words }
   const grammar = { ...save.learning.grammar }
+  const review = { ...save.learning.review }
+  const today = localDate(now)
+  // 初めて覚えたものは、翌日から復習に出す（計画 Q4）
+  const startReview = (key: string) => {
+    if (review[key] === undefined) review[key] = freshRecord(today, balance.review)
+  }
   let newWords = 0
   for (const id of items.vocabulary) {
     if (words[id] !== undefined) continue
     words[id] = { learnedAt: now, chapter }
+    startReview(reviewKey('word', id))
     newWords++
   }
   for (const id of items.grammar) {
-    if (grammar[id] === undefined) grammar[id] = { learnedAt: now, chapter }
+    if (grammar[id] !== undefined) continue
+    grammar[id] = { learnedAt: now, chapter }
+    startReview(reviewKey('grammar', id))
   }
   const xp = newWords * balance.xp.learnWord
-  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, words, grammar } }
+  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, words, grammar, review } }
   return { save: addXp(next, xp, now), reward: { xp, newWords } }
 }
 
 /** 会話をどの方法で終えたか。revealed は「答えを見る」で進んだ場合（経験値なし） */
 export type ClearMethod = 'choice' | 'write' | 'revealed'
 
-/** 会話の1往復の正解を記録する。往復ごとに、選んで・書いて、それぞれ初めて正解したときだけ経験値 */
+/**
+ * 会話の1往復（問題の往復）の正解を記録する。往復ごとに、選んで・書いて、それぞれ初めて正解したときだけ経験値。
+ * 正解した往復は翌日から復習に出す。「答えを見る」で進んだ往復は、経験値を付けず「間違えた」として復習に入れる（計画 Q4）
+ */
 export function clearConversationTurn(save: SaveData, conversationId: string, turn: number, method: ClearMethod, balance: Balance, now: string): Updated {
-  if (method === 'revealed') return { save, reward: NO_REWARD }
   const key = conversationTurnKey(conversationId, turn)
+  const rKey = reviewKey('turn', key)
+  const today = localDate(now)
+  const currentReview = save.learning.review[rKey]
+  if (method === 'revealed') {
+    const review = { ...save.learning.review, [rKey]: recordMistake(currentReview, today, balance.review) }
+    return { save: { ...withReview(save, review), updatedAt: now }, reward: NO_REWARD }
+  }
+  const withTurnReview = currentReview === undefined ? withReview(save, { ...save.learning.review, [rKey]: freshRecord(today, balance.review) }) : save
   const record = save.learning.conversations[key] ?? { choice: false, write: false }
-  if (record[method]) return { save, reward: NO_REWARD }
+  if (record[method]) return { save: withTurnReview === save ? save : { ...withTurnReview, updatedAt: now }, reward: NO_REWARD }
   const xp = method === 'choice' ? balance.xp.conversationChoice : balance.xp.conversationWrite
   const conversations = { ...save.learning.conversations, [key]: { ...record, [method]: true } }
-  const next: SaveData = { ...save, learning: { ...save.learning, conversations } }
+  const next: SaveData = { ...withTurnReview, learning: { ...withTurnReview.learning, conversations } }
   return { save: addXp(next, xp, now), reward: { xp, newWords: 0 } }
+}
+
+/** 復習の問題に答えた場面。review：今日の復習、practice：自分から選んだ練習・ドリル・テスト */
+export type ReviewSource = 'review' | 'practice'
+
+/**
+ * 復習の問題に答えた記録を付ける。
+ * - 今日の復習で、期限の来た問題：正解なら間隔を延ばして経験値、間違いなら最初の間隔に戻す
+ * - それ以外（練習・ドリル・テスト、期限の来ていない問題）：間違えたときだけ、翌日の復習に戻す（経験値なし。計画 Q13）
+ */
+export function answerReview(save: SaveData, key: string, correct: boolean, source: ReviewSource, balance: Balance, now: string): Updated {
+  const today = localDate(now)
+  const record = save.learning.review[key]
+  if (source === 'review' && record !== undefined && isDue(record, today)) {
+    const next = { ...withReview(save, { ...save.learning.review, [key]: answerScheduled(record, correct, today, now, balance.review) }), updatedAt: now }
+    if (!correct) return { save: next, reward: NO_REWARD }
+    return { save: addXp(next, balance.xp.review, now), reward: { xp: balance.xp.review, newWords: 0 } }
+  }
+  if (correct) return { save, reward: NO_REWARD }
+  return { save: { ...withReview(save, { ...save.learning.review, [key]: recordMistake(record, today, balance.review) }), updatedAt: now }, reward: NO_REWARD }
 }
 
 /**
