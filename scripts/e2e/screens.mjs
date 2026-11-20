@@ -2,6 +2,7 @@
 // - タイトル：マップの絵を背景に敷く／マップ画面とそこから開いた設定：敷かない（GAME_SPEC 6-1）
 // - 施設とそこから開いた設定：施設の背景
 // - 図鑑の「覚えた単語：n / n 語」が板に載っている（QA_REPORT BUG-001）。イベントの中では板を重ねない
+// - 検索サイトに載せない指定（robots の noindex）がある
 // 使い方: node scripts/e2e/screens.mjs <URL>
 
 import { openBrowser, sleep } from './browser.mjs'
@@ -69,5 +70,8 @@ for (const [w, h, m] of [
   await layoutCheck(`${w} 図鑑`)
   await view(`${w}-dictionary`)
 }
+
+const robots = await evaluate(`document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? ''`)
+check('検索サイトに載せない（robots: noindex, nofollow）', robots.includes('noindex') && robots.includes('nofollow'), robots)
 
 b.finish()
