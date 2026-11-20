@@ -1,4 +1,4 @@
-// Phase 2.5「復習と練習」の確認：今日の復習と練習。
+// Phase 2.5「復習と練習」の確認：今日の復習と練習、基礎ドリル、章末テスト、図鑑の絞り込み、毎日のスタンプ。
 // v4 のセーブデータ（覚えた単語・文法・正解した会話の往復）で始め、v5 への移行で復習に入ることを確かめる。
 // ページの日付を進めて（翌日・2日後・4日後）、間違えた問題が翌日に、正解した問題が決めた間隔で出ることを確かめる。
 // 問題の正解は、教材の JSON から求める。使い方は scripts/e2e/README.md。
@@ -20,6 +20,11 @@ function readdirJson(dir) {
 const vocab = readdirJson('src/data/vocabulary')
 const grammar = readdirJson('src/data/grammar')
 const conversations = readdirJson('src/data/scenarios')
+const drills = readdirJson('src/data/drills')
+const tests = readdirJson('src/data/tests')
+const drillItems = [...drills.flatMap((d) => d.items), ...tests.flatMap((t) => t.items ?? [])]
+/** 韓国語 → 数字（数字の問題） */
+const koToDigits = new Map(drillItems.filter((i) => i.digits).map((i) => [i.korean, i.digits]))
 const norm = (s) => s.replace(/[.,?!。、]/g, ' ').replace(/\s+/g, ' ').trim()
 
 /** 日本語 → 韓国語（単語・文法の例文） */
@@ -31,6 +36,7 @@ const addPair = (ko, ja) => {
   koToJa.set(ko, [...(koToJa.get(ko) ?? []), ja])
 }
 for (const v of vocab) addPair(v.korean, v.japanese)
+for (const i of drillItems) addPair(i.korean, i.japanese)
 for (const g of grammar) for (const e of g.examples) addPair(e.korean, e.japanese)
 /** 穴埋めの文（例文と日本語）。「커피 주세요」と「녹차 주세요」のように、日本語で区別する */
 const sentences = new Set([
@@ -81,9 +87,11 @@ async function correctAnswer(q) {
   if (q.audio) {
     await click('▶ 聞く')
     const spoken = await evaluate('window.__spoken ?? null')
+    if (q.number) return koToDigits.get(spoken)
     if (q.options.length > 0) return q.options.find((o) => o === spoken)
     return spoken
   }
+  if (q.number) return koToDigits.get(q.target)
   if (q.scene !== null) {
     const entry = sceneAnswers.get(q.scene.at(-1)) ?? { choices: [], write: [] }
     return q.options.length > 0 ? q.options.find((o) => entry.choices.includes(o)) : entry.write[0]
@@ -106,6 +114,7 @@ async function typeInto(selector, text) {
 }
 
 const formsSeen = new Set()
+let digitsRejectedSeen = false
 
 /** いまの問題に答えて「次へ」を押す。正解を求められなかったら null */
 async function answer(correct, label) {
@@ -129,8 +138,19 @@ async function answer(correct, label) {
     const parts = correct ? (q.heading.includes('語を並べて') ? norm(right).split(' ') : [...norm(right)]) : q.tiles
     for (const p of parts) await evaluate(`[...document.querySelectorAll('.arrange__pool .letter-tile')].find((t) => t.textContent === ${JSON.stringify(p)} && !t.disabled).click()`)
     await click('答える')
+  } else if (form === 'number') {
+    await typeInto('input[aria-label="答え（数字）"]', correct ? right : '99999')
+    await click('答える')
   } else {
     await click('端末のキーボードを使う')
+    // 数字の読み方を書く問題（日本語が「3,500ウォン」など）では、数字で答えても正解にせず、書き直しを求める
+    if (/[0-9]/.test(q.ja ?? '') && koToDigits.has(right)) {
+      await typeInto('input[aria-label="答え（韓国語）"]', koToDigits.get(right))
+      await click('答える')
+      const warned = (await mainText()).includes('数字ではなく、韓国語（ハングル）で書いてみましょう')
+      check(`${label ?? ''} 韓国語で書く数字の問題に、数字（${koToDigits.get(right)}）で答えても正解にしない`, warned && !(await mainText()).includes('正解！'))
+      digitsRejectedSeen = true
+    }
     await typeInto('input[aria-label="答え（韓国語）"]', correct ? right : '모르겠어요')
     await click('答える')
   }
@@ -190,7 +210,6 @@ const KEYS = ['word:vocab_001', 'word:vocab_012', 'word:vocab_013', 'grammar:gra
 async function runWidth(W, H, mobile) {
   const P = `${W}`
   await viewport(W, H, mobile)
-  formsSeen.clear()
   await freshStart({ save: v4 })
   await goToDay(0)
 
@@ -264,7 +283,92 @@ async function runWidth(W, H, mobile) {
   // --- 4日後：3日後に回した4問 ---
   await goToDay(4)
   check(`${P} 4日後：正解した4問が3日の間隔で出る`, (await studyButton('今日の復習')) === '今日の復習（4問）', await studyButton('今日の復習'))
-  check(`${P} 出た問題の形（${[...formsSeen].join('・')}）`, formsSeen.size >= 3, [...formsSeen].join('・'))
+
+  // --- スタンプ：0日目（練習）・翌日（復習）・2日後（復習）。3日目は休み ---
+  s = await saved()
+  check(`${P} スタンプ：復習のない日の練習、今日の復習を終えた日に押す`, JSON.stringify(s.daily.stamps) === JSON.stringify([dayAfter(0), dayAfter(1), dayAfter(2)]), JSON.stringify(s.daily.stamps))
+  await click('戻る')
+  await click('スタンプカード')
+  let card = await mainText()
+  check(`${P} スタンプカード：4日後（3日目は休み）は、続けている日数 0・集めたスタンプ 3`, card.includes('今日のスタンプはまだです') && card.includes('続けている日数：0日') && card.includes('集めたスタンプ：3個'), card.slice(0, 200))
+  await layoutCheck(`${P} スタンプカード`)
+  await click('戻る')
+
+  // --- 基礎ドリル：数字は入力で答える。1問目だけ間違える ---
+  await click('勉強する（復習・練習・ハングル）')
+  await click('ドリル・テスト')
+  await layoutCheck(`${P} ドリル・テストの一覧`)
+  const list = await mainText()
+  const firstDrill = drills[0]
+  check(`${P} ドリルの一覧（${drills.length}テーマ）と、まだ受けられない章末テスト`, drills.every((d) => list.includes(d.titleJa)) && list.includes('すべて答えると受けられます'), list.slice(0, 300))
+  await click(firstDrill.titleJa, { exact: false })
+  await click('はじめる')
+  if (W === 375) await shot('drill-first-375')
+  const drillCount = Math.min(firstDrill.questionCount ?? 10, firstDrill.items.length)
+  for (let i = 0; i < drillCount; i++) await answer(i !== 0, `${P} ドリル`)
+  while ((await readQuestion()) !== null) await answer(true)
+  check(`${P} ドリルの結果：${drillCount}問中 ${drillCount - 1}問正解`, (await mainText()).includes(`${drillCount}問中 ${drillCount - 1}問正解`))
+  s = await saved()
+  const drillCorrect = Object.keys(s.learning.drills).length
+  const drillWrong = Object.keys(s.learning.review).filter((k) => k.startsWith('drill:'))
+  check(`${P} ドリル：初めて正解した問題に経験値2、間違えた1問は翌日の復習へ。今日のスタンプ`, drillCorrect === drillCount - 1 && s.stats.xp === 112 + 3 + 2 * drillCorrect && drillWrong.length === 1 && s.learning.review[drillWrong[0]].due === dayAfter(5) && s.daily.stamps.includes(dayAfter(4)), JSON.stringify({ xp: s.stats.xp, drillCorrect, drillWrong, stamps: s.daily.stamps }))
+  await click('一覧に戻る')
+
+  // --- 章末テスト：第1章の会話の問題に答えた記録を足すと受けられる。全問正解で合格 ---
+  const test = tests.find((t) => t.chapter === 1)
+  if (test !== undefined) {
+    const turnIds = conversations.filter((c) => c.chapter === 1).flatMap((c) => c.turns.flatMap((t, i) => (t.choices && t.kind !== 'decision' ? [`${c.id}#${i}`] : [])))
+    await evaluate(`(() => { const s = JSON.parse(localStorage.getItem('seoul-life:save')); for (const id of ${JSON.stringify(turnIds)}) s.learning.conversations[id] = { choice: true, write: false }; localStorage.setItem('seoul-life:save', JSON.stringify(s)) })()`)
+    await goToDay(4)
+    await click('ドリル・テスト')
+    await click(test.titleJa, { exact: false })
+    check(`${P} 章末テスト：第1章の会話の問題（${turnIds.length}問）に答えたので受けられる`, (await mainText()).includes(`${test.passPercent ?? 80}点以上で合格`))
+    const xpBefore = (await saved()).stats.xp
+    await click('はじめる')
+    for (let i = 0; i < 50 && (await readQuestion()) !== null; i++) await answer(true, `${P} 章末テスト`)
+    const result = await mainText()
+    check(`${P} 章末テスト：全問正解で合格、もう一度出す問題はない`, result.includes('合格！（100点）') && !result.includes('もう一度 1'), result.slice(0, 200))
+    s = await saved()
+    check(`${P} 章末テスト：初めて合格して経験値30、記録を残す`, s.stats.xp === xpBefore + 30 && s.learning.tests[test.id]?.bestScore === 100 && s.learning.tests[test.id]?.passedAt !== null, JSON.stringify({ xp: s.stats.xp, xpBefore, rec: s.learning.tests[test.id] }))
+    await click('一覧に戻る')
+    check(`${P} 一覧に「合格（100点）」`, (await mainText()).includes('合格（100点）'))
+    await click('戻る')
+    await click('戻る')
+  }
+
+  // --- 図鑑：ジャンルのタブ、習得状況と品詞で絞り込む ---
+  await evaluate(`(() => { const s = JSON.parse(localStorage.getItem('seoul-life:save')); s.learning.review['word:vocab_001'].stage = 4; localStorage.setItem('seoul-life:save', JSON.stringify(s)) })()`)
+  await goToDay(4)
+  await click('戻る')
+  await click('図鑑を見る')
+  const dict = await mainText()
+  check(`${P} 図鑑：「学んだ単語」と「覚えた」の数`, dict.includes('学んだ単語：3 / ') && dict.includes('覚えた：1 語'), dict.slice(0, 120))
+  const chips = await evaluate(`[...document.querySelectorAll('.chip')].map((c) => c.firstChild.textContent)`)
+  check(`${P} 図鑑：学んだ単語のあるジャンルだけタブにする`, JSON.stringify(chips) === JSON.stringify(['すべて', 'あいさつ・決まり文句', '食べ物・飲み物']), JSON.stringify(chips))
+  await layoutCheck(`${P} 図鑑`)
+  const entries = () => evaluate(`[...document.querySelectorAll('.dict-entry .dict-entry__word')].map((e) => { const c = e.cloneNode(true); c.querySelectorAll('rt').forEach((r) => r.remove()); return c.textContent.trim() })`)
+  await click('食べ物・飲み物2', { exact: true })
+  check(`${P} 図鑑：ジャンルで絞り込む`, JSON.stringify(await entries()) === JSON.stringify(['커피', '아메리카노']), JSON.stringify(await entries()))
+  await click('すべて3')
+  await click('覚えた')
+  check(`${P} 図鑑：「覚えた」で絞り込む（14日の間隔で正解したもの）`, JSON.stringify(await entries()) === JSON.stringify(['안녕하세요']), JSON.stringify(await entries()))
+  await click('すべて', { within: '.mode-tabs' })
+  await evaluate(`(() => { const el = document.querySelector('.dict-filters select'); const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(el, 'greeting'); el.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await sleep(100)
+  check(`${P} 図鑑：品詞で絞り込む`, JSON.stringify(await entries()) === JSON.stringify(['안녕하세요']), JSON.stringify(await entries()))
+  if (W === 375) await shot('dictionary-375')
+  await click('閉じる')
+
+  // --- スタンプカード：今日（4日後）押したので、続けている日数1・集めたスタンプ4。再読み込みしても残る ---
+  await reload()
+  await click('つづきから')
+  await click('スタンプカード')
+  card = await mainText()
+  check(`${P} スタンプが再読み込みしても残る（今日押した・続けて1日・集めた4個）`, card.includes('今日のスタンプを押しました') && card.includes('続けている日数：1日') && card.includes('集めたスタンプ：4個'), card.slice(0, 200))
+  const marks = await evaluate(`document.querySelectorAll('.stamp-day--stamped').length`)
+  const sameMonth = [0, 1, 2, 4].filter((n) => dayAfter(n).slice(0, 7) === dayAfter(4).slice(0, 7)).length
+  check(`${P} カレンダーに今月のスタンプ（${sameMonth}個）`, marks === sameMonth, String(marks))
+  if (W === 375) await shot('stamps-375')
 }
 
 for (const [W, H, mobile] of [
@@ -278,5 +382,8 @@ for (const [W, H, mobile] of [
     await shot(`stopped-${W}`)
   }
 }
+
+check(`出た問題の形（両方の幅で合わせて：${[...formsSeen].join('・')}）`, formsSeen.size >= 4 && formsSeen.has('number'), [...formsSeen].join('・'))
+check('数字の読み方を書く問題で、数字の答えを正解にしないことを確かめた（問題の形はランダム。出なければ流し直す）', digitsRejectedSeen)
 
 b.finish()

@@ -146,7 +146,7 @@ function NumberBody({ onSubmit }: { onSubmit: (text: string) => void }) {
         onKeyDown={onKeyDown}
         autoComplete="off"
         aria-label="答え（数字）"
-        placeholder="数字で書く（例：3500、3:30）"
+        placeholder="数字で書く"
       />
       <Button variant="primary" onClick={submit} disabled={text.trim() === ''}>
         答える

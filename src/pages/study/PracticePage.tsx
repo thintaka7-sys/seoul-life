@@ -8,6 +8,8 @@ import { ScreenLayout } from '../../components/ScreenLayout'
 import { content } from '../../data'
 import { shuffle } from '../../learning/hangul/quiz'
 import { buildQuestions, type PracticeQuestion } from '../../learning/practice/questions'
+import { localDate } from '../../learning/review/dates'
+import { todaysReview } from '../../learning/review/review'
 
 const CATEGORIES: { category: PracticeCategory; label: string; description: string }[] = [
   { category: 'word', label: '単語', description: '意味を選ぶ・聞いて選ぶ・文字を並べる・書く' },
@@ -52,6 +54,12 @@ export function PracticePage() {
         questions={session.questions}
         retry
         onAnswer={(key, correct) => dispatch({ type: 'reviewAnswered', key, correct, source: 'practice', now: nowIso() })}
+        onFinish={() => {
+          // 今日の復習がない日（終えた日を含む）は、練習1回でスタンプ（計画 Q10）
+          if (save !== null && todaysReview(save.learning.review, localDate(nowIso()), content.balance.review, practiceIndex.exists).length === 0) {
+            dispatch({ type: 'activityCompleted', activity: 'review', now: nowIso() })
+          }
+        }}
         finish={() => (
           <>
             <Button variant="primary" onClick={() => start(session.category)}>

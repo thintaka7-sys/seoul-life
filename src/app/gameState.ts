@@ -1,16 +1,19 @@
 // ゲーム全体の状態と、画面遷移の reducer。
 // reducer は純粋な関数にする（日時は action で受け取る）ので、画面なしでテストできる。
 
-import type { Balance, GameEvent } from '../data/types'
+import type { Balance, GameEvent, StampActivity } from '../data/types'
 import type { AnswerMode } from '../learning/conversation/session'
 import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
 import {
   advanceEvent,
+  answerDrillItem,
   answerReview,
   clearConversationTurn,
+  finishChapterTest,
   learnItems,
   passHangulLesson,
   recordListeningCorrect,
+  stampToday,
   startEvent,
   type ClearMethod,
   type ReviewSource,
@@ -42,6 +45,14 @@ export type Scene =
   | { name: 'review'; back: Scene }
   /** 練習（学んだものから自由に出題する。計画 Q13） */
   | { name: 'practice'; back: Scene }
+  /** 基礎ドリル・章末テストの一覧（GAME_SPEC 4-9） */
+  | { name: 'drills'; back: Scene }
+  /** 基礎ドリル */
+  | { name: 'drill'; drillId: string; back: Scene }
+  /** 章末テスト */
+  | { name: 'chapterTest'; testId: string; back: Scene }
+  /** スタンプカード（GAME_SPEC 7-6）。自宅から開く */
+  | { name: 'stamps'; back: Scene }
   | { name: 'saveError'; reason: CorruptReason; detail: string; backupKey: string | null }
 
 /** 進めているイベント。replay は終えたイベントの遊び直し（記録・経験値は付けない） */
@@ -103,6 +114,10 @@ export type GameAction =
   | { type: 'openListening' }
   | { type: 'openReview' }
   | { type: 'openPractice' }
+  | { type: 'openDrills' }
+  | { type: 'openDrill'; drillId: string }
+  | { type: 'openChapterTest'; testId: string }
+  | { type: 'openStamps' }
   /** 学習画面・レッスン一覧・レッスン・リスニング・復習・練習を閉じて、開く前の画面に戻る */
   | { type: 'closeStudyScene' }
   /** ハングルのレッスンの小テストに合格した（score は 0〜100） */
@@ -111,6 +126,12 @@ export type GameAction =
   | { type: 'listeningCorrect'; key: string; now: string }
   /** 復習の問題に答えた（key は reviewKey。もう一度出した問題の答えは送らない） */
   | { type: 'reviewAnswered'; key: string; correct: boolean; source: ReviewSource; now: string }
+  /** 基礎ドリル・章末テストの追加の問題（dq_001 など）に答えた */
+  | { type: 'drillAnswered'; itemId: string; correct: boolean; now: string }
+  /** 章末テストを終えた（score は 0〜100） */
+  | { type: 'testFinished'; testId: string; score: number; passed: boolean; now: string }
+  /** スタンプを押す学習を終えた（今日の復習・ドリル・リスニング。テスト・レッスン・イベントは、それぞれの記録のときに押す） */
+  | { type: 'activityCompleted'; activity: StampActivity; now: string }
   /** 会話で答え方を選んだ */
   | { type: 'setAnswerPreference'; mode: AnswerMode }
   | { type: 'dismissReward' }
@@ -144,12 +165,18 @@ function withLocation(save: SaveData, locationId: string | null, now: string): S
 }
 
 function addReward(state: GameState, reward: Reward): RewardNotice | null {
-  if (reward.xp === 0 && reward.newWords === 0) return state.reward
+  if (reward.xp === 0 && reward.newWords === 0 && reward.stamp !== true) return state.reward
   return { ...reward, seq: (state.reward?.seq ?? 0) + 1 }
 }
 
 function sumRewards(a: Reward, b: Reward): Reward {
-  return { xp: a.xp + b.xp, newWords: a.newWords + b.newWords }
+  return { xp: a.xp + b.xp, newWords: a.newWords + b.newWords, stamp: a.stamp === true || b.stamp === true }
+}
+
+/** 学習を終えたらスタンプを押し、知らせ（reward）に足す */
+function withStampFor(save: SaveData, reward: Reward, activity: StampActivity, balance: Balance, now: string): { save: SaveData; reward: Reward } {
+  const stamped = stampToday(save, activity, balance, now)
+  return { save: stamped.save, reward: stamped.stamped ? { ...reward, stamp: true } : reward }
 }
 
 /** 画面内で「戻る」を押したときの行き先。戻れない画面では null */
@@ -167,6 +194,10 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'listening':
     case 'review':
     case 'practice':
+    case 'drills':
+    case 'drill':
+    case 'chapterTest':
+    case 'stamps':
       return 'closeStudyScene'
     case 'location':
     case 'main':
@@ -179,9 +210,9 @@ export function backTarget(state: GameState): GameAction['type'] | null {
 }
 
 /** 学習画面のなかまの画面（閉じると back に戻る） */
-type StudyScene = Extract<Scene, { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' }>
+type StudyScene = Extract<Scene, { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' | 'drills' | 'drill' | 'chapterTest' | 'stamps' }>
 
-const STUDY_SCENES: readonly Scene['name'][] = ['study', 'hangul', 'hangulLesson', 'listening', 'review', 'practice']
+const STUDY_SCENES: readonly Scene['name'][] = ['study', 'hangul', 'hangulLesson', 'listening', 'review', 'practice', 'drills', 'drill', 'chapterTest', 'stamps']
 
 function isStudyScene(scene: Scene): scene is StudyScene {
   return STUDY_SCENES.includes(scene.name)
@@ -206,10 +237,12 @@ export function createGameReducer(deps: GameDeps) {
     }
 
     const advanced = advanceEvent(state.save, event, balance, now)
-    const reward = addReward(state, sumRewards(extra, advanced.reward))
     if (advanced.finished) {
-      return { ...state, save: advanced.save, run: null, reward, scene: { name: 'location', locationId: event.location } }
+      // イベントを1つ完了したら、今日のスタンプ
+      const stamped = withStampFor(advanced.save, sumRewards(extra, advanced.reward), 'event', balance, now)
+      return { ...state, save: stamped.save, run: null, reward: addReward(state, stamped.reward), scene: { name: 'location', locationId: event.location } }
     }
+    const reward = addReward(state, sumRewards(extra, advanced.reward))
     const step = advanced.save.progress.activeEvent?.step ?? run.step + 1
     return { ...state, save: advanced.save, run: { ...run, step }, reward }
   }
@@ -258,6 +291,44 @@ export function createGameReducer(deps: GameDeps) {
         if (state.scene.name !== 'study') return state
         return { ...state, scene: { name: 'practice', back: state.scene } }
 
+      case 'openDrills':
+        if (state.scene.name !== 'study') return state
+        return { ...state, scene: { name: 'drills', back: state.scene } }
+
+      case 'openDrill':
+        if (state.scene.name !== 'drills') return state
+        return { ...state, scene: { name: 'drill', drillId: action.drillId, back: state.scene } }
+
+      case 'openChapterTest':
+        if (state.scene.name !== 'drills') return state
+        return { ...state, scene: { name: 'chapterTest', testId: action.testId, back: state.scene } }
+
+      case 'openStamps':
+        if (state.save === null || isStudyScene(state.scene)) return state
+        return { ...state, scene: { name: 'stamps', back: state.scene } }
+
+      case 'drillAnswered': {
+        if (state.save === null) return state
+        const answered = answerDrillItem(state.save, action.itemId, action.correct, balance, action.now)
+        if (answered.save === state.save) return state
+        return { ...state, save: answered.save, reward: addReward(state, answered.reward) }
+      }
+
+      case 'testFinished': {
+        if (state.save === null) return state
+        const finished = finishChapterTest(state.save, action.testId, action.score, action.passed, balance, action.now)
+        const stamped = withStampFor(finished.save, finished.reward, 'chapterTest', balance, action.now)
+        if (stamped.save === state.save) return state
+        return { ...state, save: stamped.save, reward: addReward(state, stamped.reward) }
+      }
+
+      case 'activityCompleted': {
+        if (state.save === null) return state
+        const stamped = withStampFor(state.save, { xp: 0, newWords: 0 }, action.activity, balance, action.now)
+        if (stamped.save === state.save) return state
+        return { ...state, save: stamped.save, reward: addReward(state, stamped.reward) }
+      }
+
       case 'reviewAnswered': {
         if (state.save === null) return state
         const answered = answerReview(state.save, action.key, action.correct, action.source, balance, action.now)
@@ -271,8 +342,10 @@ export function createGameReducer(deps: GameDeps) {
       case 'hangulLessonPassed': {
         if (state.save === null) return state
         const passed = passHangulLesson(state.save, action.lessonId, action.score, balance, action.now)
-        if (passed.save === state.save) return state
-        return { ...state, save: passed.save, reward: addReward(state, passed.reward) }
+        // レッスンに合格したら、今日のスタンプ（点が上がらなかった2回目以降の合格でも押す）
+        const stamped = withStampFor(passed.save, passed.reward, 'hangulLesson', balance, action.now)
+        if (stamped.save === state.save) return state
+        return { ...state, save: stamped.save, reward: addReward(state, stamped.reward) }
       }
 
       case 'listeningCorrect': {

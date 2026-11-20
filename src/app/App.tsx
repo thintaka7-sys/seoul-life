@@ -13,6 +13,10 @@ import { HangulLessonPage } from '../pages/study/HangulLessonPage'
 import { HangulListPage } from '../pages/study/HangulListPage'
 import { ListeningPage } from '../pages/study/ListeningPage'
 import { PracticePage } from '../pages/study/PracticePage'
+import { ChapterTestPage } from '../pages/study/ChapterTestPage'
+import { DrillPage } from '../pages/study/DrillPage'
+import { DrillsPage } from '../pages/study/DrillsPage'
+import { StampCardPage } from '../pages/StampCardPage'
 import { ReviewPage } from '../pages/study/ReviewPage'
 import { StudyPage } from '../pages/study/StudyPage'
 import { TitlePage } from '../pages/TitlePage'
@@ -49,6 +53,14 @@ function SceneView({ scene }: { scene: Scene }) {
       return <ReviewPage />
     case 'practice':
       return <PracticePage />
+    case 'drills':
+      return <DrillsPage />
+    case 'drill':
+      return <DrillPage drillId={scene.drillId} />
+    case 'chapterTest':
+      return <ChapterTestPage testId={scene.testId} />
+    case 'stamps':
+      return <StampCardPage />
     case 'saveError':
       return <SaveErrorPage reason={scene.reason} detail={scene.detail} backupKey={scene.backupKey} />
   }
@@ -58,6 +70,8 @@ function SceneView({ scene }: { scene: Scene }) {
 function sceneKey(scene: Scene): string {
   if (scene.name === 'location' || scene.name === 'event') return `${scene.name}:${scene.locationId}`
   if (scene.name === 'hangulLesson') return `${scene.name}:${scene.lessonId}`
+  if (scene.name === 'drill') return `${scene.name}:${scene.drillId}`
+  if (scene.name === 'chapterTest') return `${scene.name}:${scene.testId}`
   return scene.name
 }
 

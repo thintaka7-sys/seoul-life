@@ -11,6 +11,7 @@ import {
   ID_PATTERNS,
   PARTS_OF_SPEECH,
   PLAYER_SPEAKER_ID,
+  STAMP_ACTIVITIES,
   VOCAB_GENRES,
   type Balance,
   type ChapterTest,
@@ -43,6 +44,7 @@ import {
   type ValidationIssue,
   type SoundChangeExample,
   type SoundChangeRule,
+  type StampActivity,
   type Vocab,
 } from './types'
 import { normalizeAnswer } from '../learning/judge/judgeAnswer'
@@ -1337,6 +1339,7 @@ export const DEFAULT_BALANCE: Balance = {
   drillQuestions: 10,
   testQuestions: 10,
   testPassPercent: 80,
+  stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'],
 }
 
 const BALANCE_KEYS = [
@@ -1353,6 +1356,7 @@ const BALANCE_KEYS = [
   'drillQuestions',
   'testQuestions',
   'testPassPercent',
+  'stampActivities',
 ] as const
 const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening', 'review', 'drillItem', 'chapterTest'] as const
 const REVIEW_KEYS = ['intervalsDays', 'masteredDays', 'dailyLimit'] as const
@@ -1409,6 +1413,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
   const drillQuestions = integer(raw, 'drillQuestions', '', errs, 1, 50)
   const testQuestions = integer(raw, 'testQuestions', '', errs, 1, 50)
   const testPassPercent = integer(raw, 'testPassPercent', '', errs, 0, 100)
+  const stampActivities = stampActivityList(raw['stampActivities'], errs)
   if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
     errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
   }
@@ -1436,7 +1441,8 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     practiceQuestions === undefined ||
     drillQuestions === undefined ||
     testQuestions === undefined ||
-    testPassPercent === undefined
+    testPassPercent === undefined ||
+    stampActivities === undefined
   ) {
     return undefined
   }
@@ -1454,7 +1460,25 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     drillQuestions,
     testQuestions,
     testPassPercent,
+    stampActivities,
   }
+}
+
+/** スタンプを押す学習の一覧（1個以上。重ねて書かない） */
+function stampActivityList(raw: unknown, errs: FieldError[]): StampActivity[] | undefined {
+  const path = 'stampActivities'
+  if (!Array.isArray(raw) || raw.length === 0) {
+    errs.push({ path, message: `1個以上の配列にしてください。使えるもの：${STAMP_ACTIVITIES.join(', ')}` })
+    return undefined
+  }
+  const result: StampActivity[] = []
+  for (const [i, v] of raw.entries()) {
+    const activity = STAMP_ACTIVITIES.find((a) => a === v)
+    if (activity === undefined) errs.push({ path: `${path}[${i}]`, message: `知らない学習です。使えるもの：${STAMP_ACTIVITIES.join(', ')}` })
+    else if (result.includes(activity)) errs.push({ path: `${path}[${i}]`, message: `「${activity}」が2回あります` })
+    else result.push(activity)
+  }
+  return result.length === raw.length ? result : undefined
 }
 
 function loadBalance(files: FileMap, ctx: ReferenceContext, issues: ValidationIssue[]): Balance {

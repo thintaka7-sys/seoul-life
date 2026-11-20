@@ -51,6 +51,7 @@ export function LocationPage({ locationId }: { locationId: string }) {
           <>
             <Button onClick={() => dispatch({ type: 'openStudy' })}>勉強する（復習・練習・ハングル）</Button>
             <Button onClick={() => dispatch({ type: 'openDictionary' })}>図鑑を見る</Button>
+            <Button onClick={() => dispatch({ type: 'openStamps' })}>スタンプカード</Button>
           </>
         )}
 

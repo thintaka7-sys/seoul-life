@@ -33,6 +33,44 @@ export const VOCAB_GENRES = [
 ] as const
 export type VocabGenre = (typeof VOCAB_GENRES)[number]
 
+/** 図鑑のタブの名前（docs/CONTENT_FORMAT.md 10-2） */
+export const GENRE_LABELS: Record<VocabGenre, string> = {
+  greeting: 'あいさつ・決まり文句',
+  people: '人・家族',
+  food_drink: '食べ物・飲み物',
+  number_money: '数・お金',
+  time: '時間・曜日・月',
+  place: '場所・街',
+  transport: '交通',
+  shopping: '買い物',
+  body_health: '体・健康',
+  feelings: '気持ち',
+  daily_life: '毎日の生活',
+}
+
+/** 品詞の名前（docs/CONTENT_FORMAT.md 10-1） */
+export const PART_OF_SPEECH_LABELS: Record<PartOfSpeech, string> = {
+  noun: '名詞',
+  pronoun: '代名詞',
+  numeral: '数詞',
+  verb: '動詞',
+  adjective: '形容詞',
+  adverb: '副詞',
+  particle: '助詞',
+  determiner: '冠形詞（連体詞）',
+  interjection: '感嘆詞・返事',
+  greeting: 'あいさつ・お礼・お詫びの決まった表現',
+  expression: 'その他の決まった言い回し',
+}
+
+/**
+ * 毎日のスタンプを押す学習（GAME_SPEC 7-6。balance.json の stampActivities で選ぶ）。
+ * - review：今日の復習を最後まで（今日の復習がない日は、練習1回で代わりにする）
+ * - drill：基礎ドリル1回、chapterTest：章末テスト1回、hangulLesson：ハングルのレッスンに合格、listening：リスニング1回、event：イベントを1つ完了
+ */
+export const STAMP_ACTIVITIES = ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'] as const
+export type StampActivity = (typeof STAMP_ACTIVITIES)[number]
+
 /** 会話の話者IDのうち、主人公（プレイヤー）を表すもの */
 export const PLAYER_SPEAKER_ID = 'player'
 
@@ -481,6 +519,8 @@ export interface Balance {
   /** 章末テストの問題数・合格の基準（テストの questionCount・passPercent を省略したとき） */
   testQuestions: number
   testPassPercent: number
+  /** どの学習を終えたらスタンプを押すか */
+  stampActivities: StampActivity[]
 }
 
 /** 検証で見つかった問題 */

@@ -2159,9 +2159,168 @@ rt {
   opacity: 1;
 }
 
-.stats {
+.info-list,
+.stamp-rules {
   display: grid;
   gap: 4px;
   margin: 0;
   padding-left: 1.2em;
+  list-style: disc;
+}
+
+/* ---------- ドリル・テストの一覧、スタンプカード（Phase 2.5） ---------- */
+
+.lesson-item--plain {
+  grid-template-columns: 1fr auto;
+}
+
+.lesson-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.lesson-item:disabled:hover {
+  border-color: var(--color-border);
+}
+
+.stamp-rules {
+  font-size: 0.9rem;
+}
+
+.stamp-month {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.stamp-month__title {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
+.stamp-calendar {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 3px;
+  table-layout: fixed;
+}
+
+.stamp-calendar th {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.stamp-day {
+  position: relative;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+  text-align: center;
+  vertical-align: top;
+}
+
+.stamp-day__number {
+  display: block;
+  padding-top: 2px;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.stamp-day__mark {
+  display: block;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  line-height: 1.1;
+}
+
+.stamp-day--stamped {
+  background: var(--color-warn-bg);
+}
+
+.stamp-day--today {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* ---------- 図鑑の絞り込み（Phase 2.5） ---------- */
+
+.dict-filters {
+  gap: 10px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min);
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.chip__count {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.dict-filters__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 560px) {
+  .dict-filters__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.dict-filters__select select {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.dict-status {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dict-status--reviewing {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.dict-status--mastered {
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
 }

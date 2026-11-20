@@ -45,6 +45,7 @@ export function ReviewPage() {
         questions={session.questions}
         retry
         onAnswer={(key, correct) => dispatch({ type: 'reviewAnswered', key, correct, source: 'review', now: nowIso() })}
+        onFinish={() => dispatch({ type: 'activityCompleted', activity: 'review', now: nowIso() })}
         finish={() => (
           <>
             {keys.length > 0 && <p className="muted small">まだ期限の来た問題があります（{keys.length}問）。</p>}
@@ -61,8 +62,8 @@ export function ReviewPage() {
   } else {
     body = (
       <section className="panel">
-        <p>覚えた単語・文法や会話を、決まった間隔でもう一度解きます。正解するたびに、次に出るまでの間が延びます（1日 → 3日 → 7日 → 14日 → 30日）。間違えると、翌日にまた出ます。</p>
-        <ul className="stats">
+        <p>学んだ単語・文法や会話を、決まった間隔でもう一度解きます。正解するたびに、次に出るまでの間が延びます（1日 → 3日 → 7日 → 14日 → 30日）。間違えると、翌日にまた出ます。</p>
+        <ul className="info-list">
           <li>
             今日の問題：<strong>{keys.length}</strong>問
             {due > keys.length && <span className="muted small">（1日{settings.dailyLimit}問まで。残りは明日）</span>}
@@ -76,7 +77,7 @@ export function ReviewPage() {
             はじめる
           </Button>
         ) : (
-          <Notice>{doneToday > 0 ? '今日の復習は終わりました。また明日。' : tracked.length === 0 ? 'まだ復習する問題がありません。物語を進めて単語や会話を覚えると、翌日から出るようになります。' : '今日の復習はありません。学習画面の「練習」で、学んだものを自由に練習できます。'}</Notice>
+          <Notice>{doneToday > 0 ? '今日の復習は終わりました。また明日。' : tracked.length === 0 ? 'まだ復習する問題がありません。物語を進めて単語や会話を学ぶと、翌日から出るようになります。' : '今日の復習はありません。学習画面の「練習」で、学んだものを自由に練習できます。'}</Notice>
         )}
       </section>
     )

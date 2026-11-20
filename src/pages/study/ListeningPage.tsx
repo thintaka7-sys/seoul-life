@@ -104,7 +104,7 @@ export function ListeningPage() {
   } else if (round === null) {
     body = (
       <section className="panel">
-        <p>覚えた単語や、終えた会話の言葉を聞いて、答えを選びます。1回 {content.balance.listeningQuestionsPerRound} 問です。</p>
+        <p>学んだ単語や、終えた会話の言葉を聞いて、答えを選びます。1回 {content.balance.listeningQuestionsPerRound} 問です。</p>
         {candidates.length === 0 ? (
           <Notice>まだ問題がありません。物語を進めて単語や会話を覚えると、問題が出るようになります。</Notice>
         ) : (
@@ -139,7 +139,11 @@ export function ListeningPage() {
             setRound((r) => (r === null ? r : { ...r, correct: r.correct + 1 }))
             dispatch({ type: 'listeningCorrect', key: q.key, now: nowIso() })
           }}
-          onNext={() => setRound((r) => (r === null ? r : { ...r, index: r.index + 1 }))}
+          onNext={() => {
+            // 最後の問題を終えたら、今日のスタンプ
+            if (round.index === round.questions.length - 1) dispatch({ type: 'activityCompleted', activity: 'listening', now: nowIso() })
+            setRound((r) => (r === null ? r : { ...r, index: r.index + 1 }))
+          }}
         />
       )
   }

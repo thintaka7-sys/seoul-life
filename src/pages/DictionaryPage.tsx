@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useGame } from '../app/GameContext'
 import { useFuriganaDisplay } from '../app/hooks'
 import { Button } from '../components/Button'
@@ -6,15 +7,23 @@ import { ScreenLayout } from '../components/ScreenLayout'
 import { SpeakButton } from '../components/SpeakButton'
 import { SpeechNotice } from '../components/SpeechNotice'
 import { content } from '../data'
-import type { Vocab } from '../data/types'
+import { GENRE_LABELS, PART_OF_SPEECH_LABELS, PARTS_OF_SPEECH, VOCAB_GENRES, type PartOfSpeech, type Vocab, type VocabGenre } from '../data/types'
+import { isMastered, reviewKey } from '../learning/review/review'
 
-function WordEntry({ vocab, chapter }: { vocab: Vocab; chapter: number }) {
+/** 習得状況（GAME_SPEC 7-4。「見かけた」は Phase 3 で足す） */
+type Status = 'reviewing' | 'mastered'
+type StatusFilter = 'all' | Status
+
+const STATUS_LABELS: Record<StatusFilter, string> = { all: 'すべて', reviewing: '復習中', mastered: '覚えた' }
+
+function WordEntry({ vocab, chapter, status }: { vocab: Vocab; chapter: number; status: Status }) {
   const display = useFuriganaDisplay(chapter)
   return (
     <li className="card dict-entry">
       <div className="ko-row">
         <KoreanText korean={vocab.korean} reading={vocab.pronunciation} display={display} className="dict-entry__word" />
         <SpeakButton text={vocab.korean} />
+        <span className={`dict-status dict-status--${status}`}>{STATUS_LABELS[status]}</span>
       </div>
       <p className="dict-entry__ja">{vocab.japanese}</p>
       {vocab.example !== undefined && vocab.examplePronunciation !== undefined && (
@@ -30,29 +39,77 @@ function WordEntry({ vocab, chapter }: { vocab: Vocab; chapter: number }) {
   )
 }
 
-/** 覚えた単語の一覧（図鑑）。教材ファイルの順に並べる */
+/** 学んだ単語の一覧（図鑑）。ジャンルのタブと、習得状況・品詞で絞り込む。教材ファイルの順に並べる */
 export function DictionaryList() {
   const { state } = useGame()
   const words = state.save?.learning.words ?? {}
+  const review = state.save?.learning.review ?? {}
+  const [genre, setGenre] = useState<'all' | VocabGenre>('all')
+  const [status, setStatus] = useState<StatusFilter>('all')
+  const [pos, setPos] = useState<'all' | PartOfSpeech>('all')
+
   const learned = content.vocabulary.flatMap((v) => {
     const record = words[v.id]
-    return record === undefined ? [] : [{ vocab: v, chapter: record.chapter }]
+    if (record === undefined) return []
+    const r = review[reviewKey('word', v.id)]
+    const s: Status = r !== undefined && isMastered(r, content.balance.review) ? 'mastered' : 'reviewing'
+    return [{ vocab: v, chapter: record.chapter, status: s }]
   })
+  const genres = VOCAB_GENRES.filter((g) => learned.some((w) => w.vocab.genre === g))
+  const parts = PARTS_OF_SPEECH.filter((p) => learned.some((w) => w.vocab.partOfSpeech === p))
+  const shown = learned.filter((w) => (genre === 'all' || w.vocab.genre === genre) && (status === 'all' || w.status === status) && (pos === 'all' || w.vocab.partOfSpeech === pos))
+  const masteredCount = learned.filter((w) => w.status === 'mastered').length
 
   return (
     <>
       <p className="dict-count">
-        覚えた単語：{learned.length} / {content.vocabulary.length} 語
+        学んだ単語：{learned.length} / {content.vocabulary.length} 語（覚えた：{masteredCount} 語）
       </p>
       <SpeechNotice />
       {learned.length === 0 ? (
-        <p>まだ覚えた単語はありません。</p>
+        <p>まだ学んだ単語はありません。</p>
       ) : (
-        <ul className="dict-list">
-          {learned.map(({ vocab, chapter }) => (
-            <WordEntry key={vocab.id} vocab={vocab} chapter={chapter} />
-          ))}
-        </ul>
+        <>
+          <div className="panel dict-filters">
+            <div className="chips" role="group" aria-label="ジャンル">
+              {(['all', ...genres] as const).map((g) => (
+                <button key={g} type="button" className="chip" aria-pressed={genre === g} onClick={() => setGenre(g)}>
+                  {g === 'all' ? 'すべて' : GENRE_LABELS[g]}
+                  <span className="chip__count">{g === 'all' ? learned.length : learned.filter((w) => w.vocab.genre === g).length}</span>
+                </button>
+              ))}
+            </div>
+            <div className="dict-filters__row">
+              <div className="mode-tabs mode-tabs--3" role="group" aria-label="習得状況">
+                {(['all', 'reviewing', 'mastered'] as const).map((s) => (
+                  <button key={s} type="button" className="mode-tab" aria-pressed={status === s} onClick={() => setStatus(s)}>
+                    {STATUS_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+              <label className="dict-filters__select">
+                <span className="visually-hidden">品詞</span>
+                <select value={pos} onChange={(e) => setPos(e.target.value === 'all' ? 'all' : (parts.find((p) => p === e.target.value) ?? 'all'))}>
+                  <option value="all">品詞：すべて</option>
+                  {parts.map((p) => (
+                    <option key={p} value={p}>
+                      {PART_OF_SPEECH_LABELS[p]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+          {shown.length === 0 ? (
+            <p className="panel-text">この条件に合う単語はありません。</p>
+          ) : (
+            <ul className="dict-list">
+              {shown.map(({ vocab, chapter, status: s }) => (
+                <WordEntry key={vocab.id} vocab={vocab} chapter={chapter} status={s} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </>
   )

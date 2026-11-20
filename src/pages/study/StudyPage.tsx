@@ -23,10 +23,13 @@ export function StudyPage() {
         <Button variant="primary" onClick={() => dispatch({ type: 'openReview' })}>
           今日の復習（{reviewToday}問）
         </Button>
-        <p className="muted small">覚えたものを、決まった間隔でもう一度解きます。</p>
+        <p className="muted small">学んだものを、決まった間隔でもう一度解きます。</p>
 
         <Button onClick={() => dispatch({ type: 'openPractice' })}>練習</Button>
         <p className="muted small">学んだ単語・文法・会話を、自由に練習します。</p>
+
+        <Button onClick={() => dispatch({ type: 'openDrills' })}>ドリル・テスト</Button>
+        <p className="muted small">数字・曜日などの基礎ドリルと、章末テストです。</p>
       </div>
       <div className="panel actions">
         <Button onClick={() => dispatch({ type: 'openHangul' })} disabled={lessons.length === 0}>
@@ -40,7 +43,7 @@ export function StudyPage() {
         {speech.state === 'unavailable' ? (
           <p className="muted small">リスニングは使えません：{speech.reason}</p>
         ) : (
-          <p className="muted small">覚えた単語や会話を聞いて、答えを選びます。</p>
+          <p className="muted small">学んだ単語や会話を聞いて、答えを選びます。</p>
         )}
       </div>
     </ScreenLayout>

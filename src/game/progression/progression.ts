@@ -1,16 +1,19 @@
 // セーブデータの進行・学習記録・経験値を更新する純粋な関数。
 // 経験値は「初めてのとき」だけ付ける（同じ問題の繰り返しで無制限に増えないように。GAME_SPEC 7-1）。
 
-import type { Balance, GameEvent } from '../../data/types'
+import type { Balance, GameEvent, StampActivity } from '../../data/types'
 import { localDate } from '../../learning/review/dates'
 import { answerScheduled, freshRecord, isDue, recordMistake, reviewKey } from '../../learning/review/review'
 import { conversationTurnKey, type ReviewRecord, type SaveData } from '../../storage/saveData'
 import { playableStep, resumeStep } from '../events/events'
+import { withStamp } from '../stamps/stamps'
 
 export interface Reward {
   xp: number
   /** 新しく図鑑に入った単語の数 */
   newWords: number
+  /** 今日のスタンプを押した */
+  stamp?: boolean
 }
 
 export interface Updated {
@@ -153,4 +156,33 @@ export function recordListeningCorrect(save: SaveData, key: string, balance: Bal
   if (save.learning.listening[key] !== undefined) return { save, reward: NO_REWARD }
   const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, listening: { ...save.learning.listening, [key]: { correctAt: now } } } }
   return { save: addXp(next, balance.xp.listening, now), reward: { xp: balance.xp.listening, newWords: 0 } }
+}
+
+/**
+ * 基礎ドリル（章末テストの追加の問題も同じ）の問題に答えた記録を付ける。
+ * 初めて正解したときだけ経験値。間違えたら翌日の復習に入れる（計画 Q4）
+ */
+export function answerDrillItem(save: SaveData, itemId: string, correct: boolean, balance: Balance, now: string): Updated {
+  if (!correct) return answerReview(save, reviewKey('drill', itemId), false, 'practice', balance, now)
+  if (save.learning.drills[itemId] !== undefined) return { save, reward: NO_REWARD }
+  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, drills: { ...save.learning.drills, [itemId]: { correctAt: now } } } }
+  return { save: addXp(next, balance.xp.drillItem, now), reward: { xp: balance.xp.drillItem, newWords: 0 } }
+}
+
+/** 章末テストを終えた記録を付ける（いちばん良い点と、初めて合格した日時）。初めて合格したときだけ経験値 */
+export function finishChapterTest(save: SaveData, testId: string, score: number, passed: boolean, balance: Balance, now: string): Updated {
+  const prev = save.learning.tests[testId]
+  const firstPass = passed && (prev?.passedAt ?? null) === null
+  const record = { passedAt: prev?.passedAt ?? (passed ? now : null), bestScore: Math.max(prev?.bestScore ?? 0, score) }
+  if (prev !== undefined && prev.passedAt === record.passedAt && prev.bestScore === record.bestScore) return { save, reward: NO_REWARD }
+  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, tests: { ...save.learning.tests, [testId]: record } } }
+  if (!firstPass) return { save: next, reward: NO_REWARD }
+  return { save: addXp(next, balance.xp.chapterTest, now), reward: { xp: balance.xp.chapterTest, newWords: 0 } }
+}
+
+/** その日の学習を終えたら、スタンプを押す（balance の stampActivities にある学習だけ。1日1つ） */
+export function stampToday(save: SaveData, activity: StampActivity, balance: Balance, now: string): { save: SaveData; stamped: boolean } {
+  const today = localDate(now)
+  if (!balance.stampActivities.includes(activity) || save.daily.stamps.includes(today)) return { save, stamped: false }
+  return { save: { ...save, updatedAt: now, daily: { ...save.daily, stamps: withStamp(save.daily.stamps, today) } }, stamped: true }
 }

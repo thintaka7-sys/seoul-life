@@ -346,3 +346,51 @@ describe('はじめからの案内と学習画面', () => {
     expect(go(heard, { type: 'listeningCorrect', key: 'word:vocab_001', now: T1 })).toBe(heard)
   })
 })
+
+describe('復習・練習・ドリル・テスト・スタンプ（Phase 2.5）', () => {
+  const home = { name: 'location', locationId: content.balance.startLocation } as const
+  const atHome = () => run(titleWithoutSave(), { type: 'startNew', now: T0 })
+
+  it('学習画面から復習・練習・ドリルの一覧を開き、ドリル・テストは一覧から開く。戻るで1つずつ戻る', () => {
+    const study = run(atHome(), { type: 'openStudy' })
+    expect(run(study, { type: 'openReview' }).scene).toMatchObject({ name: 'review', back: { name: 'study' } })
+    expect(run(study, { type: 'openPractice' }).scene).toMatchObject({ name: 'practice', back: { name: 'study' } })
+    const drill = run(study, { type: 'openDrills' }, { type: 'openDrill', drillId: 'drill_001' })
+    expect(drill.scene).toMatchObject({ name: 'drill', drillId: 'drill_001', back: { name: 'drills', back: { name: 'study', back: home } } })
+    expect(run(drill, { type: 'back', now: T1 }).scene.name).toBe('drills')
+    expect(run(study, { type: 'openDrill', drillId: 'drill_001' })).toBe(study)
+    expect(run(study, { type: 'openDrills' }, { type: 'openChapterTest', testId: 'test_001' }).scene).toMatchObject({ name: 'chapterTest', testId: 'test_001' })
+  })
+
+  it('自宅からスタンプカードを開き、閉じると自宅に戻る', () => {
+    const stamps = run(atHome(), { type: 'openStamps' })
+    expect(stamps.scene).toEqual({ name: 'stamps', back: home })
+    expect(run(stamps, { type: 'closeStudyScene' }).scene).toEqual(home)
+  })
+
+  it('学習を終えたらスタンプを押して知らせる（1日1つ）', () => {
+    const done = run(atHome(), { type: 'activityCompleted', activity: 'drill', now: T1 })
+    expect(done.save?.daily.stamps).toHaveLength(1)
+    expect(done.reward).toMatchObject({ stamp: true })
+    expect(run(done, { type: 'activityCompleted', activity: 'listening', now: T1 })).toBe(done)
+  })
+
+  it('ハングルのレッスンに合格・章末テストを終える・イベントを完了しても、スタンプを押す', () => {
+    expect(run(atHome(), { type: 'hangulLessonPassed', lessonId: 'hangul_001', score: 100, now: T1 }).save?.daily.stamps).toHaveLength(1)
+    const tested = run(atHome(), { type: 'testFinished', testId: 'test_001', score: 40, passed: false, now: T1 })
+    expect(tested.save?.daily.stamps).toHaveLength(1)
+    expect(tested.save?.learning.tests['test_001']).toEqual({ passedAt: null, bestScore: 40 })
+    const first = content.events[0]
+    if (first === undefined) throw new Error('イベントがない')
+    const played = playWholeEvent(atHome(), first.id)
+    expect(played.save?.daily.stamps).toHaveLength(1)
+    expect(played.reward).toMatchObject({ stamp: true })
+  })
+
+  it('復習・ドリルの答えを記録する', () => {
+    const answered = run(atHome(), { type: 'reviewAnswered', key: 'word:vocab_001', correct: false, source: 'practice', now: T1 }, { type: 'drillAnswered', itemId: 'dq_001', correct: true, now: T1 })
+    expect(answered.save?.learning.review['word:vocab_001']).toMatchObject({ wrong: 1 })
+    expect(answered.save?.learning.drills['dq_001']).toEqual({ correctAt: T1 })
+    expect(answered.save?.stats.xp).toBe(content.balance.xp.drillItem)
+  })
+})

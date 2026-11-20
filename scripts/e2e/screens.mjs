@@ -1,7 +1,7 @@
 // 画面ごとの背景と見た目を確かめる（スマホ幅とPC幅）。
 // - タイトル：マップの絵を背景に敷く／マップ画面とそこから開いた設定：敷かない（GAME_SPEC 6-1）
 // - 施設とそこから開いた設定：施設の背景
-// - 図鑑の「覚えた単語：n / n 語」が板に載っている（QA_REPORT BUG-001）。イベントの中では板を重ねない
+// - 図鑑の「学んだ単語：n / n 語」が板に載っている（QA_REPORT BUG-001）。イベントの中では板を重ねない
 // - 検索サイトに載せない指定（robots の noindex）がある
 // 使い方: node scripts/e2e/screens.mjs <URL>
 
@@ -61,12 +61,12 @@ for (const [w, h, m] of [
   await click('つづきから')
   await sleep(300)
   let dc = await dictCount()
-  check(`${w} イベント中の図鑑：「覚えた単語」に板を重ねない`, dc.bg === 'rgba(0, 0, 0, 0)' && dc.pad === '0px', JSON.stringify(dc))
+  check(`${w} イベント中の図鑑：「学んだ単語」に板を重ねない`, dc.bg === 'rgba(0, 0, 0, 0)' && dc.pad === '0px', JSON.stringify(dc))
   await click('やめる')
   await click('図鑑を見る')
   await sleep(300)
   dc = await dictCount()
-  check(`${w} 図鑑画面：「覚えた単語」を板に載せる（BUG-001）`, dc.bg !== 'rgba(0, 0, 0, 0)' && dc.pad === '14px' && dc.text.includes('26 / 26'), JSON.stringify(dc))
+  check(`${w} 図鑑画面：「学んだ単語」を板に載せる（BUG-001）`, dc.bg !== 'rgba(0, 0, 0, 0)' && dc.pad === '14px' && dc.text.includes('26 / 26'), JSON.stringify(dc))
   await layoutCheck(`${w} 図鑑`)
   await view(`${w}-dictionary`)
 }

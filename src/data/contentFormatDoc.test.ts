@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
-import { EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, PARTS_OF_SPEECH, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_GENRES } from './types'
+import { EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, GENRE_LABELS, PARTS_OF_SPEECH, PART_OF_SPEECH_LABELS, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_GENRES } from './types'
 import { formatIssue, loadContent } from './validate'
 
 const docPath = fileURLToPath(new URL('../../docs/CONTENT_FORMAT.md', import.meta.url))
@@ -39,6 +39,19 @@ function keysInSection(markdown: string, headingPrefix: string): string[] {
 }
 
 const sorted = (xs: Iterable<string>) => [...xs].sort()
+
+/** 見出しの下にある表の、1列目の `キー` → 2列目 */
+function labelsInSection(markdown: string, headingPrefix: string): Record<string, string> {
+  const lines = markdown.split('\n')
+  const start = lines.findIndex((l) => l.startsWith(headingPrefix))
+  const labels: Record<string, string> = {}
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith('#')) break
+    const m = /^\| `([^`]+)` \| ([^|]+) \|/.exec(line)
+    if (m?.[1] !== undefined && m[2] !== undefined) labels[m[1]] = m[2].trim()
+  }
+  return labels
+}
 
 describe('docs/CONTENT_FORMAT.md の見本', () => {
   const samples = extractSamples(doc)
@@ -104,6 +117,9 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
 
   it('ジャンル（10-2）がプログラムと一致する', () => {
     expect(sorted(keysInSection(doc, '### 10-2.'))).toEqual(sorted(VOCAB_GENRES))
+    // 図鑑のタブ・品詞の名前も、表と同じ
+    expect(labelsInSection(doc, '### 10-2.')).toEqual(GENRE_LABELS)
+    expect(labelsInSection(doc, '### 10-1.')).toEqual(PART_OF_SPEECH_LABELS)
   })
 
   it('施設ID（10-3）が src/data/locations と一致する', () => {

@@ -7,7 +7,7 @@ import { content, findConversation, findVocab } from '../../data'
 import { conversationsOf, eventsOfDay, vocabularyOf } from '../../game/events/events'
 import { conversationTurnKey } from '../../storage/saveData'
 
-/** 1日の終わりの結果画面：覚えた単語・経験値・会話の正解の数を順に出し、今日の単語を並べる */
+/** 1日の終わりの結果画面：学んだ単語・経験値・会話の正解の数を順に出し、今日の単語を並べる */
 export function DayEndStep({ textJa, eventId }: { textJa: string; eventId: string }) {
   const { state, dispatch } = useGame()
   const save = state.save
@@ -44,7 +44,7 @@ export function DayEndStep({ textJa, eventId }: { textJa: string; eventId: strin
       <p className="day-end__title">{textJa}</p>
       <dl className="stats">
         <div className="stats__item" style={item(0)}>
-          <dt>覚えた単語</dt>
+          <dt>学んだ単語</dt>
           <dd>
             <strong>{learned.length}</strong> 語
           </dd>

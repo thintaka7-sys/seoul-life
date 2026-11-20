@@ -4,7 +4,7 @@ import { playSfx } from '../audio/sfx'
 
 const SHOW_MS = 2200
 
-/** 「経験値 +n」「図鑑に n 語」を少しの間だけ浮かべて見せ、効果音を鳴らす */
+/** 「経験値 +n」「図鑑に n 語」「今日のスタンプ」を少しの間だけ浮かべて見せ、効果音を鳴らす */
 export function RewardToast() {
   const { state, dispatch } = useGame()
   const reward = state.reward
@@ -26,6 +26,7 @@ export function RewardToast() {
             </span>
           )}
           {reward.newWords > 0 && <span className="toast__words">図鑑に {reward.newWords} 語</span>}
+          {reward.stamp === true && <span className="toast__words">★ 今日のスタンプ</span>}
         </div>
       )}
     </div>

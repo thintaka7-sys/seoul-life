@@ -102,6 +102,7 @@ const validBalance = {
   drillQuestions: 10,
   testQuestions: 10,
   testPassPercent: 80,
+  stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'],
 }
 
 function issuesOf(kind: ContentKind, item: unknown) {
@@ -579,6 +580,22 @@ describe('balance の検証', () => {
     const result = loadContent({ ...base, balance: { 'balance.json': { ...validBalance, review } } })
     expect(result.balance).toEqual(DEFAULT_BALANCE)
     expect(result.issues[0]?.path).toBe(path)
+  })
+
+  it.each([
+    [[], 'stampActivities'],
+    [['review', 'study'], 'stampActivities[1]'],
+    [['review', 'review'], 'stampActivities[1]'],
+  ])('スタンプの学習の誤り %#', (stampActivities, path) => {
+    const result = loadContent({ ...base, balance: { 'balance.json': { ...validBalance, stampActivities } } })
+    expect(result.balance).toEqual(DEFAULT_BALANCE)
+    expect(result.issues[0]?.path).toBe(path)
+  })
+
+  it('スタンプの学習は、一部だけにもできる', () => {
+    const result = loadContent({ ...base, balance: { 'balance.json': { ...validBalance, stampActivities: ['review', 'drill'] } } })
+    expect(result.issues).toEqual([])
+    expect(result.balance.stampActivities).toEqual(['review', 'drill'])
   })
 })
 
