@@ -82,6 +82,9 @@ const MODE_LABELS: Record<AnswerMode, string> = {
 }
 
 /** 答え方が3つあるときの短い名前（幅375pxに収めるため） */
+/** 話して通じなかったときのコツ（BUG-004） */
+const SPEAK_TIP = 'ボタンを押して「どうぞ、話してください」と出てから、ゆっくり、はっきり話してみましょう。'
+
 const MODE_SHORT_LABELS: Record<AnswerMode, string> = {
   choice: '選ぶ',
   write: '書く',
@@ -93,14 +96,6 @@ function SayItPractice({ korean }: { korean: string }) {
   const [result, setResult] = useState<{ ok: boolean; heard: string } | null>(null)
   return (
     <section className="panel say-it" aria-label="声に出して言ってみる">
-      <MicButton
-        label="声に出して言ってみる"
-        onHeard={(alternatives) => {
-          const judge = judgeSpoken(alternatives, [korean])
-          playSfx(judge.kind === 'correct' ? 'correct' : 'wrong')
-          setResult({ ok: judge.kind === 'correct', heard: judge.heard })
-        }}
-      />
       {result !== null &&
         (result.ok ? (
           <p className="correct" aria-live="polite">
@@ -109,8 +104,19 @@ function SayItPractice({ korean }: { korean: string }) {
         ) : (
           <Notice tone="warn">
             聞き取った言葉：「<span lang="ko">{result.heard}</span>」。もう一度言ってみましょう。
+            <br />
+            {SPEAK_TIP}
           </Notice>
         ))}
+      <MicButton
+        label="声に出して言ってみる"
+        retryLabel="もう一度言ってみる"
+        onHeard={(alternatives) => {
+          const judge = judgeSpoken(alternatives, [korean])
+          playSfx(judge.kind === 'correct' ? 'correct' : 'wrong')
+          setResult({ ok: judge.kind === 'correct', heard: judge.heard })
+        }}
+      />
     </section>
   )
 }
@@ -186,12 +192,14 @@ function AnswerArea({
       {s.mode === 'speak' && turn.freeAnswer !== undefined && (
         <>
           <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で言ってみましょう</p>
-          <MicButton onHeard={(alternatives) => send({ type: 'submitSpeech', alternatives })} />
           {s.lastHeard !== null && (
             <Notice tone="warn">
               聞き取った言葉：「<span lang="ko">{s.lastHeard}</span>」。ちがうようです。もう一度話してみましょう。
+              <br />
+              {SPEAK_TIP}
             </Notice>
           )}
+          <MicButton key={s.turn} onHeard={(alternatives) => send({ type: 'submitSpeech', alternatives })} />
           {s.lastHeard !== null && (
             <button type="button" className="link-button" onClick={() => onChooseMode('write')}>
               書いて答える

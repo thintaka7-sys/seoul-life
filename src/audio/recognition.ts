@@ -9,10 +9,12 @@ interface RecognitionAlternativeLike {
 
 interface RecognitionResultLike {
   readonly length: number
+  /** 確定した結果か（途中の結果は false） */
+  readonly isFinal?: boolean
   [index: number]: RecognitionAlternativeLike | undefined
 }
 
-interface RecognitionEventLike {
+export interface RecognitionEventLike {
   results: { readonly length: number; [index: number]: RecognitionResultLike | undefined }
 }
 
@@ -20,7 +22,7 @@ interface RecognitionErrorEventLike {
   error: string
 }
 
-interface RecognitionLike {
+export interface RecognitionLike {
   lang: string
   interimResults: boolean
   continuous: boolean
@@ -28,6 +30,8 @@ interface RecognitionLike {
   onresult: ((e: RecognitionEventLike) => void) | null
   onerror: ((e: RecognitionErrorEventLike) => void) | null
   onend: (() => void) | null
+  onstart: (() => void) | null
+  onaudiostart: (() => void) | null
   start(): void
   stop(): void
   abort(): void
@@ -109,44 +113,125 @@ export interface RecognitionSession {
   abort: () => void
 }
 
-/** 韓国語を1回聞き取る。使えない環境では、すぐに error を返す */
-export function recognizeKorean(): RecognitionSession {
-  const Ctor = recognitionConstructor()
-  if (Ctor === null || getRecognitionStatus().state !== 'available') {
-    const error = describeRecognitionError('language-not-supported')
-    return { result: Promise.resolve({ kind: 'error', error }), stop: () => {}, abort: () => {} }
+export interface RecognitionCallbacks {
+  /** マイクが声を拾い始めた（ここから話してもらう。押した直後はまだ拾っていない） */
+  onReady?: () => void
+  /** 聞き取りの途中の文字（確定前） */
+  onPartial?: (text: string) => void
+}
+
+/** 最後の結果が確定してから、ブラウザが聞き取りを終えるまで待つ時間（終わらないブラウザがあるため） */
+export const FINAL_GRACE_MS = 1500
+
+/**
+ * 認識結果（区切りごとの候補）を、文全体の候補の一覧にする（確からしい順・重複なし）。
+ * 文が2つ以上の区切りに分かれて届くことがあるので、区切りをつなぐ。i 番目の候補がない区切りは、1番目の候補を使う。
+ */
+export function collectAlternatives(results: RecognitionEventLike['results']): string[] {
+  const segments: string[][] = []
+  for (let k = 0; k < results.length; k++) {
+    const r = results[k]
+    if (r === undefined) continue
+    const alts: string[] = []
+    for (let i = 0; i < r.length; i++) {
+      const t = r[i]?.transcript.trim()
+      if (t !== undefined && t !== '') alts.push(t)
+    }
+    if (alts.length > 0) segments.push(alts)
   }
-  const rec = new Ctor()
+  if (segments.length === 0) return []
+  const most = Math.max(...segments.map((s) => s.length))
+  const out: string[] = []
+  for (let i = 0; i < most; i++) {
+    const sentence = segments
+      .map((s) => s[i] ?? s[0] ?? '')
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (sentence !== '' && !out.includes(sentence)) out.push(sentence)
+  }
+  return out
+}
+
+/**
+ * 1回の聞き取りを進める（ブラウザの音声認識の部品を受け取る。テストでは偽物を渡す）。
+ * - 最初に届いた結果ではなく、聞き取りが終わったときの結果で判定する（iPhone は文の途中までの結果が先に届くため。BUG-004）。
+ * - 途中の結果も受け取っておき、確定した結果がないまま終わったときはそれを使う。
+ */
+export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallbacks = {}): RecognitionSession {
   rec.lang = 'ko-KR'
-  rec.interimResults = false
+  rec.interimResults = true
   rec.continuous = false
   rec.maxAlternatives = MAX_ALTERNATIVES
 
+  let aborted = false
   const result = new Promise<RecognitionOutcome>((resolve) => {
     let settled = false
+    let latest: string[] = []
+    let ready = false
+    let graceTimer: ReturnType<typeof setTimeout> | undefined
     const finish = (outcome: RecognitionOutcome) => {
       if (settled) return
       settled = true
+      if (graceTimer !== undefined) clearTimeout(graceTimer)
       if (outcome.kind === 'error' && outcome.error.fatal) markUnavailable(outcome.error.message)
       resolve(outcome)
     }
-    rec.onresult = (e) => {
-      const first = e.results[0]
-      const alternatives: string[] = []
-      for (let i = 0; i < (first?.length ?? 0); i++) {
-        const t = first?.[i]?.transcript.trim()
-        if (t !== undefined && t !== '') alternatives.push(t)
-      }
-      finish(alternatives.length > 0 ? { kind: 'heard', alternatives } : { kind: 'error', error: describeRecognitionError('no-speech') })
+    const finishWithLatest = (fallback: RecognitionError) => finish(latest.length > 0 ? { kind: 'heard', alternatives: latest } : { kind: 'error', error: fallback })
+    const markReady = () => {
+      if (ready) return
+      ready = true
+      callbacks.onReady?.()
     }
-    rec.onerror = (e) => finish({ kind: 'error', error: describeRecognitionError(e.error) })
-    // 結果もエラーもなく終わった場合（何も話さなかったなど）
-    rec.onend = () => finish({ kind: 'error', error: describeRecognitionError('no-speech') })
+    rec.onstart = markReady
+    rec.onaudiostart = markReady
+    rec.onresult = (e) => {
+      markReady()
+      const alternatives = collectAlternatives(e.results)
+      if (alternatives.length === 0) return
+      latest = alternatives
+      callbacks.onPartial?.(alternatives[0] ?? '')
+      let allFinal = true
+      for (let k = 0; k < e.results.length; k++) if (e.results[k]?.isFinal !== true) allFinal = false
+      if (allFinal) {
+        if (graceTimer !== undefined) clearTimeout(graceTimer)
+        graceTimer = setTimeout(() => finishWithLatest(describeRecognitionError('no-speech')), FINAL_GRACE_MS)
+      }
+    }
+    rec.onerror = (e) => {
+      if (aborted || e.error === 'aborted') {
+        finish({ kind: 'error', error: describeRecognitionError('aborted') })
+        return
+      }
+      // 途中まで聞き取れていれば、エラーにせずそれで判定する（声が途切れた・通信が切れたなど）
+      const error = describeRecognitionError(e.error)
+      if (!error.fatal && latest.length > 0) finish({ kind: 'heard', alternatives: latest })
+      else finish({ kind: 'error', error })
+    }
+    // 聞き取りが終わった（話し終えた・ボタンで止めた）。何も聞き取れていなければ「声が聞き取れない」
+    rec.onend = () => (aborted ? finish({ kind: 'error', error: describeRecognitionError('aborted') }) : finishWithLatest(describeRecognitionError('no-speech')))
     try {
       rec.start()
     } catch (e) {
       finish({ kind: 'error', error: { ...describeRecognitionError('other'), message: `音声認識を始められませんでした（${String(e)}）。` } })
     }
   })
-  return { result, stop: () => rec.stop(), abort: () => rec.abort() }
+  return {
+    result,
+    stop: () => rec.stop(),
+    abort: () => {
+      aborted = true
+      rec.abort()
+    },
+  }
+}
+
+/** 韓国語を1回聞き取る。使えない環境では、すぐに error を返す */
+export function recognizeKorean(callbacks: RecognitionCallbacks = {}): RecognitionSession {
+  const Ctor = recognitionConstructor()
+  if (Ctor === null || getRecognitionStatus().state !== 'available') {
+    const error = describeRecognitionError('language-not-supported')
+    return { result: Promise.resolve({ kind: 'error', error }), stop: () => {}, abort: () => {} }
+  }
+  return runRecognition(new Ctor(), callbacks)
 }

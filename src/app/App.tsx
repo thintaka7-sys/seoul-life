@@ -14,6 +14,7 @@ import { HangulListPage } from '../pages/study/HangulListPage'
 import { ListeningPage } from '../pages/study/ListeningPage'
 import { StudyPage } from '../pages/study/StudyPage'
 import { TitlePage } from '../pages/TitlePage'
+import { OVERLAY_ROOT_ID } from '../components/Overlay'
 import { backdropFor } from './backdrop'
 import { nowIso, useGame } from './GameContext'
 import { backTarget, type GameState, type Scene } from './gameState'
@@ -111,6 +112,7 @@ export function App() {
       )}
       <SceneView key={sceneKey(state.scene)} scene={state.scene} />
       <RewardToast />
+      <div id={OVERLAY_ROOT_ID} />
     </div>
   )
 }

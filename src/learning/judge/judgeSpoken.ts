@@ -2,8 +2,44 @@
 // - 音声認識は候補を複数返すので、どれか1つが正解なら「通じた」とする。
 // - 分かち書きは話した人の誤りではないので、空白の位置の違いは注意なしで正解にする。
 // - 認識結果では、数が数字で書かれることがある（한 잔 → 1잔）。話す答えに限り、正解の数の言葉を数字にした形も正解にする（計画 Q12）。
+// - 音声認識は、同じ音でも別のつづりを選ぶことがある。話す答えに限り、同じ音として発音される母音（ㅐ・ㅔ など）を同じとみなし、
+//   文の頭・終わりのつなぎの声（음・어・으）は無視する（BUG-004、Q1 の A）。意味の違う言葉は通さないため、1字違いなどは許さない。
 
+import { composeSyllable, splitSyllable } from '../hangul/jamo'
 import { judgeAnswer } from './judgeAnswer'
+
+/** 今の発音でほぼ区別されない母音を、1つにそろえる（ㅐ＝ㅔ、ㅒ＝ㅖ、ㅙ＝ㅚ＝ㅞ） */
+const SAME_SOUND_VOWELS: Readonly<Record<string, string>> = {
+  ㅐ: 'ㅔ',
+  ㅒ: 'ㅖ',
+  ㅙ: 'ㅞ',
+  ㅚ: 'ㅞ',
+}
+
+/** 同じ音として発音される母音を、1つの書き方にそろえる */
+export function unifySameSoundVowels(text: string): string {
+  return [...text.normalize('NFC')]
+    .map((ch) => {
+      const s = splitSyllable(ch)
+      const medial = s === null ? undefined : SAME_SOUND_VOWELS[s.medial]
+      if (s === null || medial === undefined) return ch
+      return composeSyllable(s.initial, medial, s.final) ?? ch
+    })
+    .join('')
+}
+
+/** 考えながら出る声（つなぎの声）。音声認識が文字にしてしまうことがある */
+const FILLER = /^(음+|어+|으+|으음|음음)[.,?!。、…~]*$/
+
+/** 文の頭と終わりの、つなぎの声を除く。全部がつなぎの声なら、元のまま返す */
+export function stripFillers(text: string): string {
+  const tokens = text.trim().split(/\s+/)
+  let start = 0
+  let end = tokens.length
+  while (start < end && FILLER.test(tokens[start] ?? '')) start++
+  while (end > start && FILLER.test(tokens[end - 1] ?? '')) end--
+  return start === end ? text.trim() : tokens.slice(start, end).join(' ')
+}
 
 /** 単独で数を表す固有数詞（하나＝1つ） */
 const STANDALONE_NUMERALS: Readonly<Record<string, string>> = {
@@ -82,10 +118,18 @@ export function judgeSpoken(alternatives: readonly string[], answers: readonly s
     const v = numeralVariant(a)
     if (v !== null && !original.has(v)) original.set(v, a)
   }
-  const candidates = [...original.keys()]
+  // 母音をそろえた形 → 元の正解
+  const unified = new Map<string, string>()
+  for (const [form, answer] of original) {
+    const u = unifySameSoundVowels(form)
+    if (!unified.has(u)) unified.set(u, answer)
+  }
+  const candidates = [...unified.keys()]
   for (const heard of alternatives) {
-    const result = judgeAnswer(heard, candidates)
-    if (result.kind !== 'incorrect') return { kind: 'correct', matched: original.get(result.matched) ?? result.matched, heard }
+    for (const form of new Set([heard, stripFillers(heard)])) {
+      const result = judgeAnswer(unifySameSoundVowels(form), candidates)
+      if (result.kind !== 'incorrect') return { kind: 'correct', matched: unified.get(result.matched) ?? result.matched, heard }
+    }
   }
   return { kind: 'incorrect', heard: alternatives[0]?.trim() ?? '' }
 }

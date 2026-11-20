@@ -1,5 +1,14 @@
-import { describe, expect, it } from 'vitest'
-import { describeRecognitionError, getRecognitionStatus, recognizeKorean } from './recognition'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  FINAL_GRACE_MS,
+  collectAlternatives,
+  describeRecognitionError,
+  getRecognitionStatus,
+  recognizeKorean,
+  runRecognition,
+  type RecognitionEventLike,
+  type RecognitionLike,
+} from './recognition'
 
 describe('音声認識', () => {
   it('機能のない環境（テストの環境）では使えないとし、聞き取りはすぐにエラーを返す', async () => {
@@ -19,5 +28,132 @@ describe('音声認識', () => {
     expect(describeRecognitionError('network')).toMatchObject({ kind: 'network', fatal: false })
     expect(describeRecognitionError('something-new')).toMatchObject({ kind: 'other', fatal: false })
     expect(describeRecognitionError('something-new').message).toContain('something-new')
+  })
+})
+
+/** 区切りごとの候補から、認識結果を作る（final: 確定したか） */
+function results(...segments: { alts: string[]; final: boolean }[]): RecognitionEventLike['results'] {
+  return segments.map((s) => Object.assign(s.alts.map((transcript) => ({ transcript })), { isFinal: s.final }))
+}
+
+function fakeRecognition() {
+  const rec: RecognitionLike & { started: boolean; stopped: boolean } = {
+    lang: '',
+    interimResults: false,
+    continuous: true,
+    maxAlternatives: 1,
+    onresult: null,
+    onerror: null,
+    onend: null,
+    onstart: null,
+    onaudiostart: null,
+    started: false,
+    stopped: false,
+    start() {
+      rec.started = true
+    },
+    stop() {
+      rec.stopped = true
+      rec.onend?.()
+    },
+    abort() {
+      rec.onerror?.({ error: 'aborted' })
+      rec.onend?.()
+    },
+  }
+  return rec
+}
+
+describe('聞き取った結果のまとめ方（BUG-004）', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('文が区切りに分かれて届いたら、つないで1つの文にする', () => {
+    expect(collectAlternatives(results({ alts: ['아메리카노'], final: true }, { alts: ['한 잔 주세요', '한잔 주세요'], final: true }))).toEqual([
+      '아메리카노 한 잔 주세요',
+      '아메리카노 한잔 주세요',
+    ])
+  })
+
+  it('同じ候補は1つにし、空の候補は除く', () => {
+    expect(collectAlternatives(results({ alts: ['네', ' 네 ', ''], final: true }))).toEqual(['네'])
+    expect(collectAlternatives(results())).toEqual([])
+  })
+
+  it('韓国語で、途中の結果も受け取る設定で聞く', () => {
+    const rec = fakeRecognition()
+    runRecognition(rec)
+    expect(rec).toMatchObject({ lang: 'ko-KR', interimResults: true, continuous: false, started: true })
+  })
+
+  it('マイクが声を拾い始めたら知らせる（1回だけ）', () => {
+    const rec = fakeRecognition()
+    const onReady = vi.fn()
+    runRecognition(rec, { onReady })
+    rec.onstart?.()
+    rec.onaudiostart?.()
+    expect(onReady).toHaveBeenCalledTimes(1)
+  })
+
+  it('途中の結果ではまだ判定せず、聞き取りが終わったときの結果を使う', async () => {
+    const rec = fakeRecognition()
+    const onPartial = vi.fn()
+    const s = runRecognition(rec, { onPartial })
+    let done = false
+    void s.result.then(() => (done = true))
+    rec.onresult?.({ results: results({ alts: ['아메리카노'], final: false }) })
+    await Promise.resolve()
+    expect(done).toBe(false)
+    expect(onPartial).toHaveBeenLastCalledWith('아메리카노')
+    rec.onresult?.({ results: results({ alts: ['아메리카노 한 잔 주세요'], final: true }) })
+    rec.onend?.()
+    expect(await s.result).toEqual({ kind: 'heard', alternatives: ['아메리카노 한 잔 주세요'] })
+  })
+
+  it('確定した結果がないまま終わったら、途中の結果で判定する（iPhone）', async () => {
+    const rec = fakeRecognition()
+    const s = runRecognition(rec)
+    rec.onresult?.({ results: results({ alts: ['고마워요'], final: false }) })
+    rec.onend?.()
+    expect(await s.result).toEqual({ kind: 'heard', alternatives: ['고마워요'] })
+  })
+
+  it('確定した後にブラウザが終わらなくても、少し待って判定する', async () => {
+    vi.useFakeTimers()
+    const rec = fakeRecognition()
+    const s = runRecognition(rec)
+    rec.onresult?.({ results: results({ alts: ['네'], final: true }) })
+    vi.advanceTimersByTime(FINAL_GRACE_MS)
+    expect(await s.result).toEqual({ kind: 'heard', alternatives: ['네'] })
+  })
+
+  it('ボタンで止めたら、そこまでの声で判定する', async () => {
+    const rec = fakeRecognition()
+    const s = runRecognition(rec)
+    rec.onresult?.({ results: results({ alts: ['안녕하세요'], final: false }) })
+    s.stop()
+    expect(await s.result).toEqual({ kind: 'heard', alternatives: ['안녕하세요'] })
+  })
+
+  it('何も聞き取れずに終わったら「声が聞き取れない」', async () => {
+    const rec = fakeRecognition()
+    const s = runRecognition(rec)
+    rec.onend?.()
+    expect(await s.result).toMatchObject({ kind: 'error', error: { kind: 'no-speech' } })
+  })
+
+  it('途中まで聞き取れていれば、声が途切れた・通信が切れたエラーでも、それで判定する', async () => {
+    const rec = fakeRecognition()
+    const s = runRecognition(rec)
+    rec.onresult?.({ results: results({ alts: ['감사합니다'], final: false }) })
+    rec.onerror?.({ error: 'network' })
+    expect(await s.result).toEqual({ kind: 'heard', alternatives: ['감사합니다'] })
+  })
+
+  it('画面を離れて止めたときは、聞き取った途中の結果があっても aborted', async () => {
+    const rec = fakeRecognition()
+    const s = runRecognition(rec)
+    rec.onresult?.({ results: results({ alts: ['네'], final: false }) })
+    s.abort()
+    expect(await s.result).toMatchObject({ kind: 'error', error: { kind: 'aborted' } })
   })
 })

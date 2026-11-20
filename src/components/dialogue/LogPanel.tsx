@@ -7,6 +7,7 @@ import { SpeakButton } from '../SpeakButton'
 import { Translation } from '../Translation'
 import { characterColors } from './characterColors'
 import { NamePlate } from './NamePlate'
+import { Overlay } from '../Overlay'
 
 /** これまでの台詞を見返す一覧（ログ） */
 export function LogPanel({ lines, display, onClose }: { lines: readonly ShownLine[]; display: FuriganaDisplay; onClose: () => void }) {
@@ -19,9 +20,15 @@ export function LogPanel({ lines, display, onClose }: { lines: readonly ShownLin
   }, [onClose])
 
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label="会話のログ">
-      <div className="overlay__panel">
-        <h2 className="section-title">会話のログ</h2>
+    <Overlay
+      label="会話のログ"
+      actions={
+        <Button ref={closeRef} variant="primary" onClick={onClose}>
+          閉じる
+        </Button>
+      }
+    >
+      <h2 className="section-title">会話のログ</h2>
         <ol className="log-list">
           {lines
             .filter((l) => l.kind !== 'wrongReply')
@@ -36,10 +43,6 @@ export function LogPanel({ lines, display, onClose }: { lines: readonly ShownLin
               </li>
             ))}
         </ol>
-        <Button ref={closeRef} variant="primary" onClick={onClose}>
-          閉じる
-        </Button>
-      </div>
-    </div>
+    </Overlay>
   )
 }

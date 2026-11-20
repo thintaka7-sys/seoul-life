@@ -1,5 +1,7 @@
 // Phase 2「文字と音」の確認：はじめからの案内 → ハングルのレッスン1（小テストに合格）→ 物語へ、
 // 学習画面・レッスン一覧、日本語訳の表示の切り替え、話して答える（マイク）の表示、設定画面。
+// 実機確認で見つかった不具合の確認：指のタップで効果音が鳴る準備ができること（BUG-002）、
+// 小さい画面でも「話して答える前に」のボタンが押せること（BUG-003）、幅320〜390pxでキーボードがはみ出さないこと（BUG-005）。
 // ヘッドレスのブラウザには韓国語の音声がないことが多い。その場合は「音声なし」の側の動きを確かめる。
 // 使い方は scripts/e2e/README.md。
 
@@ -7,7 +9,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { FAST_SETTINGS, openBrowser, sleep } from './browser.mjs'
 
 const b = await openBrowser('phase2')
-const { evaluate, click, chooseMode, heading, mainText, saved, stepHeading, viewport, shot, freshStart, check, layoutCheck, nextCards, send } = b
+const { evaluate, click, chooseMode, heading, mainText, saved, stepHeading, viewport, shot, view, freshStart, check, layoutCheck, nextCards, send } = b
 
 /** フォルダの JSON（配列）をすべて読んでつなげる */
 function readdirJson(dir) {
@@ -218,12 +220,129 @@ if (recognition) {
   // 「話す」はタブ（短い名前）とマイクの両方にあるので、マイクはクラスで押す
   await evaluate(`document.querySelector('.mic__button').click()`)
   await sleep(150)
-  check('初めてマイクを押すと、音声が外部で処理されることがあると説明する', (await mainText()).includes('提供元（Google・Apple など）のサーバー'))
+  // 説明は画面の一番外側（#overlay-root）に重ねて出すので、main の外を探す
+  check('初めてマイクを押すと、音声が外部で処理されることがあると説明する', (await evaluate(`document.querySelector('.overlay')?.textContent ?? ''`)).includes('提供元（Google・Apple など）のサーバー'))
   await shot('voice-notice-375')
+  // 低い画面でも、説明のボタンが画面の中にあり、押せる（ほかのものに隠れていない）こと（BUG-003）
+  for (const [w, h] of [
+    [375, 560],
+    [320, 480],
+  ]) {
+    await viewport(w, h, true)
+    await sleep(200)
+    const r = await evaluate(`(() => {
+      const overlay = document.querySelector('.overlay')
+      const buttons = [...overlay.querySelectorAll('button')].filter((b) => ['使う', '使わない'].includes(b.textContent.trim()))
+      const reachable = buttons.map((b) => { const r = b.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + r.height / 2
+        return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth && document.elementFromPoint(x, y)?.closest('button') === b })
+      const panel = overlay.querySelector('.overlay__panel').getBoundingClientRect()
+      return { inRoot: overlay.parentElement?.id === 'overlay-root', count: buttons.length, reachable, panel: [Math.round(panel.top), Math.round(panel.bottom)], ih: innerHeight }
+    })()`)
+    check(`話して答える前に（${w}×${h}）：画面全体に重ね、「使う」「使わない」が画面の中で押せる`, r.inRoot && r.count === 2 && r.reachable.every(Boolean) && r.panel[0] >= 0 && r.panel[1] <= r.ih, JSON.stringify(r))
+    await view(`voice-notice-${w}x${h}`)
+  }
+  await viewport(375, 760, true)
+  await sleep(150)
   await click('使わない')
   const settings = await evaluate(`JSON.parse(localStorage.getItem('seoul-life:settings'))`)
   check('「使わない」で音声入力をオフにし、「話す」を隠す（書いて答えるにする）', settings.voiceInput === false && settings.voiceInputNoticeSeen === true && !(await evaluate(`!!document.querySelector('.mode-tab[aria-label="話して答える"]')`)) && (await evaluate(`document.querySelector('.mode-tab[aria-pressed="true"]')?.getAttribute('aria-label')`)) === '書いて答える', JSON.stringify(settings))
 }
+
+// ゲーム内キーボードが、画面と返事の欄の板からはみ出さない（BUG-005）
+await chooseMode('書いて答える')
+for (const w of [320, 360, 375, 390]) {
+  await viewport(w, 760, true)
+  await sleep(200)
+  const r = await evaluate(`(() => {
+    const k = document.querySelector('.keyboard').getBoundingClientRect()
+    const p = document.querySelector('.answer').getBoundingClientRect()
+    return { iw: innerWidth, sw: document.documentElement.scrollWidth, kb: [k.left, k.right], panel: [p.left, p.right] }
+  })()`)
+  check(`キーボード（幅${w}px）：画面と板の中に収まる`, r.iw === w && r.sw <= w && r.kb[0] >= r.panel[0] - 0.5 && r.kb[1] <= r.panel[1] + 0.5 && r.kb[1] <= w, JSON.stringify(r))
+  await layoutCheck(`キーボード（幅${w}px）`)
+  if (w === 320) await view('keyboard-320')
+}
+await viewport(375, 760, true)
+
+// --- 効果音：スマホの指のタップで音の準備ができ、鳴る（BUG-002） ---
+// 音の部品（AudioContext）を記録する。ブラウザは「操作の前は音を出さない」設定で起動している（browser.mjs）
+await send('Page.addScriptToEvaluateOnNewDocument', {
+  source: `(() => { const C = window.AudioContext; if (!C) return; window.__audio = { contexts: [], oscillators: 0 }
+    window.AudioContext = class extends C { constructor(...a) { super(...a); window.__audio.contexts.push(this) } createOscillator() { window.__audio.oscillators++; return super.createOscillator() } } })()`,
+})
+await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
+await freshStart()
+/** 指でボタンを触る（end が false なら、触れたまま離さない） */
+async function touchButton(text, end = true) {
+  const pt = await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === ${JSON.stringify(text)}); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt] })
+  await sleep(80)
+  if (end) await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await sleep(250)
+}
+const audioState = () => evaluate(`window.__audio ? { n: window.__audio.contexts.length, state: window.__audio.contexts[0]?.state ?? null, osc: window.__audio.oscillators } : null`)
+check('効果音：画面を開いただけでは音の部品を作らない', (await audioState())?.n === 0, JSON.stringify(await audioState()))
+await touchButton('はじめから')
+const afterTap = await audioState()
+check('効果音：指でタップすると音の準備ができ（running）、ボタンの音が鳴る', afterTap?.n === 1 && afterTap.state === 'running' && afterTap.osc > 0, JSON.stringify(afterTap))
+await send('Emulation.setTouchEmulationEnabled', { enabled: false })
+
+// --- 話して答える：聞き取りの流れ（BUG-004） ---
+// ヘッドレスにはマイクがないので、音声認識を偽物に置き換える。start のたびに __fakeSpeech の先頭を使い、
+// 0.5秒後にマイクが動き出し（onstart）、0.9秒後に途中の結果、1.4秒後に確定した結果を返して終わる
+await send('Page.addScriptToEvaluateOnNewDocument', {
+  source: `(() => {
+    const ev = (t, final) => ({ results: [Object.assign([{ transcript: t }], { isFinal: final })] })
+    class FakeRecognition {
+      start() {
+        const step = (window.__fakeSpeech ?? []).shift()
+        this.timers = [setTimeout(() => this.onstart?.(), 500)]
+        if (!step) return
+        if (step.interim) this.timers.push(setTimeout(() => this.onresult?.(ev(step.interim, false)), 900))
+        this.timers.push(setTimeout(() => { this.onresult?.(ev(step.final, true)); this.onend?.() }, 1400))
+      }
+      stop() { this.timers?.forEach(clearTimeout); this.onend?.() }
+      abort() { this.timers?.forEach(clearTimeout); this.onerror?.({ error: 'aborted' }); this.onend?.() }
+    }
+    window.SpeechRecognition = FakeRecognition
+    window.webkitSpeechRecognition = FakeRecognition
+  })()`,
+})
+await freshStart({ settings: { ...FAST_SETTINGS, voiceInputNoticeSeen: true } })
+await click('はじめから')
+await click('このまま物語を始める')
+await click('玄関に出る')
+for (let i = 0; i < 6 && !(await evaluate(`!!document.querySelector('.dialogue')`)); i++) {
+  if (await evaluate(`!!document.querySelector('.learn-card')`)) await nextCards(Number(/\/\s*(\d+)/.exec(await stepHeading())?.[1]))
+  else await click('次へ')
+}
+for (let i = 0; i < 20 && !(await evaluate(`!!document.querySelector('.answer')`)); i++) {
+  await evaluate(`(() => { const s = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '会話をはじめる'); if (s) { s.click(); return } document.querySelector('.dialogue__next')?.click() })()`)
+  await sleep(150)
+}
+await chooseMode('話して答える')
+// 1回目：文の途中まで → 違う文（안녕히 계세요）。2回目：つなぎの声＋母音のつづり違い（음 안녕하새요）は通じる
+await evaluate(`window.__fakeSpeech = [{ interim: '안녕', final: '안녕히 계세요' }, { final: '음 안녕하새요' }]`)
+const micText = () => evaluate(`document.querySelector('.mic__button')?.textContent.trim() ?? ''`)
+const answerText = () => evaluate(`document.querySelector('.answer')?.textContent ?? ''`)
+await evaluate(`document.querySelector('.mic__button').click()`)
+await sleep(150)
+check('話す：押した直後は「準備中」（まだ話さない）', (await micText()).includes('準備中'), await micText())
+await sleep(550)
+check('話す：マイクが動き出したら「どうぞ、話してください」', (await micText()).includes('どうぞ、話してください'), await micText())
+await sleep(350)
+check('話す：途中の結果を「聞こえた言葉」として出す', (await answerText()).includes('聞こえた言葉：「안녕」'), await answerText())
+await shot('speak-listening-375')
+await sleep(700)
+const failed = await answerText()
+check('話す：違う文なら、聞き取った言葉とコツを出し、ボタンを「もう一度話す」にする', failed.includes('聞き取った言葉：「안녕히 계세요」') && failed.includes('ゆっくり、はっきり') && (await micText()) === 'もう一度話す', failed)
+check('話す：通じなかった言葉は、マイクのボタンより上に出す', await evaluate(`(() => { const n = document.querySelector('.answer .notice'); const m = document.querySelector('.answer .mic__button'); return !!n && !!m && n.getBoundingClientRect().bottom <= m.getBoundingClientRect().top })()`))
+await layoutCheck('話す：通じなかったとき')
+await shot('speak-retry-375')
+const xpBefore = (await saved()).stats.xp
+await evaluate(`document.querySelector('.mic__button').click()`)
+await sleep(1700)
+check('話す：つなぎの声（음）と同じ音の母音のつづり違い（새）は通じ、書いて正解と同じ経験値（+15）', !(await evaluate(`!!document.querySelector('.answer')`)) && (await saved()).stats.xp - xpBefore === 15, `xp ${xpBefore}→${(await saved()).stats.xp}`)
 
 // --- 設定画面 ---
 await freshStart()

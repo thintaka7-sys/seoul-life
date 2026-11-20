@@ -37,7 +37,9 @@ export async function openBrowser(name) {
   const exe = BROWSER_CANDIDATES.find((p) => existsSync(p))
   if (exe === undefined) throw new Error('Edge か Chrome が見つかりません。環境変数 E2E_BROWSER に実行ファイルの場所を入れてください')
   const port = 9333 + Math.floor(Math.random() * 500)
-  const browser = spawn(exe, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`, '--no-first-run', '--disable-gpu', '--lang=ja', 'about:blank'], { stdio: 'ignore' })
+  const browser = spawn(exe, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`, '--no-first-run', '--disable-gpu', '--lang=ja',
+    // スマホと同じく、利用者の操作の前には音を出させない（効果音の確認のため。BUG-002）
+    '--autoplay-policy=user-gesture-required', 'about:blank'], { stdio: 'ignore' })
   // 途中でエラーになっても、ブラウザを残さない
   process.on('exit', () => browser.kill())
 
