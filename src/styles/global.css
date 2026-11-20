@@ -2132,7 +2132,7 @@ rt {
   gap: 8px;
 }
 
-.tile {
+.letter-tile {
   min-width: var(--tap-min);
   min-height: var(--tap-min);
   padding: 4px 12px;
@@ -2145,17 +2145,17 @@ rt {
   cursor: pointer;
 }
 
-.tile:disabled {
+.letter-tile:disabled {
   opacity: 0.35;
   cursor: default;
 }
 
-.tile--placed {
+.letter-tile--placed {
   border-color: var(--color-primary);
   background: var(--color-surface-soft);
 }
 
-.tile--placed:disabled {
+.letter-tile--placed:disabled {
   opacity: 1;
 }
 

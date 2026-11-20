@@ -126,7 +126,7 @@ for (const [W, H, mobile] of [
   check(`${P} 物語を始める → 自宅`, (await heading()) === '自宅')
 
   // --- 自宅 → 勉強する → ハングル一覧 ---
-  await click('勉強する（ハングル・リスニング）')
+  await click('勉強する（復習・練習・ハングル）')
   check(`${P} 学習画面`, (await heading()) === '勉強する')
   check(`${P} 合格したレッスンの数`, (await mainText()).includes(`ハングル（1 / ${lessons.length} レッスン合格）`), await mainText())
   const listeningDisabled = await evaluate(`[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'リスニング')?.disabled`)
@@ -158,9 +158,23 @@ for (const [W, H, mobile] of [
     check(`${P} 音の変化のカード（${rule.titleJa}、[${rule.examples[0].spoken}]）`, (await mainText()).includes(rule.titleJa) && (await mainText()).includes(`[${rule.examples[0].spoken}]`))
     for (let i = 1; i < soundChange.rules.length; i++) await click('次へ')
     await click('小テストへ')
-    check(`${P} 音の変化の小テストは発音どおりの形を選ぶ`, (await stepHeading()).includes('発音どおり'), await stepHeading())
-    if (W === 375) await shot('sound-change-quiz-375')
-    await click('やめる')
+    // 小テストは「発音どおりの形を選ぶ」「カタカナの読みを選ぶ」「聞いてつづりを選ぶ（音声があるときだけ）」。どの変化かを選ぶ問題は出さない（Phase 2.5 計画 Q12）
+    const speechOk = await speechAvailable()
+    const headings = []
+    for (let i = 0; i < 20 && (await stepHeading()) !== ''; i++) {
+      headings.push(await stepHeading())
+      if (i === 0 && W === 375) await shot('sound-change-quiz-375')
+      await evaluate(`document.querySelector('.quiz-option')?.click()`)
+      await sleep(50)
+      const nextLabel = await evaluate(`[...document.querySelectorAll('main button')].map((b) => b.textContent.trim()).find((t) => t === '次へ' || t === '結果を見る') ?? ''`)
+      if (nextLabel === '') break
+      await click(nextLabel)
+      if (nextLabel === '結果を見る') break
+    }
+    const kinds = new Set(headings.map((h) => (h.includes('発音どおり') ? 'spoken' : h.includes('読みを選んで') ? 'kana' : h.includes('つづり') ? 'spelling' : h)))
+    check(`${P} 音の変化の小テストは、発音どおりの形・カタカナの読み${speechOk ? '・聞いてつづり' : ''}を選ぶ（${headings.length}問）`, kinds.has('spoken') && kinds.has('kana') && [...kinds].every((k) => ['spoken', 'kana', 'spelling'].includes(k)) && kinds.has('spelling') === speechOk, JSON.stringify([...kinds]))
+    if ((await stepHeading()) !== '') await click('やめる')
+    else await click('レッスン一覧へ', { exact: false })
   }
   const reading = lessons.find((l) => l.kind === 'reading')
   if (reading !== undefined) {

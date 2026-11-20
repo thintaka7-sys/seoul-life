@@ -166,7 +166,9 @@ export function wordQuestions(v: Vocab, pool: readonly Vocab[], options: Questio
   const chapter = options.chapter ?? 1
   const key = `word:${v.id}`
   const model = vocabPhrase(v)
-  const others = pool.filter((o) => o.id !== v.id)
+  // 同じ意味の言葉（감사합니다 と 고맙습니다 など）は、まぎらわしい選択肢に使わず、書く問題では正解にする
+  const synonyms = pool.filter((o) => o.id !== v.id && o.japanese === v.japanese)
+  const others = pool.filter((o) => o.id !== v.id && o.japanese !== v.japanese)
   const sameGenre = others.filter((o) => o.genre === v.genre)
   const base = { key, chapter, model }
   const questions: PracticeQuestion[] = []
@@ -205,7 +207,8 @@ export function wordQuestions(v: Vocab, pool: readonly Vocab[], options: Questio
       body: { type: 'choose', options: blankOptions, answers: [v.korean] },
     })
   }
-  questions.push({ ...base, form: 'write', heading: '韓国語で書いてみましょう', prompt: { kind: 'japanese', text: v.japanese, hint: null }, body: { type: 'write', answers: [v.korean, ...(v.alternatives ?? [])], rejectDigits: false } })
+  const answers = [v, ...synonyms].flatMap((o) => [o.korean, ...(o.alternatives ?? [])])
+  questions.push({ ...base, form: 'write', heading: '韓国語で書いてみましょう', prompt: { kind: 'japanese', text: v.japanese, hint: null }, body: { type: 'write', answers, rejectDigits: false } })
   return questions
 }
 
@@ -318,7 +321,8 @@ export function drillQuestions(item: DrillItem, siblings: readonly DrillItem[], 
     if (audio) questions.push({ ...base, form: 'numberListen', heading: '聞いて、数字で書いてください', prompt: { kind: 'audio', phrase: model }, body: { type: 'number', digits: item.digits } })
     return questions
   }
-  const others = siblings.filter((s) => s.id !== item.id)
+  // 同じ意味の問題は、まぎらわしい選択肢に使わない
+  const others = siblings.filter((s) => s.id !== item.id && s.japanese !== item.japanese)
   const questions: PracticeQuestion[] = [write]
   const wrongMeanings = pickDistractors(item, (o) => o.japanese, others, [], random)
   if (wrongMeanings.length > 0) {

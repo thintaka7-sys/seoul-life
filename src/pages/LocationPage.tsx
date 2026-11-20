@@ -49,7 +49,7 @@ export function LocationPage({ locationId }: { locationId: string }) {
 
         {locationId === 'home' && (
           <>
-            <Button onClick={() => dispatch({ type: 'openStudy' })}>勉強する（ハングル・リスニング）</Button>
+            <Button onClick={() => dispatch({ type: 'openStudy' })}>勉強する（復習・練習・ハングル）</Button>
             <Button onClick={() => dispatch({ type: 'openDictionary' })}>図鑑を見る</Button>
           </>
         )}

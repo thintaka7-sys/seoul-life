@@ -32,7 +32,7 @@ for (const [label, save] of cases) {
   await sleep(300)
   const s = await saved()
   const inEvent = await evaluate(`!!document.querySelector('.event-progress')`)
-  check(`${label}：つづきからイベント画面で再開し、v4 に移行（段階 ${s.progress.activeEvent?.step}）`, inEvent && s.version === 4, `v${s.version} ${JSON.stringify(s.progress)}`)
+  check(`${label}：つづきからイベント画面で再開し、v5 に移行（段階 ${s.progress.activeEvent?.step}）`, inEvent && s.version === 5, `v${s.version} ${JSON.stringify(s.progress)}`)
   for (let i = 0; i < 80 && (await evaluate(`!!document.querySelector('.event-progress')`)); i++) {
     await evaluate(`(() => {
       const start = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '会話をはじめる'); if (start) { start.click(); return }

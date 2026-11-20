@@ -108,6 +108,16 @@ describe('単語の問題', () => {
     expect(q?.prompt).toEqual({ kind: 'blank', before: '', after: ' 주세요.', japanese: 'コーヒーをください。' })
   })
 
+  it('同じ意味の言葉は、まぎらわしい選択肢に使わず、書く問題では正解にする', () => {
+    const thanks = [v('vocab_101', '감사합니다', 'ありがとうございます', { genre: 'greeting' }), v('vocab_102', '고맙습니다', 'ありがとうございます', { genre: 'greeting' }), ...vocabulary]
+    for (let seed = 1; seed <= 8; seed++) {
+      const qs = wordQuestions(thanks[0] as Vocab, thanks, { audio: true, random: seeded(seed) })
+      for (const q of qs) if (q.body.type === 'choose') expect(q.body.options.map((o) => o.text)).not.toContain('고맙습니다')
+      const write = qs.find((q) => q.form === 'write')
+      expect(write !== undefined && judgePractice(write, '고맙습니다').correct).toBe(true)
+    }
+  })
+
   it('書く問題は別解も正解', () => {
     const q = wordQuestions(vocabulary[3] as Vocab, vocabulary, { audio: false, random: seeded(1) }).find((x) => x.form === 'write')
     if (q === undefined) throw new Error('書く問題がない')

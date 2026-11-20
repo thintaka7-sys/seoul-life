@@ -99,14 +99,14 @@ function ArrangeBody({ tiles, joiner, done, onSubmit }: { tiles: string[]; joine
       <div className={`arrange__answer${joiner === '' ? ' arrange__answer--tight' : ''}`} aria-label="並べた答え" lang="ko">
         {picked.length === 0 && <span className="muted small">下の札を順に押してください</span>}
         {picked.map((tileIndex, i) => (
-          <button key={i} type="button" className="tile tile--placed" disabled={done} onClick={() => setPicked((p) => p.filter((_, j) => j !== i))}>
+          <button key={i} type="button" className="letter-tile letter-tile--placed" disabled={done} onClick={() => setPicked((p) => p.filter((_, j) => j !== i))}>
             {tiles[tileIndex]}
           </button>
         ))}
       </div>
       <div className="arrange__pool" lang="ko">
         {tiles.map((tile, i) => (
-          <button key={i} type="button" className="tile" disabled={done || picked.includes(i)} onClick={() => setPicked((p) => [...p, i])}>
+          <button key={i} type="button" className="letter-tile" disabled={done || picked.includes(i)} onClick={() => setPicked((p) => [...p, i])}>
             {tile}
           </button>
         ))}
