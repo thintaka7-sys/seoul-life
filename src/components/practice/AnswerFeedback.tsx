@@ -82,7 +82,7 @@ export function AnswerCompare({ given, answers, digits = false, givenLabel = '�
 
 /** 「ゆっくり」のボタンの名前（速さが変わらない端末では、2回くり返して読む） */
 export function SlowLabel() {
-  return <>{useSlowState().support === 'ignored' ? '2回くり返す' : 'ゆっくり'}</>
+  return <>{useSlowState().rate === null ? '2回くり返す' : 'ゆっくり'}</>
 }
 
 /**
@@ -90,13 +90,20 @@ export function SlowLabel() {
  * 出ている画面を離れたら、出したことにする
  */
 export function SlowRepeatNotice() {
-  const { noticePending } = useSlowState()
+  const { noticePending, rate } = useSlowState()
   useEffect(() => {
     if (!noticePending) return
     return () => clearSlowNotice()
   }, [noticePending])
   if (!noticePending) return null
-  return <Notice>この端末では読み上げの速さを変えられないようです。「ゆっくり」の代わりに、間を空けて2回くり返して読みます。</Notice>
+  const guide = '設定の「読み上げの確認」で、この端末に合わせて調整できます。'
+  return (
+    <Notice>
+      {rate === null
+        ? `この端末では読み上げの速さを変えられないようです。「ゆっくり」の代わりに、間を空けて2回くり返して読みます。${guide}`
+        : `この端末では「ゆっくり」が少ししか遅くならないようです。もっと遅い速さに変えました。${guide}`}
+    </Notice>
+  )
 }
 
 /** 「▶ 聞く」と「ゆっくり」 */

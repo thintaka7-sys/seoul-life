@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, type ReactNode } from 'react'
 import { setSfxEnabled } from '../audio/sfx'
+import { applySavedSlowRate } from '../audio/speech'
 import { content } from '../data'
 import type { SaveData } from '../storage/saveData'
 import { saveGame } from '../storage/saveStore'
@@ -40,6 +41,12 @@ export function GameProvider({ boot, children }: { boot: BootResult; children: R
   useEffect(() => {
     setSfxEnabled(state.settings.soundEffects)
   }, [state.settings.soundEffects])
+
+  // この端末の「ゆっくり」の速さ（読み上げの確認で保存したもの）を読み上げに反映する（BUG-010）
+  const slowRate = state.settings.slowSpeech === null ? undefined : state.settings.slowSpeech.rate
+  useEffect(() => {
+    applySavedSlowRate(slowRate)
+  }, [slowRate])
 
   // 設定が変わったら保存する
   useEffect(() => {

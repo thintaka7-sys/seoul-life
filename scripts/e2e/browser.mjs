@@ -17,7 +17,7 @@ const BROWSER_CANDIDATES = [
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** 設定を「文字送りなし」にして、操作を速く・確実にする（文字送りの確認をするときは使わない） */
-export const FAST_SETTINGS = { version: 3, furigana: 'recommended', translation: 'always', speechRate: 'normal', textSpeed: 'instant', soundEffects: true, effects: 'normal', voiceInput: true, voiceInputNoticeSeen: false }
+export const FAST_SETTINGS = { version: 4, furigana: 'recommended', translation: 'always', speechRate: 'normal', textSpeed: 'instant', soundEffects: true, effects: 'normal', voiceInput: true, voiceInputNoticeSeen: false, slowSpeech: null }
 
 /**
  * ブラウザを開き、確認に使う関数をまとめて返す。

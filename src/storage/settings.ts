@@ -4,7 +4,7 @@
 import { writeItem, type KeyValueStorage, type SaveResult } from './saveStore'
 
 export const SETTINGS_KEY = 'seoul-life:settings'
-export const CURRENT_SETTINGS_VERSION = 3
+export const CURRENT_SETTINGS_VERSION = 4
 
 /** フリガナ：おすすめ（序盤はいつも表示・それ以降はタップ）／いつも表示／タップで表示／表示しない */
 export const FURIGANA_MODES = ['recommended', 'always', 'tap', 'off'] as const
@@ -42,9 +42,33 @@ export interface SettingsV2 {
   effects: EffectLevel
 }
 
-/** v3（Phase 2） */
-export interface Settings {
+/**
+ * この端末の「ゆっくり」の読み上げ（BUG-010。GAME_SPEC 10-4）。設定の「読み上げの確認」で決める。
+ * 端末ごとの値なので、設定の書き出し（Phase 4）には含めない
+ */
+export interface SlowSpeech {
+  /** 「ゆっくり」で使う速さ（0〜1）。null なら、どの速さでも十分に遅くならない端末（2回くり返して読む） */
+  rate: number | null
+  /** 確かめた日時（ISO 8601） */
+  measuredAt: string
+}
+
+/** v3（Phase 2）。移行のために型を残しておく */
+export interface SettingsV3 {
   version: 3
+  furigana: FuriganaMode
+  translation: TranslationMode
+  speechRate: SpeechRate
+  textSpeed: TextSpeed
+  soundEffects: boolean
+  effects: EffectLevel
+  voiceInput: boolean
+  voiceInputNoticeSeen: boolean
+}
+
+/** v4（Phase 2.6。slowSpeech を追加） */
+export interface Settings {
+  version: 4
   furigana: FuriganaMode
   /** 日本語訳の出し方（台詞・反応・ログ・単語カードの例文・コラムの韓国語） */
   translation: TranslationMode
@@ -57,6 +81,8 @@ export interface Settings {
   voiceInput: boolean
   /** 音声入力の説明（音声が外部で処理されることがある）を見たか */
   voiceInputNoticeSeen: boolean
+  /** この端末の「ゆっくり」の読み上げ。まだ確かめていなければ null */
+  slowSpeech: SlowSpeech | null
 }
 
 /**
@@ -65,7 +91,7 @@ export interface Settings {
  */
 export function defaultSettings(prefersReducedMotion: boolean): Settings {
   return {
-    version: 3,
+    version: 4,
     furigana: 'recommended',
     translation: 'always',
     speechRate: 'normal',
@@ -74,6 +100,7 @@ export function defaultSettings(prefersReducedMotion: boolean): Settings {
     effects: prefersReducedMotion ? 'reduced' : 'normal',
     voiceInput: true,
     voiceInputNoticeSeen: false,
+    slowSpeech: null,
   }
 }
 
@@ -87,6 +114,14 @@ export type SettingsLoadResult =
   /** 読めなかった・一部の値が正しくなかった（読める項目は使い、ほかは初期値にする） */
   | { kind: 'repaired'; settings: Settings; detail: string }
 
+function isSlowSpeech(v: unknown): v is SlowSpeech {
+  if (typeof v !== 'object' || v === null) return false
+  const o = v as Record<string, unknown>
+  const rate = o['rate']
+  const rateOk = rate === null || (typeof rate === 'number' && rate > 0 && rate <= 1)
+  return rateOk && typeof o['measuredAt'] === 'string'
+}
+
 function pick<T extends string>(allowed: readonly T[], v: unknown, fallback: T): T {
   return allowed.find((a) => a === v) ?? fallback
 }
@@ -98,7 +133,7 @@ export interface LoadSettingsOptions {
 
 /**
  * 設定を読み込む。壊れていても例外を投げず、読める項目だけを使う。
- * v1・v2 は v3 に移す（増えた項目は初期値）。
+ * v1〜v3 は v4 に移す（増えた項目は初期値）。
  */
 export function loadSettings(storage: KeyValueStorage | null, options: LoadSettingsOptions = {}): SettingsLoadResult {
   const defaults = defaultSettings(options.prefersReducedMotion ?? false)
@@ -122,23 +157,26 @@ export function loadSettings(storage: KeyValueStorage | null, options: LoadSetti
   }
   const obj = parsed as Record<string, unknown>
   const version = obj['version']
-  if (version !== 1 && version !== 2 && version !== CURRENT_SETTINGS_VERSION) {
+  if (version !== 1 && version !== 2 && version !== 3 && version !== CURRENT_SETTINGS_VERSION) {
     return { kind: 'repaired', settings: defaults, detail: `対応していないバージョン（${String(version)}）のため初期値にしました` }
   }
   // 古い版にない項目は初期値を入れる（正しくない値とはみなさない）
-  // v1 → v2：textSpeed・soundEffects・effects。v2 → v3：translation・voiceInput・voiceInputNoticeSeen
+  // v1 → v2：textSpeed・soundEffects・effects。v2 → v3：translation・voiceInput・voiceInputNoticeSeen。v3 → v4：slowSpeech
   const added: Record<string, unknown> = {}
   if (version === 1) Object.assign(added, { textSpeed: defaults.textSpeed, soundEffects: defaults.soundEffects, effects: defaults.effects })
   if (version === 1 || version === 2) {
     Object.assign(added, { translation: defaults.translation, voiceInput: defaults.voiceInput, voiceInputNoticeSeen: defaults.voiceInputNoticeSeen })
   }
+  if (version !== CURRENT_SETTINGS_VERSION) Object.assign(added, { slowSpeech: null })
   const source: Record<string, unknown> = { ...obj, ...added }
   const bool = (key: 'soundEffects' | 'voiceInput' | 'voiceInputNoticeSeen'): boolean => {
     const v = source[key]
     return typeof v === 'boolean' ? v : defaults[key]
   }
+  const rawSlow = source['slowSpeech']
+  const slowSpeech = rawSlow === null || !isSlowSpeech(rawSlow) ? null : { rate: rawSlow.rate, measuredAt: rawSlow.measuredAt }
   const settings: Settings = {
-    version: 3,
+    version: 4,
     furigana: pick(FURIGANA_MODES, source['furigana'], defaults.furigana),
     translation: pick(TRANSLATION_MODES, source['translation'], defaults.translation),
     speechRate: pick(SPEECH_RATES, source['speechRate'], defaults.speechRate),
@@ -147,9 +185,11 @@ export function loadSettings(storage: KeyValueStorage | null, options: LoadSetti
     effects: pick(EFFECT_LEVELS, source['effects'], defaults.effects),
     voiceInput: bool('voiceInput'),
     voiceInputNoticeSeen: bool('voiceInputNoticeSeen'),
+    slowSpeech,
   }
+  const slowRepaired = rawSlow !== null && slowSpeech === null
   const keys = ['furigana', 'translation', 'speechRate', 'textSpeed', 'soundEffects', 'effects', 'voiceInput', 'voiceInputNoticeSeen'] as const
-  const repaired = keys.some((k) => settings[k] !== source[k])
+  const repaired = slowRepaired || keys.some((k) => settings[k] !== source[k])
   return repaired ? { kind: 'repaired', settings, detail: '正しくない値を初期値に戻しました' } : { kind: 'ok', settings }
 }
 

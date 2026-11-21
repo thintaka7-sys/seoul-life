@@ -1,4 +1,4 @@
-import { useGame } from '../app/GameContext'
+import { nowIso, useGame } from '../app/GameContext'
 import { useFuriganaDisplay, useRecognitionStatus, useSpeechStatus } from '../app/hooks'
 import { Button } from '../components/Button'
 import { KoreanText } from '../components/KoreanText'
@@ -6,8 +6,8 @@ import { ScreenLayout } from '../components/ScreenLayout'
 import { content } from '../data'
 import { useState } from 'react'
 import { playSfx } from '../audio/sfx'
-import { clearSlowNotice, measureSpeech } from '../audio/speech'
-import type { RateSupport } from '../audio/speechPlayer'
+import { checkSpeech } from '../audio/speech'
+import { syllableCount, type RateSupport, type SpeechCheckResult } from '../audio/speechPlayer'
 import { TEXT_SPEED_MS, totalChars } from '../components/dialogue/typewriter'
 import { useTypewriter } from '../components/dialogue/useTypewriter'
 import { pairReading } from '../learning/furigana/furigana'
@@ -25,30 +25,43 @@ import {
   type TranslationMode,
 } from '../storage/settings'
 
-/** 読み上げの確認に使う言葉（教材の単語から、長めのもの。短いと時間の差が測りにくいため） */
-const SPEECH_CHECK_WORD = content.vocabulary.find((v) => [...v.korean.replace(/\s/g, '')].length >= 4) ?? content.vocabulary[0]
+/**
+ * 読み上げの確認に使う文（教材の例文・会話から、8〜14音節のもの）。
+ * 短い言葉では、読み始めまでの待ち時間などの割合が大きく、速さの差が測りにくいため（BUG-010）
+ */
+const SPEECH_CHECK_TEXT =
+  [
+    ...content.grammar.flatMap((g) => g.examples.map((e) => e.korean)),
+    ...content.vocabulary.flatMap((v) => (v.example === undefined ? [] : [v.example])),
+    ...content.conversations.flatMap((c) => c.turns.flatMap((t) => t.lines.map((l) => l.korean))),
+  ].find((t) => syllableCount(t) >= 8 && syllableCount(t) <= 14) ?? content.vocabulary[0]?.korean
 
-const SPEECH_CHECK_RESULT: Record<RateSupport, string> = {
-  works: 'この端末では「ゆっくり」で遅くなります。',
-  ignored: 'この端末では、読み上げの速さが変わらないようです。「ゆっくり」のボタンは、間を空けて2回くり返して読みます。',
-  unknown: '時間をうまく測れませんでした。もう一度お試しください。',
+const seconds = (ms: number | null) => (ms === null ? '測れませんでした' : `${(ms / 1000).toFixed(2)}秒`)
+
+/** 確かめた結果の説明 */
+function checkVerdict(support: RateSupport, rate: number | null | undefined): string {
+  if (rate === undefined || support === 'unknown') return '時間をうまく測れませんでした。もう一度お試しください。'
+  if (rate === null) return 'この端末では、読み上げの速さが変わらないようです。「ゆっくり」のボタンは、間を空けて2回くり返して読みます。'
+  if (support === 'weak') return `十分には遅くなりませんでしたが、いちばん遅くなった速さ ${rate} で「ゆっくり」を読みます。短い単語は、もう1回くり返します。`
+  return `この端末では、「ゆっくり」を速さ ${rate} で読みます。短い単語は、もう1回くり返します。`
 }
 
-/** 読み上げの確認（GAME_SPEC 10-4。BUG-010）：同じ言葉を、ふつう → ゆっくりで読み、かかった時間をくらべる */
-function SpeechCheck() {
+/**
+ * 読み上げの確認（GAME_SPEC 10-4。BUG-010）：同じ文を、ふつう → 遅い速さの候補で読み比べ、
+ * この端末で十分に遅くなる速さを選んで、設定に保存する
+ */
+function SpeechCheck({ saved, onSave }: { saved: Settings['slowSpeech']; onSave: (rate: number | null) => void }) {
   const speech = useSpeechStatus()
   const [running, setRunning] = useState(false)
-  const [result, setResult] = useState<{ normal: number | null; slow: number | null; support: RateSupport } | null>(null)
-  if (SPEECH_CHECK_WORD === undefined) return null
-  const word = SPEECH_CHECK_WORD.korean
-  const seconds = (ms: number | null) => (ms === null ? '測れませんでした' : `${(ms / 1000).toFixed(2)}秒`)
+  const [result, setResult] = useState<SpeechCheckResult | null>(null)
+  if (SPEECH_CHECK_TEXT === undefined) return null
+  const text = SPEECH_CHECK_TEXT
 
   async function run() {
     setRunning(true)
-    const r = await measureSpeech(word)
+    const r = await checkSpeech(text)
     setResult(r)
-    // ここで結果を伝えたので、練習の画面では知らせを出さない
-    if (r?.support === 'ignored') clearSlowNotice()
+    if (r !== null && r.rate !== undefined) onSave(r.rate)
     setRunning(false)
   }
 
@@ -56,19 +69,29 @@ function SpeechCheck() {
     <div className="speech-check">
       <p className="step-heading">読み上げの確認</p>
       <p className="muted small">
-        「<span lang="ko">{word}</span>」を、ふつう → ゆっくりの順に読んで、かかった時間をくらべます。端末によっては、読み上げの速さを変えられないことがあります。
+        「<span lang="ko">{text}</span>」を、ふつうの速さと、遅い速さで読み比べて、この端末の「ゆっくり」の速さを決めます（数回読みます）。端末によっては、読み上げの速さが変わりにくいことがあります。
       </p>
+      {result === null && saved !== null && (
+        <p className="small">
+          前に確かめた結果：{saved.rate === null ? '「ゆっくり」は2回くり返して読みます' : `「ゆっくり」を速さ ${saved.rate} で読みます`}
+        </p>
+      )}
       <Button onClick={() => void run()} disabled={speech.state !== 'available' || running}>
-        {running ? '読み上げ中…' : '確かめる'}
+        {running ? '読み上げ中…' : saved === null ? '確かめる' : 'もう一度確かめる'}
       </Button>
       {speech.state === 'unavailable' && <p className="muted small">読み上げは使えません：{speech.reason}</p>}
       {result !== null && (
         <div aria-live="polite">
           <ul className="info-list">
-            <li>ふつう：{seconds(result.normal)}</li>
-            <li>ゆっくり：{seconds(result.slow)}</li>
+            <li>ふつう（速さ 1）：{seconds(result.normal)}</li>
+            {result.trials.map((t) => (
+              <li key={t.rate}>
+                速さ {t.rate}：{seconds(t.ms)}（{t.ratio.toFixed(1)}倍）
+              </li>
+            ))}
           </ul>
-          <p className="small">{SPEECH_CHECK_RESULT[result.support]}</p>
+          <p className="small">{checkVerdict(result.support, result.rate)}</p>
+          <p className="muted small">測り方：{result.method === 'engine' ? '端末が知らせる「話していた時間」' : '読み始めから読み終わりまでの時刻'}</p>
         </div>
       )}
     </div>
@@ -188,7 +211,7 @@ export function SettingsPage() {
             <span>{SPEECH_LABELS[rate]}</span>
           </label>
         ))}
-        <SpeechCheck />
+        <SpeechCheck saved={settings.slowSpeech} onSave={(rate) => change({ slowSpeech: { rate, measuredAt: nowIso() } })} />
       </fieldset>
 
       <fieldset className="field">

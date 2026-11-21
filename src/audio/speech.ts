@@ -3,7 +3,7 @@
 // 音声の一覧は、ブラウザによっては後から（voiceschanged で）届くため、少し待ってから判断する。
 
 import type { SpeechRate } from '../storage/settings'
-import { createSpeechPlayer, type SlowState, type SpeakOptions, type SpeechPlayer } from './speechPlayer'
+import { INITIAL_SLOW_STATE, createSpeechPlayer, type SlowState, type SpeakOptions, type SpeechCheckResult, type SpeechPlayer } from './speechPlayer'
 
 export type SpeechStatus =
   | { state: 'checking' }
@@ -24,7 +24,10 @@ export function pickKoreanVoice<V extends VoiceLike>(voices: readonly V[]): V | 
   return [...korean].sort((a, b) => score(b) - score(a))[0] ?? null
 }
 
-/** 読み上げの速さ。ゆっくりは 0.5（0.7 では差が分かりにくい端末があったため。BUG-010） */
+/**
+ * 読み上げの速さ（まだ「読み上げの確認」をしていない端末での値）。ゆっくりは 0.5（0.7 では差が分かりにくい端末があったため。BUG-010）。
+ * 確かめた端末では、その端末で十分に遅くなる速さを使う（speechPlayer の SlowState.rate）
+ */
 export function speechRateValue(rate: SpeechRate): number {
   return rate === 'slow' ? 0.5 : 1
 }
@@ -64,23 +67,23 @@ export function initSpeech(): void {
   const check = (): boolean => {
     const voice = pickKoreanVoice(synth.getVoices())
     if (voice === null) return false
-    player = createSpeechPlayer(
-      {
-        cancel: () => synth.cancel(),
-        speak: (u) => {
-          if (u instanceof SpeechSynthesisUtterance) synth.speak(u)
-        },
-        utterance: (text) => {
-          const u = new SpeechSynthesisUtterance(text)
-          u.lang = voice.lang
-          u.voice = voice
-          return u
-        },
-        now: () => performance.now(),
-        later: (fn, ms) => window.setTimeout(fn, ms),
+    player = createSpeechPlayer({
+      cancel: () => synth.cancel(),
+      speak: (u) => {
+        const s = new SpeechSynthesisUtterance(u.text)
+        s.lang = voice.lang
+        s.voice = voice
+        s.rate = u.rate
+        s.onstart = () => u.onstart?.()
+        // 端末が知らせる「話していた時間」（elapsedTime）も渡す（読み始めまでの待ち時間を含まない長さのため）
+        s.onend = (e) => u.onend?.({ elapsedTime: e?.elapsedTime })
+        s.onerror = () => u.onerror?.()
+        synth.speak(s)
       },
-      speechRateValue,
-    )
+      now: () => performance.now(),
+      later: (fn, ms) => window.setTimeout(fn, ms),
+    })
+    player.applySaved(savedSlowRate)
     player.subscribe(() => {
       for (const l of slowListeners) l()
     })
@@ -106,18 +109,26 @@ export function speakKorean(text: string, rate: SpeechRate, options: SpeakOption
   void player.speak(text, rate, options)
 }
 
-/** 読み上げの確認（設定画面）：同じ文をふつう → ゆっくりで読み、長さ（ミリ秒）と、速さが効くかを返す */
-export async function measureSpeech(text: string): Promise<{ normal: number | null; slow: number | null; support: SlowState['support'] } | null> {
+/** 読み上げの確認（設定画面）：同じ文をふつう → 遅い速さの候補で読み、長さと選んだ速さを返す */
+export async function checkSpeech(text: string): Promise<SpeechCheckResult | null> {
   if (status.state !== 'available' || player === null) return null
-  return player.measure(text)
+  return player.check(text)
 }
 
-const NO_SLOW_STATE: SlowState = { support: 'unknown', noticePending: false }
+/** 設定に保存してある、この端末の「ゆっくり」の速さ（null は2回くり返す。undefined はまだ確かめていない） */
+let savedSlowRate: number | null | undefined = undefined
+
+/** 保存してある「ゆっくり」の速さを使う（設定を読み込んだとき・変わったとき） */
+export function applySavedSlowRate(rate: number | null | undefined): void {
+  savedSlowRate = rate
+  player?.applySaved(rate)
+}
+
 const slowListeners = new Set<() => void>()
 
 /** 「ゆっくり」が効くか（ゲームを開いている間の判断） */
 export function getSlowState(): SlowState {
-  return player?.getState() ?? NO_SLOW_STATE
+  return player?.getState() ?? INITIAL_SLOW_STATE
 }
 
 export function subscribeSlow(listener: () => void): () => void {
@@ -125,7 +136,7 @@ export function subscribeSlow(listener: () => void): () => void {
   return () => slowListeners.delete(listener)
 }
 
-/** 「2回くり返して読みます」を知らせた */
+/** 自動の判断の知らせを出した */
 export function clearSlowNotice(): void {
   player?.clearNotice()
 }
