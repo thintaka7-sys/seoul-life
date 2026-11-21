@@ -1,4 +1,7 @@
 import type { ReactNode } from 'react'
+import { optionState } from '../learning/feedback/missed'
+import { OptionMark } from './practice/AnswerFeedback'
+import { optionClass } from './practice/optionClass'
 
 interface QuizOptionsProps {
   options: readonly string[]
@@ -17,12 +20,12 @@ export function QuizOptions({ options, answer, selected, onSelect, lang = 'ja', 
   return (
     <ul className="choices quiz-options">
       {options.map((o) => {
-        const mark = selected === null ? '' : o === answer ? ' quiz-option--answer' : o === selected ? ' quiz-option--wrong' : ''
+        const state = optionState(o, [answer], selected)
         return (
           <li key={o} className="choice">
-            <button type="button" className={`choice__button quiz-option${mark}`} lang={lang} disabled={selected !== null} onClick={() => onSelect(o)}>
+            <button type="button" className={`choice__button quiz-option${optionClass(state)}`} lang={lang} disabled={selected !== null} onClick={() => onSelect(o)}>
               {render === undefined ? o : render(o)}
-              {selected !== null && o === answer && <span className="quiz-option__mark">（正解）</span>}
+              <OptionMark state={state} />
             </button>
           </li>
         )

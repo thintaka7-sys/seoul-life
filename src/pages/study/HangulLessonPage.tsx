@@ -1,24 +1,26 @@
 import { useState } from 'react'
 import { playSfx } from '../../audio/sfx'
 import { nowIso, useGame } from '../../app/GameContext'
-import { useSpeak, useSpeechStatus } from '../../app/hooks'
+import { useSpeechStatus } from '../../app/hooks'
 import { AnswerInput } from '../../components/AnswerInput'
 import { Button } from '../../components/Button'
 import { DraftBadge } from '../../components/DraftBadge'
 import { Notice } from '../../components/Notice'
+import { AnswerCompare, ListenButtons, ListenCompare, MissedList } from '../../components/practice/AnswerFeedback'
 import { QuizOptions } from '../../components/QuizOptions'
 import { ScreenLayout } from '../../components/ScreenLayout'
 import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
 import { content, findHangulLesson, findVocab } from '../../data'
 import type { HangulFinal, HangulLesson, HangulLetter, SoundChangeRule } from '../../data/types'
+import { hangulHeading, missedFromHangul, type MissedItem } from '../../learning/feedback/missed'
 import { buildQuiz, isCorrectAnswer, questionAnswer, quizScore, readingItems, type HangulQuestion, type ReadingItem } from '../../learning/hangul/quiz'
 
 const CONTINUE_HINT = '続きのレッスンは、自宅の「勉強する」→「ハングル」から、いつでも進められます。'
 
 type Card = { kind: 'letter'; letter: HangulLetter } | { kind: 'final'; final: HangulFinal } | { kind: 'rule'; rule: SoundChangeRule }
 
-type Phase = { name: 'intro' } | { name: 'cards'; index: number } | { name: 'words' } | { name: 'quiz' } | { name: 'result'; correct: number; total: number }
+type Phase = { name: 'intro' } | { name: 'cards'; index: number } | { name: 'words' } | { name: 'quiz' } | { name: 'result'; correct: number; total: number; missed: MissedItem[] }
 
 function cardsOf(lesson: HangulLesson): Card[] {
   return [
@@ -123,30 +125,20 @@ function WordItem({ item }: { item: ReadingItem }) {
 }
 
 function QuestionPrompt({ q }: { q: HangulQuestion }) {
-  const speak = useSpeak()
+  const heading = <p className="step-heading">{hangulHeading(q)}</p>
   switch (q.kind) {
     case 'listen':
-      return (
-        <>
-          <p className="step-heading">音を聞いて、合う文字を選んでください</p>
-          <Button variant="primary" sound={null} onClick={() => speak(q.korean)}>
-            ▶ 音を聞く
-          </Button>
-        </>
-      )
     case 'listenSpelling':
       return (
         <>
-          <p className="step-heading">音を聞いて、正しいつづりを選んでください</p>
-          <Button variant="primary" sound={null} onClick={() => speak(q.korean)}>
-            ▶ 音を聞く
-          </Button>
+          {heading}
+          <ListenButtons text={q.korean} label="音を聞く" />
         </>
       )
     case 'reading':
       return (
         <>
-          <p className="step-heading">{[...q.korean].length > 1 ? 'この言葉の読みを選んでください' : 'この文字の読みを選んでください'}</p>
+          {heading}
           <p className="quiz-target" lang="ko">
             {q.korean}
           </p>
@@ -155,7 +147,7 @@ function QuestionPrompt({ q }: { q: HangulQuestion }) {
     case 'meaning':
       return (
         <>
-          <p className="step-heading">この言葉の意味を選んでください</p>
+          {heading}
           <div className="ko-row">
             <span className="quiz-target" lang="ko">
               {q.korean}
@@ -167,7 +159,7 @@ function QuestionPrompt({ q }: { q: HangulQuestion }) {
     case 'spoken':
       return (
         <>
-          <p className="step-heading">発音どおりに書くと、どれになりますか</p>
+          {heading}
           <div className="ko-row">
             <span className="quiz-target" lang="ko">
               {q.korean}
@@ -179,7 +171,7 @@ function QuestionPrompt({ q }: { q: HangulQuestion }) {
     case 'build':
       return (
         <>
-          <p className="step-heading">キーボードで、この文字を組み立ててください</p>
+          {heading}
           <div className="ko-row">
             <span className="quiz-target" lang="ko">
               {q.korean}
@@ -192,10 +184,11 @@ function QuestionPrompt({ q }: { q: HangulQuestion }) {
   }
 }
 
-function QuizRunner({ questions, onFinish }: { questions: readonly HangulQuestion[]; onFinish: (correct: number) => void }) {
+function QuizRunner({ questions, onFinish }: { questions: readonly HangulQuestion[]; onFinish: (correct: number, missed: MissedItem[]) => void }) {
   const [index, setIndex] = useState(0)
   const [given, setGiven] = useState<string | null>(null)
   const [correct, setCorrect] = useState(0)
+  const [missed, setMissed] = useState<MissedItem[]>([])
   const q = questions[index]
   if (q === undefined) return null
   const answer = questionAnswer(q)
@@ -208,11 +201,12 @@ function QuizRunner({ questions, onFinish }: { questions: readonly HangulQuestio
     playSfx(right ? 'correct' : 'wrong')
     setGiven(text)
     if (right) setCorrect((c) => c + 1)
+    else setMissed((m) => [...m, missedFromHangul(q, text, `h${index}`)])
   }
 
   function next() {
     if (last) {
-      onFinish(correct)
+      onFinish(correct, missed)
       return
     }
     setIndex((i) => i + 1)
@@ -243,16 +237,15 @@ function QuizRunner({ questions, onFinish }: { questions: readonly HangulQuestio
             <p className="correct" aria-live="polite">
               正解！
             </p>
+          ) : q.kind === 'build' ? (
+            <>
+              <Notice tone="warn">ざんねん。自分の答えと正解をくらべてみましょう。</Notice>
+              <AnswerCompare given={given} answers={[answer]} />
+            </>
           ) : (
-            <Notice tone="warn">
-              ざんねん。正解は「<span lang={q.kind === 'reading' || q.kind === 'meaning' ? undefined : 'ko'}>{answer}</span>」です。
-              {q.kind === 'build' && (
-                <>
-                  （書いた答え：<span lang="ko">{given}</span>）
-                </>
-              )}
-            </Notice>
+            <Notice tone="warn">ざんねん。✗ があなたの答え、✓ が正解です。</Notice>
           )}
+          {(q.kind === 'listen' || q.kind === 'listenSpelling') && <ListenCompare given={given} answer={answer} />}
           <Button variant="primary" onClick={next}>
             {last ? '結果を見る' : '次へ'}
           </Button>
@@ -297,7 +290,7 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
     else startQuiz()
   }
 
-  function finishQuiz(correct: number) {
+  function finishQuiz(correct: number, missed: MissedItem[]) {
     if (lesson === undefined) return
     const total = questions.length
     const { score, passed } = quizScore(correct, total, balance.hangulPassPercent)
@@ -305,7 +298,7 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
       playSfx('fanfare')
       dispatch({ type: 'hangulLessonPassed', lessonId: lesson.id, score, now: nowIso() })
     }
-    setPhase({ name: 'result', correct, total })
+    setPhase({ name: 'result', correct, total, missed })
   }
 
   let body
@@ -376,6 +369,7 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
             {phase.total}問中 {phase.correct}問正解（{score}点）
           </p>
           {!passed && <p>{balance.hangulPassPercent}点以上で合格です。文字を見直して、もう一度挑戦してみましょう。</p>}
+          <MissedList items={phase.missed} />
           {onboarding && <Notice>{CONTINUE_HINT}</Notice>}
           <Button variant={passed ? 'secondary' : 'primary'} onClick={startQuiz}>
             もう一度小テスト

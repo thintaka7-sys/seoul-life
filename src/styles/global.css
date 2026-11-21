@@ -16,6 +16,11 @@
   --color-warn-text: #6e4a00;
   --color-draft-bg: #efe8f8;
   --color-draft-text: #5a3f8c;
+  /* 答えた後の見せ方（GAME_SPEC 4-0）：✓ と ✗、違う文字の背景 */
+  --color-correct: #2a6b45;
+  --color-wrong: #b02a1f;
+  --color-diff-given-bg: #fbd9d4;
+  --color-diff-expected-bg: #d3eedb;
 
   --tap-min: 44px;
   --radius: 12px;
@@ -532,6 +537,11 @@ rt {
 .step-heading {
   margin: 0;
   font-weight: 700;
+}
+
+/* 見出し（h2）に付けたときも、ふだんの文字の大きさにする */
+h2.step-heading {
+  font-size: 1.05rem;
 }
 
 .nav-row {
@@ -1949,19 +1959,35 @@ rt {
 }
 
 .quiz-option--answer {
-  border: 2px solid var(--color-primary);
+  border: 2px solid var(--color-correct);
   background: var(--color-surface-soft);
 }
 
+/* 自分の答え（不正解）は読めるように薄くしすぎない。色だけでなく ✗ の印でも示す */
 .quiz-option--wrong {
-  opacity: 0.6;
-  text-decoration: line-through;
+  border: 2px solid var(--color-wrong);
+  opacity: 0.85;
 }
 
 .quiz-option__mark {
-  color: var(--color-primary);
+  display: inline-block;
+  font-family: var(--font-ja);
   font-size: 0.85rem;
   font-weight: 700;
+  text-decoration: none;
+}
+
+.quiz-option__mark--answer {
+  color: var(--color-correct);
+}
+
+.quiz-option__mark--wrong {
+  color: var(--color-wrong);
+}
+
+/* 会話の間違えた選択肢（取り消し線の中でも印は読めるように） */
+.choice__button--wrong .quiz-option__mark {
+  margin-left: 8px;
 }
 
 .quiz-option__meaning {
@@ -2359,4 +2385,125 @@ rt {
 
 .nowrap {
   white-space: nowrap;
+}
+
+/* ---------- 答えた後の見せ方（GAME_SPEC 4-0） ---------- */
+
+/* 自分の答えと正解を上下に並べる */
+.answer-compare {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+
+.answer-compare__row {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+}
+
+.answer-compare dt {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.answer-compare dd {
+  margin: 0;
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.answer-compare dd[lang="ko"] {
+  font-family: var(--font-ko);
+}
+
+.answer-compare__legend {
+  margin: 0;
+}
+
+.diff {
+  border-radius: 4px;
+  color: inherit;
+  padding: 0 1px;
+}
+
+.diff--given {
+  background: var(--color-diff-given-bg);
+  text-decoration: underline wavy var(--color-wrong);
+  text-underline-offset: 3px;
+}
+
+.diff--expected {
+  background: var(--color-diff-expected-bg);
+  text-decoration: underline var(--color-correct);
+  text-underline-offset: 3px;
+}
+
+/* 空白だけの違い（分かち書き）も見えるように */
+.diff--space {
+  display: inline-block;
+  min-width: 0.7em;
+}
+
+.answer-note {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text);
+}
+
+/* 「▶ 聞く」と「ゆっくり」、聞き比べ */
+.listen-buttons,
+.listen-compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 結果画面の「間違えた問題」と、会話のふり返り */
+.missed {
+  display: grid;
+  gap: 8px;
+}
+
+.missed__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.missed__item {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.missed__item p {
+  margin: 0;
+}
+
+.missed__question {
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.missed__question[lang="ko"],
+.missed__given span[lang="ko"],
+.missed__model span[lang="ko"] {
+  font-family: var(--font-ko);
+}
+
+.conversation-review {
+  display: grid;
+  gap: 10px;
 }

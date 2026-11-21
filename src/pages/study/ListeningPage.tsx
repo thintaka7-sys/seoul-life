@@ -1,22 +1,30 @@
 import { useState } from 'react'
 import { playSfx } from '../../audio/sfx'
 import { nowIso, useGame } from '../../app/GameContext'
-import { useFuriganaDisplay, useSpeak, useSpeechStatus } from '../../app/hooks'
+import { useFuriganaDisplay, useSpeechStatus } from '../../app/hooks'
 import { Button } from '../../components/Button'
 import { KoreanText } from '../../components/KoreanText'
 import { Notice } from '../../components/Notice'
+import { ListenButtons, ListenCompare, MissedList, OptionMark } from '../../components/practice/AnswerFeedback'
+import { optionClass } from '../../components/practice/optionClass'
 import { ScreenLayout } from '../../components/ScreenLayout'
 import { content } from '../../data'
-import { buildListeningRound, isListeningCorrect, listeningCandidates, type ListeningKind, type ListeningQuestion } from '../../learning/listening/questions'
+import { LISTENING_HEADINGS, missedFromListening, optionState, type MissedItem } from '../../learning/feedback/missed'
+import { buildListeningRound, isListeningCorrect, listeningCandidates, type ListeningQuestion } from '../../learning/listening/questions'
 
-const HEADINGS: Record<ListeningKind, string> = {
-  word: '聞こえた言葉を選んでください',
-  reply: '相手の言葉を聞いて、返事を選んでください',
-  sentence: '聞こえた文を選んでください',
-}
-
-function ListeningQuestionView({ q, index, total, onAnswered, onNext }: { q: ListeningQuestion; index: number; total: number; onAnswered: (correct: boolean) => void; onNext: () => void }) {
-  const speak = useSpeak()
+function ListeningQuestionView({
+  q,
+  index,
+  total,
+  onAnswered,
+  onNext,
+}: {
+  q: ListeningQuestion
+  index: number
+  total: number
+  onAnswered: (correct: boolean, given: string) => void
+  onNext: () => void
+}) {
   const display = useFuriganaDisplay(q.chapter)
   const [selected, setSelected] = useState<string | null>(null)
   const ok = selected !== null && isListeningCorrect(q, selected)
@@ -26,26 +34,27 @@ function ListeningQuestionView({ q, index, total, onAnswered, onNext }: { q: Lis
     const right = isListeningCorrect(q, korean)
     playSfx(right ? 'correct' : 'wrong')
     setSelected(korean)
-    onAnswered(right)
+    onAnswered(right, korean)
   }
+  // 答えるまでフリガナを出さない（読みを見れば答えが分かってしまうため。計画 Q6）
+  const optionDisplay = selected === null ? 'hide' : display === 'tap' ? 'show' : display
 
   return (
     <section className="panel quiz" aria-label="リスニング">
       <p className="muted small">
         {index + 1} / {total}
       </p>
-      <p className="step-heading">{HEADINGS[q.kind]}</p>
-      <Button variant="primary" sound={null} onClick={() => speak(q.audio.korean)}>
-        ▶ {selected === null ? '聞く' : 'もう一度聞く'}
-      </Button>
+      <p className="step-heading">{LISTENING_HEADINGS[q.kind]}</p>
+      <ListenButtons text={q.audio.korean} label={selected === null ? '聞く' : 'もう一度聞く'} />
       <ul className="choices quiz-options">
         {q.options.map((o) => {
-          const mark = selected === null ? '' : q.answers.includes(o.korean) ? ' quiz-option--answer' : o.korean === selected ? ' quiz-option--wrong' : ''
+          const state = optionState(o.korean, q.answers, selected)
           return (
             <li key={o.korean} className="choice">
-              <button type="button" className={`choice__button quiz-option${mark}`} disabled={selected !== null} onClick={() => choose(o.korean)}>
-                <KoreanText korean={o.korean} reading={o.pronunciation} display={display === 'tap' ? 'hide' : display} />
+              <button type="button" className={`choice__button quiz-option${optionClass(state)}`} disabled={selected !== null} onClick={() => choose(o.korean)}>
+                <KoreanText korean={o.korean} reading={o.pronunciation} display={optionDisplay} />
                 {selected !== null && <span className="quiz-option__meaning">{o.japanese}</span>}
+                <OptionMark state={state} />
               </button>
             </li>
           )
@@ -58,8 +67,9 @@ function ListeningQuestionView({ q, index, total, onAnswered, onNext }: { q: Lis
               正解！
             </p>
           ) : (
-            <Notice tone="warn">ざんねん。印の付いたものが正解です。</Notice>
+            <Notice tone="warn">ざんねん。✗ があなたの答え、✓ が正解です。</Notice>
           )}
+          <ListenCompare given={selected} answer={q.answers[0] ?? q.audio.korean} />
           {q.kind === 'reply' && (
             <p>
               聞こえた言葉：
@@ -80,7 +90,7 @@ export function ListeningPage() {
   const { state, dispatch } = useGame()
   const speech = useSpeechStatus()
   const save = state.save
-  const [round, setRound] = useState<{ questions: ListeningQuestion[]; index: number; correct: number; seq: number } | null>(null)
+  const [round, setRound] = useState<{ questions: ListeningQuestion[]; index: number; correct: number; missed: MissedItem[]; seq: number } | null>(null)
   const close = () => dispatch({ type: 'closeStudyScene' })
 
   const candidates =
@@ -95,7 +105,7 @@ export function ListeningPage() {
   function start() {
     const answered = new Set(Object.keys(save?.learning.listening ?? {}))
     const questions = buildListeningRound(candidates, answered, content.balance.listeningQuestionsPerRound, Math.random)
-    setRound((r) => ({ questions, index: 0, correct: 0, seq: (r?.seq ?? 0) + 1 }))
+    setRound((r) => ({ questions, index: 0, correct: 0, missed: [], seq: (r?.seq ?? 0) + 1 }))
   }
 
   let body
@@ -123,6 +133,7 @@ export function ListeningPage() {
           <p>
             {round.questions.length}問中 {round.correct}問正解
           </p>
+          <MissedList items={round.missed} />
           <Button variant="primary" onClick={start}>
             もう一度
           </Button>
@@ -134,8 +145,11 @@ export function ListeningPage() {
           q={q}
           index={round.index}
           total={round.questions.length}
-          onAnswered={(right) => {
-            if (!right) return
+          onAnswered={(right, given) => {
+            if (!right) {
+              setRound((r) => (r === null ? r : { ...r, missed: [...r.missed, missedFromListening(q, given, `l${r.index}`)] }))
+              return
+            }
             setRound((r) => (r === null ? r : { ...r, correct: r.correct + 1 }))
             dispatch({ type: 'listeningCorrect', key: q.key, now: nowIso() })
           }}

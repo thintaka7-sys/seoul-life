@@ -42,6 +42,8 @@ async function advanceUntil(cond, label) {
 let P = ''
 async function playConversation(id, plan = {}) {
   const conv = convs.get(id)
+  /** 間違えて選んだ選択肢（会話の最後のふり返りに出る。GAME_SPEC 4-0） */
+  const wrongs = []
   for (let t = 0; t < conv.turns.length; t++) {
     const turn = conv.turns[t]
     if (turn.choices === undefined) break
@@ -57,6 +59,7 @@ async function playConversation(id, plan = {}) {
     if (!p.write) await chooseMode('選んで答える')
     if (p.wrong) {
       await clickChoice(p.wrong)
+      wrongs.push({ wrong: p.wrong, correct: (turn.choices.find((c) => c.correct) ?? turn.choices[0]).korean })
       await sleep(250)
       if (p.onWrong) await p.onWrong()
     }
@@ -68,7 +71,20 @@ async function playConversation(id, plan = {}) {
     await sleep(200)
     if (p.after) await p.after()
   }
-  await advanceUntil(`!document.querySelector('.conversation')`, `${id} の終わり`)
+  // 間違えた往復があれば、会話の最後にふり返りを出す（間違えた答えと正解）。なければ出さずに終える
+  await advanceUntil(`!document.querySelector('.conversation') || !!document.querySelector('.conversation-review')`, `${id} の終わり`)
+  const review = await evaluate(`document.querySelector('.conversation-review')?.textContent ?? null`)
+  if (wrongs.length === 0) {
+    check(`${P} ${id}：間違えなければ、ふり返りは出ない`, review === null, review ?? '')
+  } else {
+    check(
+      `${P} ${id}：会話の最後のふり返りに、間違えた答えと正解が出る`,
+      review !== null && wrongs.every((w) => review.includes(`✗ 選んだ答え：${w.wrong}`) && review.includes(`✓ 正解：${w.correct}`)),
+      review ?? '',
+    )
+    await click('次へ', { within: '.conversation-review' })
+    await advanceUntil(`!document.querySelector('.conversation')`, `${id} のふり返りの後`)
+  }
 }
 
 for (const [W, H, mobile] of [
@@ -180,7 +196,11 @@ for (const [W, H, mobile] of [
   await playConversation('cafe_009', {
     0: {
       write: 'ㅇㅏㅁㅔㄹㅣㅋㅏㄴㅗㅎㅏㄴㅈㅏㄴㅈㅜㅅㅔㅇㅛ',
-      after: async () => check(`${P} 分かち書きだけ違う → 注意つきで正解`, (await mainText()).includes('分かち書きに注意')),
+      after: async () => {
+        check(`${P} 分かち書きだけ違う → 注意つきで正解`, (await mainText()).includes('分かち書きに注意'))
+        // 自分の答えと正解を並べ、足りない空白に印を付ける（GAME_SPEC 4-0）
+        check(`${P} 分かち書きの注意：自分の答えと正解を並べ、空白の違いに印`, await evaluate(`!!document.querySelector('.dialogue .answer-compare') && document.querySelectorAll('.dialogue .diff--space').length >= 1`))
+      },
     },
     1: {
       wrong: '감사합니다.',

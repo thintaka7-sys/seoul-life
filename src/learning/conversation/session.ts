@@ -24,8 +24,18 @@ export interface TurnAnswer {
   line: PlayerLine
   /** 書いた答えが分かち書きだけ違った */
   spacingNote: boolean
+  /** 書いた文・聞き取られた言葉（書く・話すで正解したときだけ。選んだとき・答えを見たときは null） */
+  given: string | null
   /** 相手の反応 */
   reply: ConversationLine[]
+}
+
+/** 間違えた答え（答えた後の見せ方・会話の最後のふり返りのため。GAME_SPEC 4-0。保存はしない） */
+export interface TurnMistake {
+  turn: number
+  method: 'choice' | 'write' | 'speak'
+  /** 選んだ選択肢・書いた文・聞き取られた言葉 */
+  given: string
 }
 
 export interface ConversationSession {
@@ -52,6 +62,8 @@ export interface ConversationSession {
   shownReply: number
   /** 終えた往復の答え（会話の記録を見返すため） */
   history: TurnAnswer[]
+  /** この会話で間違えた答え（古い順） */
+  mistakes: TurnMistake[]
 }
 
 /**
@@ -97,7 +109,7 @@ export function modeFor(preferred: AnswerMode, modes: readonly AnswerMode[]): An
   return 'choice'
 }
 
-function enterTurn(conversation: Conversation, index: number, preferred: AnswerMode, history: TurnAnswer[], speakAvailable: boolean): ConversationSession {
+function enterTurn(conversation: Conversation, index: number, preferred: AnswerMode, history: TurnAnswer[], mistakes: TurnMistake[], speakAvailable: boolean): ConversationSession {
   const turn = turnAt(conversation, index)
   return {
     turn: index,
@@ -112,12 +124,13 @@ function enterTurn(conversation: Conversation, index: number, preferred: AnswerM
     answer: null,
     shownReply: 0,
     history,
+    mistakes,
   }
 }
 
 /** 会話を始める。preferred は前の会話で選んでいた答え方（ゲームを開いている間だけ覚えておく） */
 export function initialSession(conversation: Conversation, preferred: AnswerMode = 'choice', speakAvailable = false): ConversationSession {
-  return enterTurn(conversation, 0, preferred, [], speakAvailable)
+  return enterTurn(conversation, 0, preferred, [], [], speakAvailable)
 }
 
 export function sessionPhase(conversation: Conversation, s: ConversationSession): SessionPhase {
@@ -154,11 +167,12 @@ function replyForWritten(turn: ConversationTurn, korean: string): ConversationLi
   return turn.freeAnswer?.reply ?? matchingChoice(turn, korean)?.reply ?? turn.choices?.find((c) => c.correct)?.reply ?? []
 }
 
-function writtenAnswer(turn: ConversationTurn, korean: string, method: 'write' | 'speak' | 'revealed', prompt: string, spacingNote: boolean): TurnAnswer {
+function writtenAnswer(turn: ConversationTurn, korean: string, method: 'write' | 'speak' | 'revealed', prompt: string, spacingNote: boolean, given: string | null): TurnAnswer {
   return {
     method,
     line: { korean, pronunciation: matchingChoice(turn, korean)?.pronunciation ?? null, japanese: prompt },
     spacingNote,
+    given,
     reply: replyForWritten(turn, korean),
   }
 }
@@ -174,7 +188,7 @@ export function createSessionReducer(conversation: Conversation, attemptsBeforeR
         if (phase === 'lines') return { ...s, shownLines: s.shownLines + 1 }
         if (phase === 'reply' && s.answer !== null) {
           if (s.shownReply < s.answer.reply.length) return { ...s, shownReply: s.shownReply + 1 }
-          return enterTurn(conversation, s.turn + 1, s.preferred, [...s.history, s.answer], action.speakAvailable ?? false)
+          return enterTurn(conversation, s.turn + 1, s.preferred, [...s.history, s.answer], s.mistakes, action.speakAvailable ?? false)
         }
         return s
 
@@ -189,9 +203,12 @@ export function createSessionReducer(conversation: Conversation, attemptsBeforeR
         // 選択の往復：どれを選んでも、その選択肢への反応を見せて進む（GAME_SPEC 4-4）
         if (turn.kind === 'decision') {
           const line = { korean: choice.korean, pronunciation: choice.pronunciation, japanese: choice.japanese }
-          return { ...s, wrongReply: null, answer: { method: 'decision', line, spacingNote: false, reply: choice.reply ?? [] } }
+          return { ...s, wrongReply: null, answer: { method: 'decision', line, spacingNote: false, given: null, reply: choice.reply ?? [] } }
         }
-        if (!choice.correct) return { ...s, wrongChoices: [...s.wrongChoices, action.index], wrongReply: choice.reply ?? null }
+        if (!choice.correct) {
+          const mistakes = [...s.mistakes, { turn: s.turn, method: 'choice' as const, given: choice.korean }]
+          return { ...s, wrongChoices: [...s.wrongChoices, action.index], wrongReply: choice.reply ?? null, mistakes }
+        }
         return {
           ...s,
           wrongReply: null,
@@ -199,6 +216,7 @@ export function createSessionReducer(conversation: Conversation, attemptsBeforeR
             method: 'choice',
             line: { korean: choice.korean, pronunciation: choice.pronunciation, japanese: choice.japanese },
             spacingNote: false,
+            given: null,
             reply: choice.reply ?? [],
           },
         }
@@ -208,27 +226,76 @@ export function createSessionReducer(conversation: Conversation, attemptsBeforeR
         const free = turn.freeAnswer
         if (phase !== 'answer' || s.mode !== 'write' || free === undefined) return s
         const judge = judgeAnswer(action.text, free.answers)
-        if (judge.kind === 'incorrect') return { ...s, lastJudge: judge, writeMisses: s.writeMisses + 1 }
-        return { ...s, lastJudge: judge, answer: writtenAnswer(turn, judge.matched, 'write', free.prompt, judge.kind === 'spacing') }
+        if (judge.kind === 'incorrect') {
+          const mistakes = [...s.mistakes, { turn: s.turn, method: 'write' as const, given: action.text.trim() }]
+          return { ...s, lastJudge: judge, writeMisses: s.writeMisses + 1, mistakes }
+        }
+        return { ...s, lastJudge: judge, answer: writtenAnswer(turn, judge.matched, 'write', free.prompt, judge.kind === 'spacing', action.text.trim()) }
       }
 
       case 'submitSpeech': {
         const free = turn.freeAnswer
         if (phase !== 'answer' || s.mode !== 'speak' || free === undefined) return s
         const judge = judgeSpoken(action.alternatives, free.answers)
-        if (judge.kind === 'incorrect') return { ...s, lastHeard: judge.heard, writeMisses: s.writeMisses + 1 }
+        if (judge.kind === 'incorrect') {
+          const mistakes = [...s.mistakes, { turn: s.turn, method: 'speak' as const, given: judge.heard }]
+          return { ...s, lastHeard: judge.heard, writeMisses: s.writeMisses + 1, mistakes }
+        }
         // 話した答えは分かち書きの注意を出さない（話した人の誤りではないため）
-        return { ...s, lastHeard: null, answer: writtenAnswer(turn, judge.matched, 'speak', free.prompt, false) }
+        return { ...s, lastHeard: null, answer: writtenAnswer(turn, judge.matched, 'speak', free.prompt, false, judge.heard) }
       }
 
       case 'reveal': {
         const free = turn.freeAnswer
         const model = free?.answers[0]
         if (!canReveal(conversation, s, attemptsBeforeReveal) || free === undefined || model === undefined) return s
-        return { ...s, answer: writtenAnswer(turn, model, 'revealed', free.prompt, false) }
+        return { ...s, answer: writtenAnswer(turn, model, 'revealed', free.prompt, false, null) }
       }
     }
   }
+}
+
+// ---------- 答えた後の見せ方（GAME_SPEC 4-0） ----------
+
+/** 往復の正解（模範解答）。書く問題があれば、その正解と正解の選択肢の文 */
+export interface TurnModel {
+  /** 模範解答（正解の選択肢。なければ書く問題の最初の正解） */
+  line: PlayerLine
+  /** 正解として認める文（書いた答えと比べるため） */
+  answers: string[]
+}
+
+export function turnModel(turn: ConversationTurn | undefined): TurnModel | null {
+  const choice = turn?.choices?.find((c) => c.correct)
+  const free = turn?.freeAnswer
+  const first = choice?.korean ?? free?.answers[0]
+  if (turn === undefined || first === undefined) return null
+  const line: PlayerLine =
+    choice !== undefined ? { korean: choice.korean, pronunciation: choice.pronunciation, japanese: choice.japanese } : { korean: first, pronunciation: null, japanese: free?.prompt ?? '' }
+  return { line, answers: [...new Set([...(free?.answers ?? []), ...(choice === undefined ? [] : [choice.korean])])] }
+}
+
+/** いまの往復で、最後に書いた（話した）間違いの答え。「答えを見る」の後に正解と並べるため */
+export function lastWrittenMistake(s: ConversationSession): TurnMistake | undefined {
+  return s.mistakes.findLast((m) => m.turn === s.turn && m.method !== 'choice')
+}
+
+/** 会話の最後のふり返り：間違えた往復ごとに、間違えた答えと正解 */
+export interface TurnReview {
+  turn: number
+  task: string | null
+  mistakes: TurnMistake[]
+  model: TurnModel
+}
+
+export function conversationReview(conversation: Conversation, s: ConversationSession): TurnReview[] {
+  const turns = [...new Set(s.mistakes.map((m) => m.turn))].sort((a, b) => a - b)
+  return turns.flatMap((index) => {
+    const turn = turnAt(conversation, index)
+    const model = turnModel(turn)
+    if (model === null) return []
+    return [{ turn: index, task: turn?.task ?? null, mistakes: s.mistakes.filter((m) => m.turn === index), model }]
+  })
 }
 
 // ---------- 画面に出す台詞の並びと、立ち絵の表情 ----------

@@ -4,11 +4,14 @@ import {
   availableModes,
   canReveal,
   characterExpression,
+  conversationReview,
   createSessionReducer,
   initialSession,
   isAnswering,
+  lastWrittenMistake,
   sessionPhase,
   shownLines,
+  turnModel,
   type ConversationSession,
   type SessionAction,
 } from './session'
@@ -104,6 +107,7 @@ describe('1往復の会話', () => {
       method: 'choice',
       line: { korean: '아메리카노 주세요.', pronunciation: 'アメリカノ ジュセヨ', japanese: 'アメリカーノをください。' },
       spacingNote: false,
+      given: null,
       reply: [],
     })
     expect(sessionPhase(single, s)).toBe('end')
@@ -122,7 +126,7 @@ describe('1往復の会話', () => {
 
   it('分かち書きだけが違えば、正解にして注意を付ける', () => {
     const s = play(next, { type: 'setMode', mode: 'write' }, { type: 'submitWrite', text: '아메리카노한잔주세요' })
-    expect(s.answer).toMatchObject({ method: 'write', spacingNote: true, line: { korean: '아메리카노 한 잔 주세요.' } })
+    expect(s.answer).toMatchObject({ method: 'write', spacingNote: true, line: { korean: '아메리카노 한 잔 주세요.' }, given: '아메리카노한잔주세요' })
   })
 
   it('間違えた回数を数え、決めた回数で「答えを見る」を出せる', () => {
@@ -368,5 +372,38 @@ describe('選択の往復（kind: decision）', () => {
   it('選んだ後の相手は、笑顔にも困り顔にもならない（台詞の表情の指定がなければ normal）', () => {
     const s = reducer(play({ type: 'choose', index: 1 }), next)
     expect(characterExpression(decision, s)).toBe('normal')
+  })
+})
+
+describe('答えた後の見せ方（GAME_SPEC 4-0）', () => {
+  const { reducer, play } = player(multi)
+
+  it('間違えた答え（選んだ・書いた・話した）を、往復をまたいで古い順に残す', () => {
+    let s = play({ type: 'choose', index: 2 }, { type: 'setMode', mode: 'write' }, { type: 'submitWrite', text: ' 커피 주세요 ' })
+    expect(lastWrittenMistake(s)).toEqual({ turn: 0, method: 'write', given: '커피 주세요' })
+    s = reducer(s, { type: 'submitWrite', text: '아메리카노 한 잔 주세요' })
+    s = [next, next].reduce(reducer, s)
+    expect(s.turn).toBe(1)
+    // 次の往復では、前の往復の書いた間違いは「いまの往復の答え」に数えない
+    expect(lastWrittenMistake(s)).toBeUndefined()
+    expect(s.mistakes).toEqual([
+      { turn: 0, method: 'choice', given: '안녕히 계세요.' },
+      { turn: 0, method: 'write', given: '커피 주세요' },
+    ])
+  })
+
+  it('正解の模範解答は正解の選択肢。正解として認める文には書く問題の正解も入る', () => {
+    expect(turnModel(multi.turns[0])).toEqual({
+      line: { korean: '아메리카노 주세요.', pronunciation: 'アメリカノ ジュセヨ', japanese: 'アメリカーノ' },
+      answers: ['아메리카노 한 잔 주세요.', '아메리카노 주세요.'],
+    })
+    expect(turnModel(multi.turns[2])).toBeNull()
+  })
+
+  it('会話の最後のふり返りは、間違えた往復だけを、間違えた答えと正解で並べる', () => {
+    const s = play({ type: 'choose', index: 3 }, { type: 'choose', index: 0 }, next, { type: 'choose', index: 0 }, next, next)
+    const review = conversationReview(multi, s)
+    expect(review.map((r) => [r.turn, r.mistakes.map((m) => m.given), r.model.line.korean])).toEqual([[0, ['아니요.'], '아메리카노 주세요.']])
+    expect(conversationReview(multi, play({ type: 'choose', index: 0 }))).toEqual([])
   })
 })

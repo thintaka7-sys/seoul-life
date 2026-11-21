@@ -173,7 +173,8 @@ for (const [W, H, mobile] of [
     }
     const kinds = new Set(headings.map((h) => (h.includes('発音どおり') ? 'spoken' : h.includes('読みを選んで') ? 'kana' : h.includes('つづり') ? 'spelling' : h)))
     check(`${P} 音の変化の小テストは、発音どおりの形・カタカナの読み${speechOk ? '・聞いてつづり' : ''}を選ぶ（${headings.length}問）`, kinds.has('spoken') && kinds.has('kana') && [...kinds].every((k) => ['spoken', 'kana', 'spelling'].includes(k)) && kinds.has('spelling') === speechOk, JSON.stringify([...kinds]))
-    if ((await stepHeading()) !== '') await click('やめる')
+    // 結果画面にも「間違えた問題」の見出しがあるので、結果画面かどうかは .result で見分ける
+    if (!(await evaluate(`!!document.querySelector('.result')`))) await click('やめる')
     else await click('レッスン一覧へ', { exact: false })
   }
   const reading = lessons.find((l) => l.kind === 'reading')

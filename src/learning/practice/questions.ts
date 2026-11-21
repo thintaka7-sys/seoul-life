@@ -74,6 +74,8 @@ export interface PracticeQuestion {
   body: QuestionBody
   /** 答えた後に見せる正解 */
   model: Phrase
+  /** 正解の下に添える短い説明（なぜその答えか。GAME_SPEC 4-0） */
+  note?: string
 }
 
 export interface QuestionOptions {
@@ -227,7 +229,9 @@ export function grammarQuestions(g: Grammar, options: QuestionOptions): Practice
   const key = `grammar:${g.id}`
   const hint = g.title
   return g.examples.flatMap((ex): PracticeQuestion[] => {
-    const base = { key, chapter, model: examplePhrase(ex) }
+    // 答えた後に、文法の名前と接続ルールを添える（GAME_SPEC 4-0）
+    const note = g.connectionJa === undefined ? `文法：${g.title}` : `${g.title}：${g.connectionJa}`
+    const base = { key, chapter, model: examplePhrase(ex), note }
     const result: PracticeQuestion[] = []
     const split = ex.blank === undefined ? null : splitOnce(ex.korean, ex.blank)
     if (split !== null && ex.blank !== undefined && ex.blankWrong !== undefined && ex.blankWrong.length > 0) {

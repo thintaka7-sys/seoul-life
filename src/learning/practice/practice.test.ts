@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Conversation, DrillItem, Grammar, Vocab } from '../../data/types'
 import { judgePractice, normalizeDigits } from './judge'
 import { buildQuestions, createPracticeIndex, drillQuestions, grammarQuestions, turnQuestions, wordQuestions, type PracticeQuestion } from './questions'
-import { answerRound, correctCount, isFinished, isRetry, nextQuestion, startRound } from './round'
+import { answerRound, correctCount, isFinished, isRetry, missedQuestions, nextQuestion, startRound } from './round'
 
 function seeded(seed: number) {
   let a = seed
@@ -251,21 +251,26 @@ describe('1回分の出題の進み方', () => {
   it('間違えた問題を最後にもう一度だけ出す。2回目の答えは結果に入れない', () => {
     let round = startRound(qs, true)
     const answers = [true, false, false]
-    for (const correct of answers) {
-      round = nextQuestion(answerRound(round, correct), seeded(2))
+    for (const [i, correct] of answers.entries()) {
+      round = nextQuestion(answerRound(round, correct, `答え${i}`), seeded(2))
     }
     expect(isFinished(round)).toBe(false)
     expect(isRetry(round)).toBe(true)
     expect(round.questions.slice(3).map((q) => q.key)).toEqual(['word:vocab_002', 'drill:dq_021'])
-    round = nextQuestion(answerRound(round, true), seeded(2))
-    round = nextQuestion(answerRound(round, false), seeded(2))
+    round = nextQuestion(answerRound(round, true, 'もう一度1'), seeded(2))
+    round = nextQuestion(answerRound(round, false, 'もう一度2'), seeded(2))
     expect(isFinished(round)).toBe(true)
     expect(round.results).toEqual([
-      { key: 'word:vocab_001', correct: true },
-      { key: 'word:vocab_002', correct: false },
-      { key: 'drill:dq_021', correct: false },
+      { key: 'word:vocab_001', correct: true, given: '答え0' },
+      { key: 'word:vocab_002', correct: false, given: '答え1' },
+      { key: 'drill:dq_021', correct: false, given: '答え2' },
     ])
     expect(correctCount(round)).toBe(1)
+    // 結果画面で見返すのは、最初の出題で間違えた問題と、そのときの答え（もう一度出したときの答えではない）
+    expect(missedQuestions(round).map((m) => [m.question.key, m.given])).toEqual([
+      ['word:vocab_002', '答え1'],
+      ['drill:dq_021', '答え2'],
+    ])
   })
 
   it('もう一度出さない設定（章末テスト）・全問正解なら、そのまま終わる', () => {
@@ -279,6 +284,6 @@ describe('1回分の出題の進み方', () => {
 
   it('同じ問題に2回答えても、結果は1つ', () => {
     const round = answerRound(answerRound(startRound(qs, true), true), false)
-    expect(round.results).toEqual([{ key: 'word:vocab_001', correct: true }])
+    expect(round.results).toEqual([{ key: 'word:vocab_001', correct: true, given: '' }])
   })
 })

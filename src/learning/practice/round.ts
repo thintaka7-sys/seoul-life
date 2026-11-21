@@ -7,6 +7,8 @@ import type { PracticeQuestion } from './questions'
 export interface RoundResult {
   key: string
   correct: boolean
+  /** 自分の答え（選んだ選択肢・並べた答え・書いた答え）。結果画面で見返すため（GAME_SPEC 4-0） */
+  given: string
 }
 
 export interface PracticeRound {
@@ -41,10 +43,18 @@ export function isFinished(round: PracticeRound): boolean {
 }
 
 /** いまの問題に答えた。最初の出題のときだけ結果を残す */
-export function answerRound(round: PracticeRound, correct: boolean): PracticeRound {
+export function answerRound(round: PracticeRound, correct: boolean, given = ''): PracticeRound {
   const q = currentQuestion(round)
   if (q === undefined || isRetry(round) || round.results.length > round.index) return round
-  return { ...round, results: [...round.results, { key: q.key, correct }] }
+  return { ...round, results: [...round.results, { key: q.key, correct, given }] }
+}
+
+/** 最初の出題で間違えた問題と、そのときの答え（出した順） */
+export function missedQuestions(round: PracticeRound): { question: PracticeQuestion; given: string; index: number }[] {
+  return round.results.flatMap((r, index) => {
+    const question = round.questions[index]
+    return r.correct || question === undefined ? [] : [{ question, given: r.given, index }]
+  })
 }
 
 /** 選択肢・札の並びを変える（もう一度出すとき、同じ位置を覚えて答えられないように） */

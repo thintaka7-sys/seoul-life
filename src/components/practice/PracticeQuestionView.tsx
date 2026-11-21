@@ -1,6 +1,7 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import { playSfx } from '../../audio/sfx'
-import { useFuriganaDisplay, useSpeak } from '../../app/hooks'
+import { useFuriganaDisplay } from '../../app/hooks'
+import { isAlternative, optionState } from '../../learning/feedback/missed'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
 import { judgePractice, type PracticeResult } from '../../learning/practice/judge'
 import type { ChoiceOption, Phrase, PracticeQuestion, Prompt } from '../../learning/practice/questions'
@@ -11,6 +12,8 @@ import { KoreanText } from '../KoreanText'
 import { Notice } from '../Notice'
 import { SpeakButton } from '../SpeakButton'
 import { TaskLabel } from '../TaskLabel'
+import { AnswerCompare, ListenButtons, ListenCompare, OptionMark } from './AnswerFeedback'
+import { optionClass } from './optionClass'
 
 function PhraseLine({ phrase, display }: { phrase: Phrase; display: FuriganaDisplay }) {
   return (
@@ -23,7 +26,6 @@ function PhraseLine({ phrase, display }: { phrase: Phrase; display: FuriganaDisp
 
 /** 問題で見せるもの。answered なら、聞く問題の文字も見せる */
 function PromptView({ prompt, display, answered }: { prompt: Prompt; display: FuriganaDisplay; answered: boolean }) {
-  const speak = useSpeak()
   switch (prompt.kind) {
     case 'korean':
       return (
@@ -40,11 +42,7 @@ function PromptView({ prompt, display, answered }: { prompt: Prompt; display: Fu
         </div>
       )
     case 'audio':
-      return (
-        <Button variant="primary" sound={null} onClick={() => speak(prompt.phrase.korean)}>
-          ▶ {answered ? 'もう一度聞く' : '聞く'}
-        </Button>
-      )
+      return <ListenButtons text={prompt.phrase.korean} label={answered ? 'もう一度聞く' : '聞く'} />
     case 'blank':
       return (
         <div className="practice-ja">
@@ -72,16 +70,40 @@ function PromptView({ prompt, display, answered }: { prompt: Prompt; display: Fu
   }
 }
 
-function ChooseBody({ options, answers, selected, display, onSelect }: { options: ChoiceOption[]; answers: string[]; selected: string | null; display: FuriganaDisplay; onSelect: (text: string) => void }) {
+/**
+ * 選択肢のフリガナ。答える前は、「タップで表示」なら隠す（押すと答えになるため）。
+ * 聞く問題では、答えるまでいつも隠す（読みを見れば答えが分かってしまうため。計画 Q6）
+ */
+function optionDisplay(display: FuriganaDisplay, answered: boolean, listening: boolean): FuriganaDisplay {
+  if (!answered) return listening || display === 'tap' ? 'hide' : display
+  return display === 'tap' ? 'show' : display
+}
+
+function ChooseBody({
+  options,
+  answers,
+  selected,
+  display,
+  listening,
+  onSelect,
+}: {
+  options: ChoiceOption[]
+  answers: string[]
+  selected: string | null
+  display: FuriganaDisplay
+  listening: boolean
+  onSelect: (text: string) => void
+}) {
+  const shown = optionDisplay(display, selected !== null, listening)
   return (
     <ul className="choices quiz-options">
       {options.map((o) => {
-        const mark = selected === null ? '' : answers.includes(o.text) ? ' quiz-option--answer' : o.text === selected ? ' quiz-option--wrong' : ''
+        const state = optionState(o.text, answers, selected)
         return (
           <li key={o.text} className="choice">
-            <button type="button" className={`choice__button quiz-option${mark}`} lang={o.lang} disabled={selected !== null} onClick={() => onSelect(o.text)}>
-              {o.lang === 'ko' ? <KoreanText korean={o.text} reading={o.reading} display={display === 'tap' ? 'hide' : display} /> : o.text}
-              {selected !== null && answers.includes(o.text) && <span className="quiz-option__mark">（正解）</span>}
+            <button type="button" className={`choice__button quiz-option${optionClass(state)}`} lang={o.lang} disabled={selected !== null} onClick={() => onSelect(o.text)}>
+              {o.lang === 'ko' ? <KoreanText korean={o.text} reading={o.reading} display={shown} /> : o.text}
+              <OptionMark state={state} />
             </button>
           </li>
         )
@@ -162,40 +184,39 @@ interface PracticeQuestionViewProps {
   q: PracticeQuestion
   /** 「3 / 10」など */
   position: string
-  /** もう一度出した問題か */
-  retry: boolean
-  onAnswered: (correct: boolean) => void
+  /** given：選んだ選択肢・並べた答え・書いた答え */
+  onAnswered: (correct: boolean, given: string) => void
   onNext: () => void
   nextLabel: string
 }
 
 /** 復習・練習・ドリル・章末テストの1問 */
-export function PracticeQuestionView({ q, position, retry, onAnswered, onNext, nextLabel }: PracticeQuestionViewProps) {
+export function PracticeQuestionView({ q, position, onAnswered, onNext, nextLabel }: PracticeQuestionViewProps) {
   const display = useFuriganaDisplay(q.chapter)
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [given, setGiven] = useState('')
   const [digitsWarning, setDigitsWarning] = useState(false)
   const answered = result !== null
+  const listening = q.prompt.kind === 'audio'
 
-  function answer(given: string) {
+  function answer(input: string) {
     if (answered) return
-    const r = judgePractice(q, given)
+    const r = judgePractice(q, input)
     // 韓国語で書く問題に数字で答えたときは、答えにせず、書き直してもらう
     if (!r.correct && r.digits) {
       setDigitsWarning(true)
       return
     }
     playSfx(r.correct ? 'correct' : 'wrong')
+    setGiven(input.trim())
     setResult(r)
-    onAnswered(r.correct)
+    onAnswered(r.correct, input.trim())
   }
 
   return (
     <section className="panel quiz practice" aria-label="問題">
-      <p className="muted small">
-        {position}
-        {retry && '（もう一度）'}
-      </p>
+      <p className="muted small">{position}</p>
       <p className="step-heading">{q.heading}</p>
       <PromptView prompt={q.prompt} display={display} answered={answered} />
 
@@ -205,6 +226,7 @@ export function PracticeQuestionView({ q, position, retry, onAnswered, onNext, n
           answers={q.body.answers}
           selected={selected}
           display={display}
+          listening={listening}
           onSelect={(text) => {
             setSelected(text)
             answer(text)
@@ -221,27 +243,60 @@ export function PracticeQuestionView({ q, position, retry, onAnswered, onNext, n
       {q.body.type === 'number' && !answered && <NumberBody onSubmit={answer} />}
 
       {result !== null && (
-        <div className="practice-feedback" aria-live="polite">
-          {result.correct ? (
-            result.spacing ? (
-              <Notice tone="warn">
-                正解。ただし分かち書きに注意：<span lang="ko">{result.matched}</span>
-              </Notice>
-            ) : (
-              <p className="correct">正解！</p>
-            )
-          ) : (
-            <Notice tone="warn">ざんねん。正解はこちらです。</Notice>
-          )}
-          <div className="practice-model">
-            <PhraseLine phrase={q.model} display={display === 'tap' ? 'show' : display} />
-            <p className="muted small">{q.model.japanese}</p>
-          </div>
+        <PracticeFeedback q={q} result={result} given={given} selected={selected} display={display} listening={listening}>
           <Button variant="primary" onClick={onNext}>
             {nextLabel}
           </Button>
-        </div>
+        </PracticeFeedback>
       )}
     </section>
+  )
+}
+
+/** 答えた直後に見せるもの（GAME_SPEC 4-0）：自分の答えと正解、模範解答、説明、聞き比べ */
+function PracticeFeedback({
+  q,
+  result,
+  given,
+  selected,
+  display,
+  listening,
+  children,
+}: {
+  q: PracticeQuestion
+  result: PracticeResult
+  given: string
+  selected: string | null
+  display: FuriganaDisplay
+  listening: boolean
+  children: ReactNode
+}) {
+  const body = q.body
+  const written = body.type === 'write' || body.type === 'arrange' || body.type === 'number'
+  const answers = body.type === 'write' ? body.answers : body.type === 'arrange' ? [body.answer] : body.type === 'number' ? [body.digits] : []
+  // 書いて正解したが、模範解答と違う形（別解）なら「模範解答」として添える
+  const alternative = result.correct && body.type === 'write' && isAlternative(result.matched, q.model.korean)
+  const chosenKorean = body.type === 'choose' && body.options.find((o) => o.text === selected)?.lang === 'ko' ? selected : null
+  return (
+    <div className="practice-feedback" aria-live="polite">
+      {result.correct ? (
+        result.spacing ? (
+          <Notice tone="warn">正解。ただし分かち書きに注意</Notice>
+        ) : (
+          <p className="correct">正解！</p>
+        )
+      ) : (
+        <Notice tone="warn">{written ? 'ざんねん。自分の答えと正解をくらべてみましょう。' : 'ざんねん。✗ があなたの答え、✓ が正解です。'}</Notice>
+      )}
+      {written && (!result.correct || result.spacing) && <AnswerCompare given={given} answers={result.correct ? [result.matched] : answers} digits={body.type === 'number'} />}
+      <div className="practice-model">
+        <p className="muted small">{alternative ? '模範解答' : '正解'}</p>
+        <PhraseLine phrase={q.model} display={display === 'tap' ? 'show' : display} />
+        <p className="muted small">{q.model.japanese}</p>
+      </div>
+      {q.note !== undefined && <p className="answer-note small">{q.note}</p>}
+      {listening && q.prompt.kind === 'audio' && <ListenCompare given={chosenKorean} answer={q.prompt.phrase.korean} />}
+      {children}
+    </div>
   )
 }

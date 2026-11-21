@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { missedFromPractice } from '../../learning/feedback/missed'
 import type { PracticeQuestion } from '../../learning/practice/questions'
-import { answerRound, correctCount, currentQuestion, isRetry, nextQuestion, startRound, type PracticeRound } from '../../learning/practice/round'
+import { answerRound, correctCount, currentQuestion, isRetry, missedQuestions, nextQuestion, startRound, type PracticeRound } from '../../learning/practice/round'
+import { MissedList } from './AnswerFeedback'
 import { PracticeQuestionView } from './PracticeQuestionView'
 
 interface PracticeRunnerProps {
@@ -34,7 +36,7 @@ export function PracticeRunner({ questions, retry, onAnswer, finish, onFinish, s
   }, [finished])
 
   if (q === undefined) {
-    const wrong = round.results.filter((r) => !r.correct).length
+    const missed = missedQuestions(round).map((m) => missedFromPractice(m.question, m.given, `q${m.index}`))
     return (
       <section className="panel result" aria-live="polite">
         <p className="correct">おつかれさまでした</p>
@@ -42,7 +44,8 @@ export function PracticeRunner({ questions, retry, onAnswer, finish, onFinish, s
           {round.firstCount}問中 {correctCount(round)}問正解
         </p>
         {summary?.(round)}
-        {wrong > 0 && <p className="muted small">間違えた問題は、明日の復習にもう一度出ます。</p>}
+        {missed.length > 0 && <p className="muted small">間違えた問題は、明日の復習にもう一度出ます。</p>}
+        <MissedList items={missed} />
         {finish(round)}
       </section>
     )
@@ -56,10 +59,9 @@ export function PracticeRunner({ questions, retry, onAnswer, finish, onFinish, s
       key={round.index}
       q={q}
       position={retrying ? `もう一度 ${round.index - round.firstCount + 1} / ${round.questions.length - round.firstCount}` : `${round.index + 1} / ${round.firstCount}`}
-      retry={retrying}
-      onAnswered={(correct) => {
+      onAnswered={(correct, given) => {
         if (!retrying) onAnswer(q.key, correct)
-        setRound((r) => answerRound(r, correct))
+        setRound((r) => answerRound(r, correct, given))
       }}
       onNext={() => setRound((r) => nextQuestion(r, Math.random))}
       nextLabel={last && !willRetry ? '結果を見る' : '次へ'}

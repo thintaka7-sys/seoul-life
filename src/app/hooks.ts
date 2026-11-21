@@ -5,6 +5,7 @@ import { getRecognitionStatus, subscribeRecognition, type RecognitionStatus } fr
 import { getSpeechStatus, speakKorean, subscribeSpeech, type SpeechStatus } from '../audio/speech'
 import { content } from '../data'
 import { furiganaDisplay, type FuriganaDisplay } from '../learning/furigana/furigana'
+import type { SpeechRate } from '../storage/settings'
 import { useGame } from './GameContext'
 
 export function useSpeechStatus(): SpeechStatus {
@@ -22,11 +23,11 @@ export function useCanSpeak(): boolean {
   return useRecognitionStatus().state === 'available' && state.settings.voiceInput
 }
 
-/** 設定の速さで韓国語を読み上げる関数 */
-export function useSpeak(): (text: string) => void {
+/** 設定の速さで韓国語を読み上げる関数。rate を渡せば、その速さで読む（「ゆっくり」のボタン） */
+export function useSpeak(): (text: string, rate?: SpeechRate) => void {
   const { state } = useGame()
-  const rate = state.settings.speechRate
-  return useCallback((text: string) => speakKorean(text, rate), [rate])
+  const setting = state.settings.speechRate
+  return useCallback((text: string, rate?: SpeechRate) => speakKorean(text, rate ?? setting), [setting])
 }
 
 /** その章の文のフリガナの出し方（設定と章から決める） */

@@ -12,6 +12,7 @@ import { useTypewriter } from '../../components/dialogue/useTypewriter'
 import { KoreanText } from '../../components/KoreanText'
 import { MicButton } from '../../components/MicButton'
 import { Notice } from '../../components/Notice'
+import { AnswerCompare, OptionMark } from '../../components/practice/AnswerFeedback'
 import { Stage } from '../../components/scene/Stage'
 import { TaskLabel } from '../../components/TaskLabel'
 import { SpeakButton } from '../../components/SpeakButton'
@@ -19,18 +20,25 @@ import { SpeechNotice } from '../../components/SpeechNotice'
 import { content, findCharacter, firstConversationWith } from '../../data'
 import type { Conversation, ConversationChoice } from '../../data/types'
 import type { ClearMethod } from '../../game/progression/progression'
+import { isAlternative } from '../../learning/feedback/missed'
 import { judgeSpoken } from '../../learning/judge/judgeSpoken'
 import {
   availableModes,
   canReveal,
   characterExpression,
+  conversationReview,
   createSessionReducer,
   initialSession,
+  lastWrittenMistake,
   sessionPhase,
   shownLines,
+  turnModel,
   type AnswerMode,
   type ConversationSession,
   type TurnAnswer,
+  type TurnMistake,
+  type TurnModel,
+  type TurnReview,
 } from '../../learning/conversation/session'
 import { pairReading, type FuriganaDisplay } from '../../learning/furigana/furigana'
 
@@ -42,6 +50,7 @@ function ChoiceItem({ choice, wrong, display, onChoose }: { choice: Conversation
     <li className="choice">
       <button type="button" className={`choice__button${wrong ? ' choice__button--wrong' : ''}`} onClick={onChoose} disabled={wrong}>
         <KoreanText korean={choice.korean} reading={choice.pronunciation} display={choiceDisplay} />
+        {wrong && <OptionMark state="wrong" />}
       </button>
       {display === 'tap' && (
         <button type="button" className="icon-button icon-button--text" aria-pressed={showReading} onClick={() => setShowReading((s) => !s)}>
@@ -53,27 +62,79 @@ function ChoiceItem({ choice, wrong, display, onChoose }: { choice: Conversation
   )
 }
 
-/** 答えた直後に、主人公の返事の上に出す知らせ（選択の往復では出さない） */
-function AnswerBadge({ answer }: { answer: TurnAnswer }) {
+/** 書いた答え・聞き取られた言葉の見出し */
+function givenLabel(method: TurnMistake['method'] | TurnAnswer['method']): string {
+  return method === 'speak' ? '聞き取られた言葉' : 'あなたの答え'
+}
+
+/**
+ * 答えた直後に、主人公の返事の上に出す知らせ（選択の往復では出さない。GAME_SPEC 4-0）。
+ * 「答えを見る」の後は、最後に書いた（話した）答えと正解を並べる。別解で正解したときは模範解答を添える
+ */
+function AnswerBadge({ answer, model, lastMistake }: { answer: TurnAnswer; model: TurnModel | null; lastMistake: TurnMistake | undefined }) {
   if (answer.method === 'decision') return null
   if (answer.method === 'revealed') {
     return (
       <Notice>
         答え：<span lang="ko">{answer.line.korean}</span>（次は書けるようにしてみましょう）
+        {lastMistake !== undefined && model !== null && <AnswerCompare given={lastMistake.given} answers={model.answers} givenLabel={givenLabel(lastMistake.method)} />}
       </Notice>
     )
   }
-  if (answer.spacingNote) {
+  if (answer.spacingNote && answer.given !== null) {
     return (
       <Notice tone="warn">
-        正解。ただし分かち書きに注意：<span lang="ko">{answer.line.korean}</span>
+        正解。ただし分かち書きに注意
+        <AnswerCompare given={answer.given} answers={[answer.line.korean]} />
       </Notice>
     )
   }
+  const modelLine = model?.line.korean
+  const alternative = answer.method !== 'choice' && modelLine !== undefined && isAlternative(answer.line.korean, modelLine)
   return (
-    <p className="correct" aria-live="polite">
-      正解！
-    </p>
+    <div aria-live="polite">
+      <p className="correct">正解！</p>
+      {alternative && (
+        <p className="muted small">
+          模範解答：<span lang="ko">{modelLine}</span>
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** 会話の最後のふり返り：間違えた往復ごとに、間違えた答えと正解（GAME_SPEC 4-0。計画 Q3） */
+function ConversationReview({ items, onDone }: { items: readonly TurnReview[]; onDone: () => void }) {
+  return (
+    <section className="panel conversation-review" aria-labelledby="conversation-review-heading">
+      <h2 id="conversation-review-heading" className="step-heading">
+        ふり返り
+      </h2>
+      <p className="muted small">この会話で間違えた返事と、正解です。</p>
+      <ol className="missed__list">
+        {items.map((r) => (
+          <li key={r.turn} className="missed__item">
+            {r.task !== null && <p className="muted small">言うこと：{r.task}</p>}
+            {r.mistakes.map((m, i) =>
+              m.method === 'choice' ? (
+                <p key={i} className="missed__given">
+                  ✗ 選んだ答え：<span lang="ko">{m.given}</span>
+                </p>
+              ) : (
+                <AnswerCompare key={i} given={m.given} answers={r.model.answers} givenLabel={givenLabel(m.method)} />
+              ),
+            )}
+            <p className="missed__model">
+              ✓ 正解：<span lang="ko">{r.model.line.korean}</span>
+              <span className="muted small">（{r.model.line.japanese}）</span>
+            </p>
+          </li>
+        ))}
+      </ol>
+      <Button variant="primary" onClick={onDone}>
+        次へ
+      </Button>
+    </section>
   )
 }
 
@@ -188,7 +249,17 @@ function AnswerArea({
         <>
           <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で書いてみましょう</p>
           <AnswerInput key={s.turn} onSubmit={(text) => send({ type: 'submitWrite', text })} />
-          {s.lastJudge?.kind === 'incorrect' && <Notice tone="warn">ちがうようです。もう一度書いてみましょう。</Notice>}
+          {s.lastJudge?.kind === 'incorrect' && (
+            <Notice tone="warn">
+              ちがうようです。もう一度書いてみましょう。
+              {lastWrittenMistake(s) !== undefined && (
+                <>
+                  <br />
+                  あなたの答え：「<span lang="ko">{lastWrittenMistake(s)?.given}</span>」
+                </>
+              )}
+            </Notice>
+          )}
           {reveal}
         </>
       )}
@@ -238,6 +309,7 @@ export function ConversationStep({ conversation, replay, hasBackground, onTurnAn
   const [logOpen, setLogOpen] = useState(false)
   const character = findCharacter(conversation.character)
   const [profileOpen, setProfileOpen] = useState(() => !replay && character !== undefined && firstConversationWith(conversation.character) === conversation.id)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const phase = sessionPhase(conversation, s)
   const lines = shownLines(conversation, s)
@@ -280,7 +352,13 @@ export function ConversationStep({ conversation, replay, hasBackground, onTurnAn
   }
 
   const writing = phase === 'answer' && s.mode === 'write'
-  const advance = () => (phase === 'end' ? onDone() : send({ type: 'next', speakAvailable: canSpeak }))
+  const review = conversationReview(conversation, s)
+  // 会話の最後まで見たら、間違えた往復があればふり返りを出してから終える
+  const advance = () => {
+    if (phase !== 'end') send({ type: 'next', speakAvailable: canSpeak })
+    else if (review.length > 0 && !reviewOpen) setReviewOpen(true)
+    else onDone()
+  }
 
   return (
     <div className="conversation">
@@ -292,7 +370,8 @@ export function ConversationStep({ conversation, replay, hasBackground, onTurnAn
         hasBackground={hasBackground}
       />
       <SpeechNotice />
-      {current !== undefined && (
+      {reviewOpen && <ConversationReview items={review} onDone={onDone} />}
+      {!reviewOpen && current !== undefined && (
         <DialogueBox
           line={current}
           display={display}
@@ -300,13 +379,17 @@ export function ConversationStep({ conversation, replay, hasBackground, onTurnAn
           canAdvance={phase !== 'answer'}
           onAdvance={advance}
           onOpenLog={() => setLogOpen(true)}
-          badge={current.kind === 'player' && answer !== null ? <AnswerBadge answer={answer} /> : undefined}
+          badge={
+            current.kind === 'player' && answer !== null ? (
+              <AnswerBadge answer={answer} model={turnModel(conversation.turns[s.turn])} lastMistake={lastWrittenMistake(s)} />
+            ) : undefined
+          }
         />
       )}
       {phase === 'answer' && typing.done && !profileOpen && (
         <AnswerArea conversation={conversation} s={s} send={send} display={display} canSpeak={canSpeak} onChooseMode={chooseMode} />
       )}
-      {current?.kind === 'player' && (answer?.method === 'choice' || answer?.method === 'decision') && canSpeak && <SayItPractice key={s.turn} korean={answer.line.korean} />}
+      {!reviewOpen && current?.kind === 'player' && (answer?.method === 'choice' || answer?.method === 'decision') && canSpeak && <SayItPractice key={s.turn} korean={answer.line.korean} />}
       {logOpen && <LogPanel lines={lines} display={display} onClose={() => setLogOpen(false)} />}
       {profileOpen && character !== undefined && <ProfileCard character={character} display={display} onClose={() => setProfileOpen(false)} />}
     </div>
