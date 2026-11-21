@@ -22,5 +22,6 @@
   "drillQuestions": 10,
   "testQuestions": 10,
   "testPassPercent": 80,
+  "earQuestions": 10,
   "stampActivities": ["review", "drill", "chapterTest", "hangulLesson", "listening", "event"]
 }

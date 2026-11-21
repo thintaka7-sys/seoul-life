@@ -105,6 +105,7 @@ const validBalance = {
   drillQuestions: 10,
   testQuestions: 10,
   testPassPercent: 80,
+  earQuestions: 10,
   stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'],
 }
 
@@ -432,6 +433,7 @@ const base: ContentInput = {
   listening: {},
   drills: {},
   chapterTests: {},
+  earSets: {},
   balance: { 'balance.json': validBalance },
 }
 
@@ -1028,5 +1030,57 @@ describe('章末テスト', () => {
 
   it('passPercent は 0〜100', () => {
     expect(issuesOf('chapterTests', { ...validTest, passPercent: 120 })[0]?.path).toBe('passPercent')
+  })
+})
+
+describe('聞き分けの組（GAME_SPEC 4-10）', () => {
+  const validEar = {
+    id: 'ear_001',
+    theme: 'plain_aspirated_tense',
+    titleJa: 'ㅂ・ㅍ・ㅃ',
+    focusJa: '最初の子音の息の出方',
+    tipJa: 'ㅍ は息を強く出します。',
+    stumbling: ['S01'],
+    items: [
+      { korean: '불', pronunciation: 'プル', japanese: '火' },
+      { korean: '풀', pronunciation: 'プル', japanese: '草' },
+      { korean: '뿔', pronunciation: 'ップル', japanese: '角' },
+    ],
+    reviewed: false,
+  }
+  const paths = (item: unknown) => issuesOf('earSets', item).map((i) => i.path)
+
+  it('正しい組は問題なし。名前・説明には字母を入れてよく、カタカナが同じ音があってもよい', () => {
+    expect(issuesOf('earSets', validEar)).toEqual([])
+    const { stumbling: _omit, ...withoutStumbling } = validEar
+    expect(issuesOf('earSets', withoutStumbling)).toEqual([])
+  })
+
+  it('音は2〜4個', () => {
+    expect(paths({ ...validEar, items: validEar.items.slice(0, 1) })).toContain('items')
+    const five = [...validEar.items, { korean: '발', pronunciation: 'パル', japanese: '足' }, { korean: '팔', pronunciation: 'パル', japanese: '腕' }]
+    expect(paths({ ...validEar, items: five })).toContain('items')
+  })
+
+  it('組の中で同じ韓国語・同じ意味は使えない', () => {
+    expect(paths({ ...validEar, items: [...validEar.items.slice(0, 2), { korean: '불.', pronunciation: 'プル', japanese: '角' }] })).toContain('items')
+    expect(paths({ ...validEar, items: [...validEar.items.slice(0, 2), { korean: '뿔', pronunciation: 'ップル', japanese: '火' }] })).toContain('items')
+  })
+
+  it('テーマ・ID・つまずきリストのIDの形を確かめる', () => {
+    expect(paths({ ...validEar, theme: 'consonants' })).toContain('theme')
+    expect(paths({ ...validEar, id: 'ear_1' })).toContain('id')
+    expect(paths({ ...validEar, stumbling: ['01'] })).toContain('stumbling[0]')
+  })
+
+  it('意味（japanese）にハングルは入れられず、韓国語はハングルで書く', () => {
+    expect(paths({ ...validEar, items: [{ korean: '불', pronunciation: 'プル', japanese: '불' }, ...validEar.items.slice(1)] })).toContain('items[0].japanese')
+    expect(paths({ ...validEar, items: [{ korean: 'pul', pronunciation: 'プル', japanese: '火' }, ...validEar.items.slice(1)] })).toContain('items[0].korean')
+  })
+
+  it('IDはほかの教材とまたいで一意', () => {
+    const result = loadContent({ ...base, earSets: { 'a.json': [validEar], 'b.json': [{ ...validEar, id: 'ear_001' }] } })
+    expect(result.earSets).toHaveLength(1)
+    expect(result.issues[0]?.message).toContain('IDが重複')
   })
 })

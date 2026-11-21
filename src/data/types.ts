@@ -92,6 +92,9 @@ export const ID_PATTERNS = {
   drill: /^drill_\d{3,}$/,
   drillItem: /^dq_\d{3,}$/,
   chapterTest: /^test_\d{3,}$/,
+  earSet: /^ear_\d{3,}$/,
+  /** つまずきリスト（docs/STUMBLING_POINTS.md）のID */
+  stumbling: /^[SGVWH]\d{2}$/,
   key: /^[a-z][a-z0-9_]*$/,
 } as const
 
@@ -371,6 +374,49 @@ export interface ChapterTest extends ContentBase {
   items: DrillItem[]
 }
 
+// ---------- 聞き分けの組（GAME_SPEC 4-10） ----------
+
+/** 聞き分けの組のテーマ（学習画面で、この順にまとめて出す） */
+export const EAR_THEMES = ['plain_aspirated_tense', 'vowel_eo_o', 'vowel_eu_u', 'vowel_o_u', 'final_nasal', 'final_stop', 'liquid'] as const
+export type EarTheme = (typeof EAR_THEMES)[number]
+
+/** テーマの表示名（docs/CONTENT_FORMAT.md の 10-9 と同じ。テストで照合する） */
+export const EAR_THEME_LABELS: Record<EarTheme, string> = {
+  plain_aspirated_tense: '平音・激音・濃音',
+  vowel_eo_o: 'ㅓ と ㅗ',
+  vowel_eu_u: 'ㅡ と ㅜ',
+  vowel_o_u: 'ㅗ と ㅜ',
+  final_nasal: 'パッチム ㄴ・ㅁ・ㅇ',
+  final_stop: 'パッチム ㄱ・ㄷ・ㅂ',
+  liquid: 'ㄹ を含む音',
+}
+
+/** 組の1つの音（実在する短い単語） */
+export interface EarItem {
+  korean: string
+  pronunciation: string
+  /** 意味（1つに絞る） */
+  japanese: string
+}
+
+/** 聞き分けの組：似た音の単語2〜4個。1つを読み上げ、どれだったかを同じ組の中から選ぶ */
+export interface EarSet extends ContentBase {
+  theme: EarTheme
+  /** 組の名前（例：ㅂ・ㅍ・ㅃ）。字母を入れてよい */
+  titleJa: string
+  /** 聞き分けるところ（例：最初の子音の息の出方） */
+  focusJa: string
+  /** 答えた後に出す、聞き分けのこつ（1〜2文） */
+  tipJa: string
+  /** つまずきリストのID（例：S01） */
+  stumbling: string[]
+  items: EarItem[]
+}
+
+/** 1つの組の音の数 */
+export const EAR_ITEMS_MIN = 2
+export const EAR_ITEMS_MAX = 4
+
 /** イベントの段階 */
 export type EventStep =
   /** 日本語の案内文を表示する（韓国語は入れない） */
@@ -516,6 +562,8 @@ export interface Balance {
   /** 章末テストの問題数・合格の基準（テストの questionCount・passPercent を省略したとき） */
   testQuestions: number
   testPassPercent: number
+  /** 聞き分け練習の1回の問題数 */
+  earQuestions: number
   /** どの学習を終えたらスタンプを押すか */
   stampActivities: StampActivity[]
 }

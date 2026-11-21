@@ -4,6 +4,9 @@
 
 import {
   COLUMN_BLOCK_TYPES,
+  EAR_ITEMS_MAX,
+  EAR_ITEMS_MIN,
+  EAR_THEMES,
   EVENT_STEP_TYPES,
   SCENE_BACKGROUNDS,
   EXPRESSIONS,
@@ -22,6 +25,8 @@ import {
   type Conversation,
   type Drill,
   type DrillItem,
+  type EarItem,
+  type EarSet,
   type ConversationChoice,
   type ConversationLine,
   type ConversationTurn,
@@ -103,6 +108,7 @@ export type ContentKind =
   | 'listening'
   | 'drills'
   | 'chapterTests'
+  | 'earSets'
 
 const MAX_CHAPTER = 10
 
@@ -1186,6 +1192,51 @@ function parseChapterTest(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): C
   return test
 }
 
+// ---------- 聞き分けの組（GAME_SPEC 4-10） ----------
+
+const EAR_SET_KEYS = ['id', 'theme', 'titleJa', 'focusJa', 'tipJa', 'stumbling', 'items', 'reviewed', 'notes'] as const
+const EAR_ITEM_KEYS = ['korean', 'pronunciation', 'japanese'] as const
+
+function parseEarSet(o: Obj, _ctx: ReferenceContext, errs: FieldError[]): EarSet | undefined {
+  checkKnownKeys(o, EAR_SET_KEYS, '', errs)
+  const id = idField(o, ID_PATTERNS.earSet, 'ear_001', errs)
+  const rawTheme = o['theme']
+  const theme = EAR_THEMES.find((t) => t === rawTheme)
+  if (theme === undefined) errs.push({ path: 'theme', message: `知らないテーマです。使えるもの：${EAR_THEMES.join(', ')}` })
+  // 組の名前・説明には、字母（ㅂ・ㅍ など）や単語を入れてよい
+  const titleJa = text(o, 'titleJa', '', errs)
+  const focusJa = text(o, 'focusJa', '', errs)
+  const tipJa = text(o, 'tipJa', '', errs)
+  const stumbling = textArray(o, 'stumbling', '', errs, { optional: true, min: 1 }) ?? []
+  for (const [i, s] of stumbling.entries()) {
+    if (!ID_PATTERNS.stumbling.test(s)) errs.push({ path: `stumbling[${i}]`, message: 'つまずきリストのID（例：S01）を書いてください' })
+  }
+  const items: EarItem[] = []
+  for (const { value, path } of objArray(o, 'items', '', errs, EAR_ITEMS_MIN) ?? []) {
+    checkKnownKeys(value, EAR_ITEM_KEYS, path, errs)
+    const korean = koreanText(value, 'korean', path, errs)
+    if (korean !== undefined && !HANGUL.test(korean)) errs.push({ path: joinPath(path, 'korean'), message: '韓国語（ハングル）で書いてください' })
+    const pronunciation = reading(value, 'pronunciation', path, errs, korean)
+    const japanese = japaneseText(value, 'japanese', path, errs)
+    if (korean !== undefined && pronunciation !== undefined && japanese !== undefined) items.push({ korean, pronunciation, japanese })
+  }
+  if (Array.isArray(o['items']) && o['items'].length > EAR_ITEMS_MAX) {
+    errs.push({ path: 'items', message: `1つの組の音は ${EAR_ITEMS_MIN}〜${EAR_ITEMS_MAX} 個にしてください` })
+  }
+  // 同じ音は聞き分けられないので、組の中で同じ韓国語（空白・句読点の違いだけのものを含む）は使えない
+  const keys = items.map((i) => normalizeAnswer(i.korean).replace(/ /g, ''))
+  if (new Set(keys).size !== keys.length) errs.push({ path: 'items', message: '同じ韓国語が重複しています' })
+  if (new Set(items.map((i) => i.japanese)).size !== items.length) {
+    errs.push({ path: 'items', message: '同じ意味（japanese）が重複しています。選択肢で区別できるよう、意味を書き分けてください' })
+  }
+  const reviewed = bool(o, 'reviewed', '', errs)
+  const notes = optionalText(o, 'notes', '', errs)
+  if (errs.length > 0 || id === undefined || theme === undefined || titleJa === undefined || focusJa === undefined || tipJa === undefined || reviewed === undefined) return undefined
+  const set: EarSet = { id, theme, titleJa, focusJa, tipJa, stumbling, items, reviewed }
+  if (notes !== undefined) set.notes = notes
+  return set
+}
+
 /**
  * ドリルとテストの問題のIDを、ほかの教材とまたいで一意にする（復習の記録が問題のIDで参照するため）。
  * 章末テストは1章に1つまで。問題のあるものは除外する（後から出てきた方）
@@ -1257,6 +1308,7 @@ const PARSERS = {
   listening: parseListening,
   drills: parseDrill,
   chapterTests: parseChapterTest,
+  earSets: parseEarSet,
 } as const
 
 interface KindItem {
@@ -1271,6 +1323,7 @@ interface KindItem {
   listening: ListeningSentence
   drills: Drill
   chapterTests: ChapterTest
+  earSets: EarSet
 }
 
 /** 1ファイル分を検証する。ファイル内の構造と参照だけを確かめ、ファイルをまたぐIDの重複は loadContent で確かめる */
@@ -1297,6 +1350,7 @@ export interface ContentInput {
   listening: FileMap
   drills: FileMap
   chapterTests: FileMap
+  earSets: FileMap
   /** ゲームの調整用の数値。ファイルは1つだけ置く */
   balance: FileMap
 }
@@ -1317,6 +1371,8 @@ export interface LoadedContent {
   drills: Drill[]
   /** 章の順 */
   chapterTests: ChapterTest[]
+  /** 聞き分けの組（ファイルの名前順・ファイル内の順） */
+  earSets: EarSet[]
   balance: Balance
   issues: ValidationIssue[]
 }
@@ -1336,6 +1392,7 @@ export const DEFAULT_BALANCE: Balance = {
   drillQuestions: 10,
   testQuestions: 10,
   testPassPercent: 80,
+  earQuestions: 10,
   stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'],
 }
 
@@ -1353,6 +1410,7 @@ const BALANCE_KEYS = [
   'drillQuestions',
   'testQuestions',
   'testPassPercent',
+  'earQuestions',
   'stampActivities',
 ] as const
 const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening', 'review', 'drillItem', 'chapterTest'] as const
@@ -1410,6 +1468,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
   const drillQuestions = integer(raw, 'drillQuestions', '', errs, 1, 50)
   const testQuestions = integer(raw, 'testQuestions', '', errs, 1, 50)
   const testPassPercent = integer(raw, 'testPassPercent', '', errs, 0, 100)
+  const earQuestions = integer(raw, 'earQuestions', '', errs, 1, 50)
   const stampActivities = stampActivityList(raw['stampActivities'], errs)
   if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
     errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
@@ -1439,6 +1498,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     drillQuestions === undefined ||
     testQuestions === undefined ||
     testPassPercent === undefined ||
+    earQuestions === undefined ||
     stampActivities === undefined
   ) {
     return undefined
@@ -1457,6 +1517,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     drillQuestions,
     testQuestions,
     testPassPercent,
+    earQuestions,
     stampActivities,
   }
 }
@@ -1698,9 +1759,10 @@ export function loadContent(input: ContentInput): LoadedContent {
   const drills = checkDrillItemIds(validateKind('drills', input.drills, ctx, contentIds, issues), contentIds, issues)
   const parsedTests = validateKind('chapterTests', input.chapterTests, ctx, contentIds, issues)
   const chapterTests = checkOneTestPerChapter(checkDrillItemIds(parsedTests, contentIds, issues), contentIds, issues).sort((a, b) => a.chapter - b.chapter)
+  const earSets = validateKind('earSets', input.earSets, ctx, contentIds, issues)
   const balance = loadBalance(input.balance, ctx, issues)
 
-  return { vocabulary, grammar, conversations, columns, events, locations, characters, hangulLessons, listening, drills, chapterTests, balance, issues }
+  return { vocabulary, grammar, conversations, columns, events, locations, characters, hangulLessons, listening, drills, chapterTests, earSets, balance, issues }
 }
 
 /** 問題を1行の文章にする（コンソール表示用） */

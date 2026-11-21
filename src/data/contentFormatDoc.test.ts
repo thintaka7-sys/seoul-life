@@ -6,11 +6,13 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
-import { EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, GENRE_LABELS, PARTS_OF_SPEECH, PART_OF_SPEECH_LABELS, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_GENRES } from './types'
+import { EAR_THEME_LABELS, EAR_THEMES, EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, GENRE_LABELS, PARTS_OF_SPEECH, PART_OF_SPEECH_LABELS, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_GENRES } from './types'
 import { formatIssue, loadContent } from './validate'
 
 const docPath = fileURLToPath(new URL('../../docs/CONTENT_FORMAT.md', import.meta.url))
 const doc = readFileSync(docPath, 'utf8').replace(/\r\n/g, '\n')
+const stumblingPath = fileURLToPath(new URL('../../docs/STUMBLING_POINTS.md', import.meta.url))
+const stumblingDoc = readFileSync(stumblingPath, 'utf8').replace(/\r\n/g, '\n')
 
 /** `<!-- sample: 種類 -->` の直後にある ```json ブロックを取り出す */
 function extractSamples(markdown: string): Map<string, unknown> {
@@ -55,9 +57,9 @@ function labelsInSection(markdown: string, headingPrefix: string): Record<string
 
 describe('docs/CONTENT_FORMAT.md の見本', () => {
   const samples = extractSamples(doc)
-  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests'] as const
+  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests', 'earSets'] as const
 
-  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テストの見本がそろっている', () => {
+  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テスト・聞き分けの組の見本がそろっている', () => {
     expect(sorted(samples.keys())).toEqual(sorted(kinds))
   })
 
@@ -72,6 +74,7 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
       listening: { 'sample-listening': samples.get('listening') },
       drills: { 'sample-drills': samples.get('drills') },
       chapterTests: { 'sample-chapterTests': samples.get('chapterTests') },
+      earSets: { 'sample-earSets': samples.get('earSets') },
       // 施設・キャラクター・調整値は実際のデータを使う
       locations: { 'locations.json': content.locations },
       characters: { 'characters.json': content.characters },
@@ -97,6 +100,8 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
     expect(items.some((i) => i.digits !== undefined)).toBe(true)
     expect(items.some((i) => i.digits === undefined)).toBe(true)
     expect(result.chapterTests.length).toBeGreaterThan(0)
+    // 見本の聞き分けの組は、3つの音の組と2つの音の組を含む
+    expect([...new Set(result.earSets.map((e) => e.items.length))].sort((a, b) => a - b)).toEqual([2, 3])
   })
 
   it('見本のIDは仮データ用の900番台を使っていない', () => {
@@ -140,6 +145,17 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
 
   it('ハングルのレッスンの種類（10-8）がプログラムと一致する', () => {
     expect(sorted(keysInSection(doc, '### 10-8.'))).toEqual(sorted(HANGUL_LESSON_KINDS))
+  })
+
+  it('聞き分けの組のテーマ（10-9）がプログラムと一致する', () => {
+    expect(keysInSection(doc, '### 10-9.')).toEqual([...EAR_THEMES])
+    expect(labelsInSection(doc, '### 10-9.')).toEqual(EAR_THEME_LABELS)
+  })
+
+  it('聞き分けの組の stumbling は、つまずきリスト（docs/STUMBLING_POINTS.md）にあるID', () => {
+    const ids = new Set([...stumblingDoc.matchAll(/^\| ([SGVWH]\d{2}) \|/gm)].map((m) => m[1]))
+    expect(ids.size).toBeGreaterThan(0)
+    for (const set of content.earSets) for (const s of set.stumbling) expect(ids.has(s), `${set.id}: ${s}`).toBe(true)
   })
 
   it('表情（10-6）がプログラムと一致する', () => {

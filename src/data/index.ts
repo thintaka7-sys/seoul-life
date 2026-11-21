@@ -18,6 +18,7 @@ export const content: LoadedContent = loadContent({
   listening: import.meta.glob<unknown>('./listening/*.json', { eager: true, import: 'default' }),
   drills: import.meta.glob<unknown>('./drills/*.json', { eager: true, import: 'default' }),
   chapterTests: import.meta.glob<unknown>('./tests/*.json', { eager: true, import: 'default' }),
+  earSets: import.meta.glob<unknown>('./ear/*.json', { eager: true, import: 'default' }),
   balance: import.meta.glob<unknown>('./game/balance.json', { eager: true, import: 'default' }),
 })
 
