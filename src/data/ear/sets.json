@@ -1,0 +1,392 @@
+[
+  {
+    "id": "ear_001",
+    "theme": "plain_aspirated_tense",
+    "titleJa": "ㅂ・ㅍ・ㅃ（불・풀・뿔）",
+    "focusJa": "最初の子音の息の出方",
+    "tipJa": "ㅍ は息を強く出し、ㅃ は口に力を入れて息をほとんど出さずに言います。ㅂ は、ㅍ ほど息を強く出さず、ㅃ ほど力を入れない音です。",
+    "stumbling": [
+      "S01"
+    ],
+    "items": [
+      {
+        "korean": "불",
+        "pronunciation": "プル",
+        "japanese": "火"
+      },
+      {
+        "korean": "풀",
+        "pronunciation": "プル",
+        "japanese": "草"
+      },
+      {
+        "korean": "뿔",
+        "pronunciation": "ップル",
+        "japanese": "角"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組1／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_002",
+    "theme": "plain_aspirated_tense",
+    "titleJa": "ㄷ・ㅌ・ㄸ（달・탈・딸）",
+    "focusJa": "最初の子音の息の出方",
+    "tipJa": "ㅌ は息を強く出し、ㄸ は口に力を入れて息をほとんど出さずに言います。ㄷ は、ㅌ ほど息を強く出さず、ㄸ ほど力を入れない音です。",
+    "stumbling": [
+      "S01"
+    ],
+    "items": [
+      {
+        "korean": "달",
+        "pronunciation": "タル",
+        "japanese": "月"
+      },
+      {
+        "korean": "탈",
+        "pronunciation": "タル",
+        "japanese": "お面"
+      },
+      {
+        "korean": "딸",
+        "pronunciation": "ッタル",
+        "japanese": "娘"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組2／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_003",
+    "theme": "plain_aspirated_tense",
+    "titleJa": "ㅈ・ㅊ・ㅉ（자다・차다・짜다）",
+    "focusJa": "最初の子音の息の出方",
+    "tipJa": "ㅊ は息を強く出し、ㅉ は口に力を入れて息をほとんど出さずに言います。ㅈ は、ㅊ ほど息を強く出さず、ㅉ ほど力を入れない音です。",
+    "stumbling": [
+      "S01"
+    ],
+    "items": [
+      {
+        "korean": "자다",
+        "pronunciation": "チャダ",
+        "japanese": "寝る"
+      },
+      {
+        "korean": "차다",
+        "pronunciation": "チャダ",
+        "japanese": "冷たい"
+      },
+      {
+        "korean": "짜다",
+        "pronunciation": "ッチャダ",
+        "japanese": "しょっぱい"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組3／차다 は「蹴る」などの意味もあるが、「冷たい」に絞った／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_004",
+    "theme": "plain_aspirated_tense",
+    "titleJa": "ㄱ・ㅋ（공・콩）",
+    "focusJa": "最初の子音の息の出方",
+    "tipJa": "ㅋ は息を強く出して言います。ㄱ は息を強く出さない、軽い音です。",
+    "stumbling": [
+      "S01"
+    ],
+    "items": [
+      {
+        "korean": "공",
+        "pronunciation": "コン",
+        "japanese": "ボール"
+      },
+      {
+        "korean": "콩",
+        "pronunciation": "コン",
+        "japanese": "豆"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組4／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_005",
+    "theme": "plain_aspirated_tense",
+    "titleJa": "ㄱ・ㄲ（굴・꿀）",
+    "focusJa": "最初の子音の息の出方",
+    "tipJa": "ㄲ は口に力を入れ、息をほとんど出さずに、詰まった感じで言います。ㄱ は軽い音です。",
+    "stumbling": [
+      "S01"
+    ],
+    "items": [
+      {
+        "korean": "굴",
+        "pronunciation": "クル",
+        "japanese": "牡蠣"
+      },
+      {
+        "korean": "꿀",
+        "pronunciation": "ックル",
+        "japanese": "はちみつ"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組5／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_006",
+    "theme": "plain_aspirated_tense",
+    "titleJa": "ㅂ・ㅃ（방・빵）",
+    "focusJa": "最初の子音の息の出方",
+    "tipJa": "ㅃ は口に力を入れ、息をほとんど出さずに、詰まった感じで言います。ㅂ は軽い音です。",
+    "stumbling": [
+      "S01"
+    ],
+    "items": [
+      {
+        "korean": "방",
+        "pronunciation": "パン",
+        "japanese": "部屋"
+      },
+      {
+        "korean": "빵",
+        "pronunciation": "ッパン",
+        "japanese": "パン"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組6／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_007",
+    "theme": "plain_aspirated_tense",
+    "titleJa": "ㅅ・ㅆ（사다・싸다）",
+    "focusJa": "最初の子音の息の出方",
+    "tipJa": "ㅆ は口や舌に力を入れて、ㅅ よりも強く、鋭くこすれるように言います。ㅅ は、それより力を抜いたやわらかい音です。",
+    "stumbling": [
+      "S08"
+    ],
+    "items": [
+      {
+        "korean": "사다",
+        "pronunciation": "サダ",
+        "japanese": "買う"
+      },
+      {
+        "korean": "싸다",
+        "pronunciation": "ッサダ",
+        "japanese": "安い"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組7／ㅆ は摩擦音なので、ㄲ・ㅃ などと同じ「息をほとんど出さずに」の説明にはしない（ChatGPT の指摘）／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_008",
+    "theme": "vowel_eo_o",
+    "titleJa": "ㅓ・ㅗ（커피・코피）",
+    "focusJa": "最初の母音の口の形",
+    "tipJa": "ㅓ は唇を丸めずに言います。ㅗ は唇を丸くして、少し前に突き出して言います。",
+    "stumbling": [
+      "S03"
+    ],
+    "items": [
+      {
+        "korean": "커피",
+        "pronunciation": "コピ",
+        "japanese": "コーヒー"
+      },
+      {
+        "korean": "코피",
+        "pronunciation": "コピ",
+        "japanese": "鼻血"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組8／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_009",
+    "theme": "vowel_eo_o",
+    "titleJa": "ㅓ・ㅗ（거기・고기）",
+    "focusJa": "最初の母音の口の形",
+    "tipJa": "ㅓ は唇を丸めずに言います。ㅗ は唇を丸くして、少し前に突き出して言います。",
+    "stumbling": [
+      "S03"
+    ],
+    "items": [
+      {
+        "korean": "거기",
+        "pronunciation": "コギ",
+        "japanese": "そこ"
+      },
+      {
+        "korean": "고기",
+        "pronunciation": "コギ",
+        "japanese": "肉"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組9／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_010",
+    "theme": "vowel_eu_u",
+    "titleJa": "ㅡ・ㅜ（글・굴）",
+    "focusJa": "母音の唇の形",
+    "tipJa": "ㅡ は唇を横に引いたまま言います。ㅜ は唇を丸く突き出して言います。",
+    "stumbling": [
+      "S04"
+    ],
+    "items": [
+      {
+        "korean": "글",
+        "pronunciation": "クル",
+        "japanese": "文章"
+      },
+      {
+        "korean": "굴",
+        "pronunciation": "クル",
+        "japanese": "牡蠣"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組10／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_011",
+    "theme": "vowel_eu_u",
+    "titleJa": "ㅡ・ㅜ（들・둘）",
+    "focusJa": "母音の唇の形",
+    "tipJa": "ㅡ は唇を横に引いたまま言います。ㅜ は唇を丸く突き出して言います。",
+    "stumbling": [
+      "S04"
+    ],
+    "items": [
+      {
+        "korean": "들",
+        "pronunciation": "トゥル",
+        "japanese": "野原"
+      },
+      {
+        "korean": "둘",
+        "pronunciation": "トゥル",
+        "japanese": "2つ"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組11／들 は日常で最初に覚える単語としては優先度が低いとの指摘（ChatGPT）があったが、母音以外が同じ短い組がほかに少ないので残した／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_012",
+    "theme": "final_nasal",
+    "titleJa": "パッチム ㄴ・ㅁ・ㅇ（산・삼・상）",
+    "focusJa": "最後の「ン」の閉じ方",
+    "tipJa": "最後に、ㄴ は舌先を上の歯ぐきに付け、ㅁ は唇を閉じます。ㅇ は口を開けたまま、舌の奥で止めます。",
+    "stumbling": [
+      "S05"
+    ],
+    "items": [
+      {
+        "korean": "산",
+        "pronunciation": "サン",
+        "japanese": "山"
+      },
+      {
+        "korean": "삼",
+        "pronunciation": "サム",
+        "japanese": "3"
+      },
+      {
+        "korean": "상",
+        "pronunciation": "サン",
+        "japanese": "賞"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組12／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_013",
+    "theme": "final_nasal",
+    "titleJa": "パッチム ㄴ・ㅁ・ㅇ（반・밤・방）",
+    "focusJa": "最後の「ン」の閉じ方",
+    "tipJa": "最後に、ㄴ は舌先を上の歯ぐきに付け、ㅁ は唇を閉じます。ㅇ は口を開けたまま、舌の奥で止めます。",
+    "stumbling": [
+      "S05"
+    ],
+    "items": [
+      {
+        "korean": "반",
+        "pronunciation": "パン",
+        "japanese": "半分"
+      },
+      {
+        "korean": "밤",
+        "pronunciation": "パム",
+        "japanese": "夜"
+      },
+      {
+        "korean": "방",
+        "pronunciation": "パン",
+        "japanese": "部屋"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組13／밤 は「夜」に絞った（「栗」の意味もある）／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_014",
+    "theme": "final_stop",
+    "titleJa": "パッチム ㄱ・ㄷ・ㅂ（박・밭・밥）",
+    "focusJa": "最後の「ッ」の止め方",
+    "tipJa": "どれも最後に母音を付けず、息を止めるようにして終わります。舌の奥で止めるのが ㄱ、舌先で止めるのが ㄷ、唇を閉じて止めるのが ㅂ です。",
+    "stumbling": [
+      "S06"
+    ],
+    "items": [
+      {
+        "korean": "박",
+        "pronunciation": "パク",
+        "japanese": "ひょうたん"
+      },
+      {
+        "korean": "밭",
+        "pronunciation": "パッ",
+        "japanese": "畑"
+      },
+      {
+        "korean": "밥",
+        "pronunciation": "パプ",
+        "japanese": "ご飯"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組14／確認：ChatGPT（2026-11-21）"
+  },
+  {
+    "id": "ear_015",
+    "theme": "liquid",
+    "titleJa": "ㄹ・ㄴ（물・문）",
+    "focusJa": "最後の ㄹ と ㄴ",
+    "tipJa": "どちらも舌先を上の歯ぐきに付けて終わります。ㄹ は舌の両わきから声を出し、ㄴ は鼻に抜いて終わります。",
+    "stumbling": [
+      "S07"
+    ],
+    "items": [
+      {
+        "korean": "물",
+        "pronunciation": "ムル",
+        "japanese": "水"
+      },
+      {
+        "korean": "문",
+        "pronunciation": "ムン",
+        "japanese": "ドア"
+      }
+    ],
+    "reviewed": true,
+    "notes": "つまずきリストの聞き分けの組15／確認：ChatGPT（2026-11-21）"
+  }
+]
