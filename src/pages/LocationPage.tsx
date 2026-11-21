@@ -57,7 +57,7 @@ export function LocationPage({ locationId }: { locationId: string }) {
 
         {replays.length > 0 && (
           <section className="replays" aria-label="もう一度遊ぶ">
-            <h2 className="section-title">もう一度遊ぶ（経験値は増えません）</h2>
+            <h2 className="section-title">もう一度遊ぶ（経験値は、初めて正解した問題だけ）</h2>
             {replays.map((e) => (
               <Button key={e.id} onClick={() => dispatch({ type: 'startEvent', eventId: e.id, now: nowIso() })}>
                 {e.objectiveJa}

@@ -28,6 +28,9 @@ export function StudyPage() {
         <Button onClick={() => dispatch({ type: 'openPractice' })}>練習</Button>
         <p className="muted small">学んだ単語・文法・会話を、自由に練習します。</p>
 
+        <Button onClick={() => dispatch({ type: 'openConversations' })}>会話をもう一度</Button>
+        <p className="muted small">物語で終えた会話を、もう一度遊びます。答えた問題は記録して、章末テストの条件にも数えます。</p>
+
         <Button onClick={() => dispatch({ type: 'openDrills' })}>ドリル・テスト</Button>
         <p className="muted small">数字・曜日などの基礎ドリルと、章末テストです。</p>
       </div>

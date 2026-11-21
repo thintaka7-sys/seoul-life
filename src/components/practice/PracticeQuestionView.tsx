@@ -135,22 +135,25 @@ function NumberBody({ onSubmit }: { onSubmit: (text: string) => void }) {
       submit()
     }
   }
+  // 書く問題の入力欄と同じ入れ物（.answer-input）に入れ、入力欄のもともとの幅で枠を広げない（BUG-005・BUG-008）
   return (
-    <div className="answer-input__row">
-      <input
-        className="answer-input__field"
-        type="text"
-        inputMode="decimal"
+    <div className="answer-input">
+      <div className="answer-input__row">
+        <input
+          className="answer-input__field"
+          type="text"
+          inputMode="decimal"
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}
-        autoComplete="off"
-        aria-label="答え（数字）"
-        placeholder="数字で書く"
-      />
-      <Button variant="primary" onClick={submit} disabled={text.trim() === ''}>
-        答える
-      </Button>
+          autoComplete="off"
+          aria-label="答え（数字）"
+          placeholder="数字で書く"
+        />
+        <Button variant="primary" onClick={submit} disabled={text.trim() === ''}>
+          答える
+        </Button>
+      </div>
     </div>
   )
 }

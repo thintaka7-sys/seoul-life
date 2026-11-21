@@ -411,3 +411,49 @@ describe('選択の往復（Phase 2.5）', () => {
     expect(reducer(s, { type: 'conversationAnswered', turn: decisionTurn, method: 'choice', now: T1 })).toBe(s)
   })
 })
+
+describe('会話をもう一度（BUG-007）', () => {
+  const home = content.events.find((e) => e.id === 'event_001')
+  const firstConversation = home?.steps.find((s) => s.type === 'conversation')
+  const conversationId = firstConversation?.type === 'conversation' ? firstConversation.id : ''
+  const conversation = content.conversations.find((c) => c.id === conversationId)
+  const questionTurn = conversation?.turns.findIndex((t) => t.choices !== undefined && t.kind !== 'decision') ?? -1
+  const decisionTurn = conversation?.turns.findIndex((t) => t.kind === 'decision') ?? -1
+  /** Phase 2 で1日目を終えた形（作り直した会話の記録はない） */
+  const finished = () => {
+    const s = run(titleWithoutSave(), { type: 'startNew', now: T0 })
+    if (s.save === null) throw new Error('セーブがない')
+    return { ...s, save: { ...s.save, progress: { ...s.save.progress, completedEvents: ['event_001', 'event_002', 'event_003'] } } }
+  }
+
+  it('学習画面の一覧から、終えたイベントの会話を遊べる。終えていないイベントの会話は遊べない', () => {
+    const list = run(finished(), { type: 'openStudy' }, { type: 'openConversations' })
+    expect(list.scene).toMatchObject({ name: 'conversations', back: { name: 'study' } })
+    const replay = run(list, { type: 'openConversationReplay', conversationId })
+    expect(replay.scene).toMatchObject({ name: 'conversationReplay', conversationId, locationId: conversation?.location })
+    const notYet = run(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'openStudy' }, { type: 'openConversations' })
+    expect(run(notYet, { type: 'openConversationReplay', conversationId })).toBe(notYet)
+    expect(run(replay, { type: 'back', now: T1 }).scene.name).toBe('conversations')
+  })
+
+  it('遊び直しで答えた問題の往復は、記録・復習に入れ、初めての正解だけ経験値を付ける。選択の往復は記録しない', () => {
+    const replay = run(finished(), { type: 'openStudy' }, { type: 'openConversations' }, { type: 'openConversationReplay', conversationId })
+    const xp0 = replay.save?.stats.xp ?? 0
+    const answered = run(replay, { type: 'replayTurnAnswered', turn: questionTurn, method: 'choice', now: T1 })
+    expect(answered.save?.learning.conversations[`${conversationId}#${questionTurn}`]).toEqual({ choice: true, write: false })
+    expect(answered.save?.learning.review[`turn:${conversationId}#${questionTurn}`]).toBeDefined()
+    expect((answered.save?.stats.xp ?? 0) - xp0).toBe(content.balance.xp.conversationChoice)
+    expect(run(answered, { type: 'replayTurnAnswered', turn: questionTurn, method: 'choice', now: T1 })).toBe(answered)
+    expect(decisionTurn).toBeGreaterThanOrEqual(0)
+    expect(run(answered, { type: 'replayTurnAnswered', turn: decisionTurn, method: 'choice', now: T1 })).toBe(answered)
+  })
+
+  it('施設の「もう一度遊ぶ」（イベントの遊び直し）でも、答えた問題の往復を記録する', () => {
+    let s = run(finished(), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    expect(s.run?.replay).toBe(true)
+    for (let i = 0; i < 20 && s.run !== null && home?.steps[s.run.step]?.type !== 'conversation'; i++) s = completeCurrentStep(s)
+    s = run(s, { type: 'conversationAnswered', turn: questionTurn, method: 'write', now: T1 })
+    expect(s.save?.learning.conversations[`${conversationId}#${questionTurn}`]).toEqual({ choice: false, write: true })
+    expect(s.save?.progress.completedEvents).toEqual(['event_001', 'event_002', 'event_003'])
+  })
+})

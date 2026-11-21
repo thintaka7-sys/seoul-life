@@ -3,6 +3,7 @@
 
 import type { Balance, Conversation, GameEvent, StampActivity } from '../data/types'
 import type { AnswerMode } from '../learning/conversation/session'
+import { isReplayable } from '../game/conversations/replayList'
 import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
 import {
   advanceEvent,
@@ -53,9 +54,16 @@ export type Scene =
   | { name: 'chapterTest'; testId: string; back: Scene }
   /** スタンプカード（GAME_SPEC 7-6）。自宅から開く */
   | { name: 'stamps'; back: Scene }
+  /** 会話をもう一度：終えたイベントの会話の一覧（BUG-007） */
+  | { name: 'conversations'; back: Scene }
+  /** 会話をもう一度：1つの会話を遊ぶ（locationId は背景のため） */
+  | { name: 'conversationReplay'; conversationId: string; locationId: string; back: Scene }
   | { name: 'saveError'; reason: CorruptReason; detail: string; backupKey: string | null }
 
-/** 進めているイベント。replay は終えたイベントの遊び直し（記録・経験値は付けない） */
+/**
+ * 進めているイベント。replay は終えたイベントの遊び直し（進行は変えない）。
+ * 遊び直しでも、問題の往復の答えは記録・復習に入れ、初めて正解した往復だけ経験値を付ける（BUG-007）
+ */
 export interface EventRun {
   eventId: string
   step: number
@@ -118,6 +126,11 @@ export type GameAction =
   | { type: 'openDrill'; drillId: string }
   | { type: 'openChapterTest'; testId: string }
   | { type: 'openStamps' }
+  | { type: 'openConversations' }
+  /** 会話をもう一度遊ぶ（会話の一覧・章末テストから。終えたイベントの会話だけ） */
+  | { type: 'openConversationReplay'; conversationId: string }
+  /** 会話をもう一度で、1往復に答えた */
+  | { type: 'replayTurnAnswered'; turn: number; method: ClearMethod; now: string }
   /** 学習画面・レッスン一覧・レッスン・リスニング・復習・練習を閉じて、開く前の画面に戻る */
   | { type: 'closeStudyScene' }
   /** ハングルのレッスンの小テストに合格した（score は 0〜100） */
@@ -200,6 +213,8 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'drill':
     case 'chapterTest':
     case 'stamps':
+    case 'conversations':
+    case 'conversationReplay':
       return 'closeStudyScene'
     case 'location':
     case 'main':
@@ -212,9 +227,12 @@ export function backTarget(state: GameState): GameAction['type'] | null {
 }
 
 /** 学習画面のなかまの画面（閉じると back に戻る） */
-type StudyScene = Extract<Scene, { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' | 'drills' | 'drill' | 'chapterTest' | 'stamps' }>
+type StudyScene = Extract<
+  Scene,
+  { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' | 'drills' | 'drill' | 'chapterTest' | 'stamps' | 'conversations' | 'conversationReplay' }
+>
 
-const STUDY_SCENES: readonly Scene['name'][] = ['study', 'hangul', 'hangulLesson', 'listening', 'review', 'practice', 'drills', 'drill', 'chapterTest', 'stamps']
+const STUDY_SCENES: readonly Scene['name'][] = ['study', 'hangul', 'hangulLesson', 'listening', 'review', 'practice', 'drills', 'drill', 'chapterTest', 'stamps', 'conversations', 'conversationReplay']
 
 function isStudyScene(scene: Scene): scene is StudyScene {
   return STUDY_SCENES.includes(scene.name)
@@ -247,6 +265,15 @@ export function createGameReducer(deps: GameDeps) {
     const reward = addReward(state, sumRewards(extra, advanced.reward))
     const step = advanced.save.progress.activeEvent?.step ?? run.step + 1
     return { ...state, save: advanced.save, run: { ...run, step }, reward }
+  }
+
+  /** 会話の1往復の答えを記録する。選択の往復には、経験値・記録・復習を付けない（計画 Q3） */
+  function recordTurn(state: GameState, conversationId: string, turn: number, method: ClearMethod, now: string): GameState {
+    if (state.save === null) return state
+    if (deps.conversations?.find((c) => c.id === conversationId)?.turns[turn]?.kind === 'decision') return state
+    const cleared = clearConversationTurn(state.save, conversationId, turn, method, balance, now)
+    if (cleared.save === state.save) return state
+    return { ...state, save: cleared.save, reward: addReward(state, cleared.reward) }
   }
 
   function currentStep(state: GameState) {
@@ -304,6 +331,24 @@ export function createGameReducer(deps: GameDeps) {
       case 'openChapterTest':
         if (state.scene.name !== 'drills') return state
         return { ...state, scene: { name: 'chapterTest', testId: action.testId, back: state.scene } }
+
+      case 'openConversations':
+        if (state.scene.name !== 'study') return state
+        return { ...state, scene: { name: 'conversations', back: state.scene } }
+
+      case 'openConversationReplay': {
+        const save = state.save
+        const conversation = deps.conversations?.find((c) => c.id === action.conversationId)
+        if (save === null || conversation === undefined || (state.scene.name !== 'conversations' && state.scene.name !== 'chapterTest')) return state
+        if (!isReplayable(conversation.id, events, save.progress.completedEvents)) return state
+        return { ...state, scene: { name: 'conversationReplay', conversationId: conversation.id, locationId: conversation.location, back: state.scene } }
+      }
+
+      case 'replayTurnAnswered': {
+        const scene = state.scene
+        if (scene.name !== 'conversationReplay' || state.save === null) return state
+        return recordTurn(state, scene.conversationId, action.turn, action.method, action.now)
+      }
 
       case 'openStamps':
         if (state.save === null || isStudyScene(state.scene)) return state
@@ -435,14 +480,10 @@ export function createGameReducer(deps: GameDeps) {
       }
 
       case 'conversationAnswered': {
+        // 遊び直し（run.replay）でも記録する（BUG-007）
         const step = currentStep(state)
-        const run = state.run
-        if (step?.type !== 'conversation' || run === null || state.save === null || run.replay) return state
-        // 選択の往復には、経験値・記録・復習を付けない（計画 Q3）
-        if (deps.conversations?.find((c) => c.id === step.id)?.turns[action.turn]?.kind === 'decision') return state
-        const cleared = clearConversationTurn(state.save, step.id, action.turn, action.method, balance, action.now)
-        if (cleared.save === state.save) return state
-        return { ...state, save: cleared.save, reward: addReward(state, cleared.reward) }
+        if (step?.type !== 'conversation' || state.run === null || state.save === null) return state
+        return recordTurn(state, step.id, action.turn, action.method, action.now)
       }
 
       case 'conversationDone': {

@@ -90,6 +90,8 @@ const OPTION_COUNT = 3
 const ARRANGE_SYLLABLES = { min: 2, max: 6 }
 /** 語の並べ替えに使う例文の長さ（語） */
 const ARRANGE_WORDS = { min: 3, max: 8 }
+/** 1回の中で、作れるならいちばん先に出す形（並べ替えは作れる問題が限られるため。BUG-009） */
+const PRIORITY_FORMS: readonly QuestionForm[] = ['arrange', 'grammarArrange']
 /** 会話の場面で見せる相手の台詞の数（最後から） */
 const CONTEXT_LINES = 2
 
@@ -428,16 +430,63 @@ export function createPracticeIndex(sources: PracticeSources): PracticeIndex {
 }
 
 /**
- * キーの並びから、1回分の問題を作る。同じ形が続かないよう、直前の形はなるべく避ける。
+ * キーの並びから、1回分の問題を作る。問題の形がなるべくばらけるようにする（BUG-009）。
+ * 1. その回で使える形のうち、作れる問題の少ない形から順に、まだ形の決まっていない問題に1つずつ割り当てる
+ *    （並べ替えなど、作れる問題が限られる形も、1回に1問以上は出る）
+ * 2. 残りの問題は、その回でまだ使った回数の少ない形を選ぶ。同じなら直前と違う形、それも同じならランダム
  * chapterOf はフリガナの表示を決める章（覚えたときの章など）
  */
 export function buildQuestions(index: PracticeIndex, keys: readonly string[], options: Omit<QuestionOptions, 'chapter'> & { chapterOf?: (key: string) => number | undefined }): PracticeQuestion[] {
-  const result: PracticeQuestion[] = []
-  for (const key of keys) {
-    const prev = result.at(-1)
-    const chapter = options.chapterOf?.(key)
-    const q = index.question(key, { audio: options.audio, random: options.random, ...(chapter === undefined ? {} : { chapter }) }, prev === undefined ? undefined : new Set([prev.form]))
-    if (q !== null) result.push(q)
+  const { random } = options
+  const candidates = keys
+    .map((key) => {
+      const chapter = options.chapterOf?.(key)
+      return index.candidates(key, { audio: options.audio, random, ...(chapter === undefined ? {} : { chapter }) })
+    })
+    .filter((c) => c.length > 0)
+  const chosen: (PracticeQuestion | undefined)[] = candidates.map(() => undefined)
+  const used = new Map<QuestionForm, number>()
+  const choose = (i: number, q: PracticeQuestion) => {
+    chosen[i] = q
+    used.set(q.form, (used.get(q.form) ?? 0) + 1)
   }
-  return result
+
+  // 1. 形と問題の組み合わせを決める（二部マッチング）。並べ替えを最優先にし、次に作れる問題の少ない形から。
+  //    すでに決めた形は外さず、問題の付け替えだけで次の形を入れる（できるだけ多くの形が1問ずつ出る）
+  const offering = new Map<QuestionForm, number[]>()
+  candidates.forEach((qs, i) => {
+    for (const form of new Set(qs.map((q) => q.form))) offering.set(form, [...(offering.get(form) ?? []), i])
+  })
+  const priority = (form: QuestionForm) => (PRIORITY_FORMS.includes(form) ? 0 : 1)
+  const order = shuffle([...offering.entries()], random).sort((a, b) => priority(a[0]) - priority(b[0]) || a[1].length - b[1].length)
+  const formOf = new Map<number, QuestionForm>()
+  const assign = (form: QuestionForm, visited: Set<number>): boolean => {
+    for (const i of shuffle(offering.get(form) ?? [], random)) {
+      if (visited.has(i)) continue
+      visited.add(i)
+      const current = formOf.get(i)
+      if (current === undefined || assign(current, visited)) {
+        formOf.set(i, form)
+        return true
+      }
+    }
+    return false
+  }
+  for (const [form] of order) assign(form, new Set())
+  for (const [i, form] of formOf) {
+    const q = pick(candidates[i]?.filter((c) => c.form === form) ?? [], random)
+    if (q !== undefined) choose(i, q)
+  }
+
+  // 2. 残りは、使った回数の少ない形から（直前と同じ形はなるべく避ける）
+  candidates.forEach((qs, i) => {
+    if (chosen[i] !== undefined) return
+    const fewest = Math.min(...qs.map((q) => used.get(q.form) ?? 0))
+    const least = qs.filter((q) => (used.get(q.form) ?? 0) === fewest)
+    const prev = chosen[i - 1]?.form
+    const notPrev = least.filter((q) => q.form !== prev)
+    const q = pick(notPrev.length > 0 ? notPrev : least, random)
+    if (q !== undefined) choose(i, q)
+  })
+  return chosen.filter((q) => q !== undefined)
 }

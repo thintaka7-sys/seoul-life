@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
-import { eventBackdrop } from '../../app/backdrop'
-import { useGame, nowIso } from '../../app/GameContext'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useGame } from '../../app/GameContext'
 import { playSfx } from '../../audio/sfx'
 import { useCanSpeak, useFuriganaDisplay } from '../../app/hooks'
 import { AnswerInput } from '../../components/AnswerInput'
@@ -19,6 +18,7 @@ import { SpeakButton } from '../../components/SpeakButton'
 import { SpeechNotice } from '../../components/SpeechNotice'
 import { content, findCharacter, firstConversationWith } from '../../data'
 import type { Conversation, ConversationChoice } from '../../data/types'
+import type { ClearMethod } from '../../game/progression/progression'
 import { judgeSpoken } from '../../learning/judge/judgeSpoken'
 import {
   availableModes,
@@ -216,7 +216,20 @@ function AnswerArea({
   )
 }
 
-export function ConversationStep({ conversation, replay }: { conversation: Conversation; replay: boolean }) {
+interface ConversationStepProps {
+  conversation: Conversation
+  /** 遊び直し（紹介のカードを出さない） */
+  replay: boolean
+  /** 背景の絵があるか（立ち絵の置き方に使う） */
+  hasBackground: boolean
+  /** 問題の往復に答えた（選択の往復では呼ばない） */
+  onTurnAnswered: (turn: number, method: ClearMethod) => void
+  /** 会話を最後まで見た */
+  onDone: () => void
+}
+
+/** 会話の画面。イベントの中（EventPage）と「会話をもう一度」（ConversationReplayPage）で使う */
+export function ConversationStep({ conversation, replay, hasBackground, onTurnAnswered, onDone }: ConversationStepProps) {
   const { state, dispatch } = useGame()
   const display = useFuriganaDisplay(conversation.chapter)
   const canSpeak = useCanSpeak()
@@ -235,6 +248,11 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
   const msPerChar = profileOpen || current?.kind === 'player' ? 0 : TEXT_SPEED_MS[state.settings.textSpeed]
   const typing = useTypewriter(lineKey, totalChars(segments), msPerChar)
 
+  // 最新の onTurnAnswered を使う（答えたときに1回だけ呼ぶため、effect の依存には入れない）
+  const onAnsweredRef = useRef(onTurnAnswered)
+  useEffect(() => {
+    onAnsweredRef.current = onTurnAnswered
+  })
   // 往復に答えたら、その場で経験値を付ける（選択の往復は、経験値・記録・復習なし。計画 Q3）
   const answer = s.answer
   const answeredTurn = s.turn
@@ -242,8 +260,8 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
     if (answer === null || answer.method === 'decision') return
     if (answer.method !== 'revealed') playSfx('correct')
     // 話して正解は、書いて正解と同じ記録・経験値にする（計画 Q10）
-    dispatch({ type: 'conversationAnswered', turn: answeredTurn, method: answer.method === 'speak' ? 'write' : answer.method, now: nowIso() })
-  }, [answer, answeredTurn, dispatch])
+    onAnsweredRef.current(answeredTurn, answer.method === 'speak' ? 'write' : answer.method)
+  }, [answer, answeredTurn])
 
   // 間違えたら音で知らせる（往復が変わると数は0に戻る）
   const misses = s.wrongChoices.length + s.writeMisses
@@ -262,7 +280,7 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
   }
 
   const writing = phase === 'answer' && s.mode === 'write'
-  const advance = () => (phase === 'end' ? dispatch({ type: 'conversationDone', now: nowIso() }) : send({ type: 'next', speakAvailable: canSpeak }))
+  const advance = () => (phase === 'end' ? onDone() : send({ type: 'next', speakAvailable: canSpeak }))
 
   return (
     <div className="conversation">
@@ -271,7 +289,7 @@ export function ConversationStep({ conversation, replay }: { conversation: Conve
         characterId={conversation.character}
         expression={characterExpression(conversation, s)}
         size={writing ? 'compact' : 'normal'}
-        hasBackground={eventBackdrop(conversation.location, state.run) !== undefined}
+        hasBackground={hasBackground}
       />
       <SpeechNotice />
       {current !== undefined && (

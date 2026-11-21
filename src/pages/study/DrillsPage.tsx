@@ -64,7 +64,6 @@ export function DrillsPage() {
                   <button
                     type="button"
                     className="lesson-item lesson-item--plain"
-                    disabled={!progress.unlocked}
                     onClick={() => dispatch({ type: 'openChapterTest', testId: test.id })}
                   >
                     <span className="lesson-item__title">
@@ -75,7 +74,7 @@ export function DrillsPage() {
                   </button>
                   {!progress.unlocked && (
                     <p className="muted small">
-                      {progress.total === 0 ? 'この章の会話がまだありません。' : `第${test.chapter}章の会話の問題（${progress.total}問）に、すべて答えると受けられます。`}
+                      {progress.total === 0 ? 'この章の会話がまだありません。' : `第${test.chapter}章の会話の問題（${progress.total}問）に、すべて答えると受けられます。押すと、残っている会話を確かめられます。`}
                     </p>
                   )}
                 </li>

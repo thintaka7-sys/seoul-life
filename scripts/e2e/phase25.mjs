@@ -117,6 +117,17 @@ const formsSeen = new Set()
 let digitsRejectedSeen = false
 
 /** いまの問題に答えて「次へ」を押す。正解を求められなかったら null */
+/** 問題の枠の中に、入力欄・ボタン・札が収まっているか（ページの横スクロールが出なくても、枠からはみ出すことがある。BUG-008） */
+async function fitsCheck(label) {
+  const r = await evaluate(`(() => {
+    const q = document.querySelector('.practice'); if (!q) return null
+    const box = q.getBoundingClientRect(); const right = box.right - parseFloat(getComputedStyle(q).paddingRight) + 0.5
+    const out = [...q.querySelectorAll('input, button')].filter((el) => !el.closest('.keyboard') && el.getBoundingClientRect().right > right).map((el) => (el.getAttribute('aria-label') || el.textContent).trim().slice(0, 10))
+    return out
+  })()`)
+  if (r !== null) check(`${label}：入力欄・ボタンが問題の枠の中`, r.length === 0, JSON.stringify(r))
+}
+
 async function answer(correct, label) {
   const q = await readQuestion()
   if (q === null) return null
@@ -125,6 +136,7 @@ async function answer(correct, label) {
   const firstOfForm = !formsSeen.has(formName) && label?.startsWith('375') === true
   formsSeen.add(formName)
   if (firstOfForm) await shot(`form-${form}${q.audio ? '-listen' : ''}-375`)
+  if (label !== undefined) await fitsCheck(`${label}：${form}の問題`)
   if (label !== undefined) await layoutCheck(`${label}：${form}の問題`)
   const right = await correctAnswer(q)
   if (right === undefined || right === null) {
@@ -205,6 +217,58 @@ const v4 = {
   stats: { xp: 100 },
 }
 const KEYS = ['word:vocab_001', 'word:vocab_012', 'word:vocab_013', 'grammar:grammar_002', 'turn:cafe_009#0']
+
+/** 会話の画面を、選択肢をランダムに選びながら最後まで進める（正解するまで選び直す） */
+async function playReplayConversation() {
+  for (let i = 0; i < 80 && (await evaluate(`!!document.querySelector('.conversation')`)); i++) {
+    await evaluate(`(() => {
+      const n = document.querySelector('.dialogue__next'); if (n) { n.click(); return }
+      const tab = document.querySelector('.mode-tab[aria-label="選んで答える"]'); if (tab && tab.getAttribute('aria-pressed') !== 'true') { tab.click(); return }
+      const ch = [...document.querySelectorAll('.choice__button:not([disabled])')]; if (ch.length) { ch[Math.floor(Math.random() * ch.length)].click(); return } })()`)
+    await sleep(150)
+  }
+}
+
+// --- BUG-007：Phase 2 で1日目を終えたセーブデータ（作り直した会話の記録がない）でも、章末テストの条件を満たせる ---
+async function replaySection(P, W) {
+  const T = new Date().toISOString()
+  const phase2Done = {
+    ...v4,
+    progress: { currentLocationId: 'home', completedEvents: ['event_001', 'event_002', 'event_003'], activeEvent: null },
+    learning: { ...v4.learning, conversations: { 'home_003#0': { choice: true, write: false }, 'home_003#1': { choice: true, write: false }, 'home_004#0': { choice: true, write: false } } },
+    createdAt: T,
+    updatedAt: T,
+  }
+  const test = tests.find((t) => t.chapter === 1)
+  const ch1 = conversations.filter((c) => c.chapter === 1)
+  await freshStart({ save: phase2Done })
+  await goToDay(0)
+  await click('会話をもう一度')
+  const list = await mainText()
+  check(`${P} 会話をもう一度：終えたイベントの会話（${conversations.length}本）を一覧にし、答えた問題の数を出す`, list.split('問題 0 / ').length - 1 === conversations.length && (await evaluate(`document.querySelectorAll('.lesson-item').length`)) === conversations.length, list.slice(0, 300))
+  await layoutCheck(`${P} 会話をもう一度の一覧`)
+  if (W === 375) await shot('replay-list-375')
+  await click('戻る')
+  await click('ドリル・テスト')
+  await click(test.titleJa, { exact: false })
+  const guide = await mainText()
+  check(`${P} 章末テスト：受けられないとき、まだ答えていない会話（${ch1.length}本）と「遊ぶ」ボタンを出す`, guide.includes('まだ答えていない会話') && (await evaluate(`[...document.querySelectorAll('.remaining-conversation')].length`)) === ch1.length, guide.slice(0, 300))
+  await layoutCheck(`${P} 章末テストの案内`)
+  if (W === 375) await shot('test-locked-375')
+  for (let n = ch1.length; n > 0; n--) {
+    await evaluate(`document.querySelector('.remaining-conversation button').click()`)
+    await sleep(200)
+    check(`${P} 「遊ぶ」で会話をもう一度遊ぶ画面を開く（背景・立ち絵つき）`, (await evaluate(`!!document.querySelector('.conversation .portrait')`)) && (await mainText()).includes('会話をもう一度'))
+    await playReplayConversation()
+    const left = await evaluate(`document.querySelectorAll('.remaining-conversation').length`)
+    check(`${P} 会話を終えるとテストの画面に戻り、残りの会話が ${n - 1} 本になる`, left === n - 1, String(left))
+  }
+  const s = await saved()
+  const turnIds = ch1.flatMap((c) => c.turns.flatMap((t, i) => (t.choices && t.kind !== 'decision' ? [`${c.id}#${i}`] : [])))
+  check(`${P} 遊び直しで答えた問題の往復を記録し、復習に入れる（選択の往復は記録しない）`, turnIds.every((id) => s.learning.conversations[id] && s.learning.review[`turn:${id}`]) && !Object.keys(s.learning.conversations).some((k) => k.startsWith('home_005#1')), JSON.stringify(Object.keys(s.learning.conversations)))
+  check(`${P} 遊び直しの初めての正解に経験値（選ぶ ${turnIds.length}問 × 10）`, s.stats.xp === v4.stats.xp + turnIds.length * 10, String(s.stats.xp))
+  check(`${P} 条件を満たすと、章末テストを受けられる`, (await mainText()).includes(`${test.passPercent ?? 80}点以上で合格`), (await mainText()).slice(0, 200))
+}
 
 /** 幅ごとの確認（途中で止まったら、そこまでの結果と NG を出す） */
 async function runWidth(W, H, mobile) {
@@ -369,6 +433,32 @@ async function runWidth(W, H, mobile) {
   const sameMonth = [0, 1, 2, 4].filter((n) => dayAfter(n).slice(0, 7) === dayAfter(4).slice(0, 7)).length
   check(`${P} カレンダーに今月のスタンプ（${sameMonth}個）`, marks === sameMonth, String(marks))
   if (W === 375) await shot('stamps-375')
+
+  await replaySection(P, W)
+}
+
+// --- 狭い幅（320・360・390px）：数字の問題と書く問題が、問題の枠からはみ出さない（BUG-008） ---
+async function narrowWidths() {
+  for (const W of [320, 360, 390]) {
+    await viewport(W, 760, true)
+    await freshStart({ save: v4 })
+    await goToDay(0)
+    await click('ドリル・テスト')
+    await click(drills[0].titleJa, { exact: false })
+    await click('はじめる')
+    const seen = new Set()
+    for (let i = 0; i < 30 && (await readQuestion()) !== null; i++) {
+      const q = await readQuestion()
+      const form = q.number ? 'number' : q.write ? 'write' : 'other'
+      if (!seen.has(form)) {
+        seen.add(form)
+        await fitsCheck(`${W} ドリル：${form}の問題`)
+        if (form === 'number') await shot(`narrow-number-${W}`)
+      }
+      await answer(true)
+    }
+    check(`${W} ドリルで数字の問題を確かめた`, seen.has('number'), [...seen].join('・'))
+  }
 }
 
 for (const [W, H, mobile] of [
@@ -381,6 +471,12 @@ for (const [W, H, mobile] of [
     check(`${W} 途中で止まった`, false, String(e))
     await shot(`stopped-${W}`)
   }
+}
+
+try {
+  await narrowWidths()
+} catch (e) {
+  check('狭い幅の確認が途中で止まった', false, String(e))
 }
 
 check(`出た問題の形（両方の幅で合わせて：${[...formsSeen].join('・')}）`, formsSeen.size >= 4 && formsSeen.has('number'), [...formsSeen].join('・'))

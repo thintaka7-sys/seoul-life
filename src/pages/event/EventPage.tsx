@@ -1,3 +1,4 @@
+import { eventBackdrop } from '../../app/backdrop'
 import { useGame, nowIso } from '../../app/GameContext'
 import { Button } from '../../components/Button'
 import { findColumn, findConversation, findGameEvent, findLocation } from '../../data'
@@ -49,7 +50,14 @@ export function EventPage() {
         conversation === undefined ? (
           <p>会話データが見つかりませんでした。</p>
         ) : (
-          <ConversationStep key={stepKey} conversation={conversation} replay={run.replay} />
+          <ConversationStep
+            key={stepKey}
+            conversation={conversation}
+            replay={run.replay}
+            hasBackground={eventBackdrop(conversation.location, run) !== undefined}
+            onTurnAnswered={(turn, method) => dispatch({ type: 'conversationAnswered', turn, method, now: nowIso() })}
+            onDone={() => dispatch({ type: 'conversationDone', now: nowIso() })}
+          />
         )
       break
     }

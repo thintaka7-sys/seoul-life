@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { nowIso, useGame } from '../../app/GameContext'
 import { useSpeechStatus } from '../../app/hooks'
+import { conversationName, conversationPlace } from '../../app/conversationNames'
 import { chapterOfKey, practiceIndex } from '../../app/practice'
 import { Button } from '../../components/Button'
 import { DraftBadge } from '../../components/DraftBadge'
@@ -8,6 +9,7 @@ import { Notice } from '../../components/Notice'
 import { PracticeRunner } from '../../components/practice/PracticeRunner'
 import { ScreenLayout } from '../../components/ScreenLayout'
 import { content } from '../../data'
+import { conversationEntries } from '../../game/conversations/replayList'
 import { chapterTestKeys, pickTestKeys, testProgress, testSettings } from '../../game/tests/chapterTest'
 import { quizScore } from '../../learning/hangul/quiz'
 import { buildQuestions, type PracticeQuestion } from '../../learning/practice/questions'
@@ -50,7 +52,40 @@ export function ChapterTestPage({ testId }: { testId: string }) {
 
   let body
   if (!progress.unlocked) {
-    body = <Notice>第{test.chapter}章の会話の問題に、すべて答えると受けられます（{progress.answered} / {progress.total}）。</Notice>
+    // 残っている会話と、どこで遊べるかを出す（BUG-007）
+    const remaining = conversationEntries(content.events, content.conversations, save.progress.completedEvents, save.learning.conversations).filter(
+      (e) => e.conversation.chapter === test.chapter && e.answered < e.total,
+    )
+    body = (
+      <section className="panel">
+        <p>
+          第{test.chapter}章の会話の問題に、すべて答えると受けられます（{progress.answered} / {progress.total}）。
+        </p>
+        {remaining.length > 0 && (
+          <>
+            <p className="step-heading">まだ答えていない会話</p>
+            <ul className="lesson-list">
+              {remaining.map((e) => (
+                <li key={e.conversation.id} className="remaining-conversation">
+                  <span className="lesson-item__title">
+                    {conversationName(e)}
+                    <span className="muted small">
+                      {conversationPlace(e)}・<span className="nowrap">問題 {e.answered} / {e.total}</span>
+                    </span>
+                  </span>
+                  {e.playable ? (
+                    <Button onClick={() => dispatch({ type: 'openConversationReplay', conversationId: e.conversation.id })}>遊ぶ</Button>
+                  ) : (
+                    <span className="muted small">物語の「{e.event.actionJa}」で出てきます</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="muted small">終えた会話は、学習画面の「会話をもう一度」からも遊べます。</p>
+          </>
+        )}
+      </section>
+    )
   } else if (session === null) {
     body = (
       <section className="panel">

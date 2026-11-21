@@ -218,6 +218,18 @@ describe('復習のキーから問題を作る', () => {
       qs.forEach((q, i) => i > 0 && expect(q.form).not.toBe(qs[i - 1]?.form))
     }
   })
+
+  it('問題の形をばらけさせる：並べ替えを作れる問題が1つでもあれば、1回に1問以上は出る（BUG-009）', () => {
+    // 並べ替えと穴埋めを作れるのは 커피 だけ（물・네・빵・떡 は1音節）。取り合っても、並べ替えは必ず出る
+    const many = createPracticeIndex({ vocabulary: [...vocabulary, v('vocab_005', '빵', 'パン'), v('vocab_006', '떡', 'お餅')], grammar: [], conversations: [], drillGroups: [] })
+    const keys = ['word:vocab_003', 'word:vocab_004', 'word:vocab_005', 'word:vocab_006', 'word:vocab_001']
+    for (let seed = 1; seed <= 30; seed++) {
+      const forms = buildQuestions(many, keys, { audio: true, random: seeded(seed) }).map((q) => q.form)
+      expect(forms).toContain('arrange')
+      // 使える形（意味・日本語から選ぶ・聞く・並べ替え・穴埋め・書く）が5問にばらける：同じ形は2問まで
+      expect(Math.max(...[...new Set(forms)].map((f) => forms.filter((x) => x === f).length))).toBeLessThanOrEqual(2)
+    }
+  })
 })
 
 describe('数字の答えを整える', () => {

@@ -24,7 +24,9 @@ export function PracticeRunner({ questions, retry, onAnswer, finish, onFinish, s
   const finished = q === undefined
   // 最新の onFinish を使いつつ、終えたときに1回だけ呼ぶ
   const onFinishRef = useRef(onFinish)
-  onFinishRef.current = onFinish
+  useEffect(() => {
+    onFinishRef.current = onFinish
+  })
   useEffect(() => {
     if (finished && round.firstCount > 0) onFinishRef.current?.(round)
     // round は終えた時点のものだけを使う（終えた後は変わらない）

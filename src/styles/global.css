@@ -683,6 +683,7 @@ rt {
 
 .answer-input__field {
   flex: 1;
+  width: 0;
   min-width: 0;
   min-height: var(--tap-min);
   padding: 8px 12px;
@@ -1926,6 +1927,8 @@ rt {
 
 .quiz {
   display: grid;
+  /* 列の幅を中身（入力欄のもともとの幅など）で広げない（BUG-008） */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -2335,4 +2338,25 @@ rt {
 
 .learn-card__connection p {
   margin: 0;
+}
+
+/* 章末テストの「まだ答えていない会話」（BUG-007） */
+.remaining-conversation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.lesson-item__title .muted {
+  flex-basis: 100%;
+  font-weight: 400;
+}
+
+.nowrap {
+  white-space: nowrap;
 }
