@@ -67,8 +67,9 @@ export const PART_OF_SPEECH_LABELS: Record<PartOfSpeech, string> = {
  * 毎日のスタンプを押す学習（GAME_SPEC 7-6。balance.json の stampActivities で選ぶ）。
  * - review：今日の復習を最後まで（今日の復習がない日は、練習1回で代わりにする）
  * - drill：基礎ドリル1回、chapterTest：章末テスト1回、hangulLesson：ハングルのレッスンに合格、listening：リスニング1回、event：イベントを1つ完了
+ * - ear：聞き分け練習1回
  */
-export const STAMP_ACTIVITIES = ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'] as const
+export const STAMP_ACTIVITIES = ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event', 'ear'] as const
 export type StampActivity = (typeof STAMP_ACTIVITIES)[number]
 
 /** 会話の話者IDのうち、主人公（プレイヤー）を表すもの */

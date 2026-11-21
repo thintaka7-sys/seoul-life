@@ -1,5 +1,5 @@
 import { nowIso, useGame } from '../../app/GameContext'
-import { practiceIndex } from '../../app/practice'
+import { reviewable } from '../../app/practice'
 import { localDate } from '../../learning/review/dates'
 import { todaysReview } from '../../learning/review/review'
 import { useSpeechStatus } from '../../app/hooks'
@@ -14,7 +14,7 @@ export function StudyPage() {
   const speech = useSpeechStatus()
   const lessons = content.hangulLessons
   const passed = lessons.filter((l) => state.save?.learning.hangul[l.id] !== undefined).length
-  const reviewToday = state.save === null ? 0 : todaysReview(state.save.learning.review, localDate(nowIso()), content.balance.review, practiceIndex.exists).length
+  const reviewToday = state.save === null ? 0 : todaysReview(state.save.learning.review, localDate(nowIso()), content.balance.review, reviewable(speech.state === 'available')).length
 
   return (
     <ScreenLayout eyebrow="学習" title="勉強する" footer={<Button onClick={() => dispatch({ type: 'closeStudyScene' })}>戻る</Button>}>
@@ -39,6 +39,11 @@ export function StudyPage() {
           ハングル（{passed} / {lessons.length} レッスン合格）
         </Button>
         <p className="muted small">文字の読み方と、音と文字の結びつきを学びます。</p>
+
+        <Button onClick={() => dispatch({ type: 'openEar' })} disabled={content.earSets.length === 0}>
+          聞き分け
+        </Button>
+        <p className="muted small">{speech.state === 'unavailable' ? `聞き分けの練習は使えません：${speech.reason}` : '불・풀・뿔 のような似た音を聞いて、どれだったかを選びます。'}</p>
 
         <Button onClick={() => dispatch({ type: 'openListening' })} disabled={speech.state !== 'available'}>
           リスニング

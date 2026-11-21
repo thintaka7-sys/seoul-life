@@ -11,7 +11,15 @@ export const practiceIndex = createPracticeIndex({
   grammar: content.grammar,
   conversations: content.conversations,
   drillGroups: [...content.drills.map((d) => d.items), ...content.chapterTests.map((t) => t.items)],
+  earSets: content.earSets,
 })
+
+/**
+ * 今日の復習に出せるキーか。聞き分け（ear:）は聞く問題だけなので、読み上げが使えない日は出さない（期限はそのまま残す）
+ */
+export function reviewable(audio: boolean): (key: string) => boolean {
+  return (key) => practiceIndex.exists(key) && (audio || parseReviewKey(key)?.kind !== 'ear')
+}
 
 /** 練習で選べるもの */
 export type PracticeCategory = 'word' | 'grammar' | 'turn'

@@ -1166,7 +1166,7 @@ npm run test
     "theme": "vowel_eo_o",
     "titleJa": "ㅓ・ㅗ",
     "focusJa": "最初の母音の口の形",
-    "tipJa": "ㅓ は口を縦に開いて言います。ㅗ は唇を丸く突き出して言います。",
+    "tipJa": "ㅓ は唇を丸めずに言います。ㅗ は唇を丸くして、少し前に突き出して言います。",
     "stumbling": ["S03"],
     "items": [
       { "korean": "커피", "pronunciation": "コピ", "japanese": "コーヒー" },

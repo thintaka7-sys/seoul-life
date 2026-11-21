@@ -15,6 +15,8 @@ import { ListeningPage } from '../pages/study/ListeningPage'
 import { PracticePage } from '../pages/study/PracticePage'
 import { ChapterTestPage } from '../pages/study/ChapterTestPage'
 import { DrillPage } from '../pages/study/DrillPage'
+import { EarListPage } from '../pages/study/EarListPage'
+import { EarSetPage } from '../pages/study/EarSetPage'
 import { DrillsPage } from '../pages/study/DrillsPage'
 import { StampCardPage } from '../pages/StampCardPage'
 import { ConversationListPage } from '../pages/study/ConversationListPage'
@@ -63,6 +65,10 @@ function SceneView({ scene }: { scene: Scene }) {
       return <ChapterTestPage testId={scene.testId} />
     case 'stamps':
       return <StampCardPage />
+    case 'ear':
+      return <EarListPage />
+    case 'earSet':
+      return <EarSetPage setId={scene.setId} />
     case 'conversations':
       return <ConversationListPage />
     case 'conversationReplay':
@@ -79,6 +85,7 @@ function sceneKey(scene: Scene): string {
   if (scene.name === 'drill') return `${scene.name}:${scene.drillId}`
   if (scene.name === 'chapterTest') return `${scene.name}:${scene.testId}`
   if (scene.name === 'conversationReplay') return `${scene.name}:${scene.conversationId}`
+  if (scene.name === 'earSet') return `${scene.name}:${scene.setId ?? 'mix'}`
   return scene.name
 }
 

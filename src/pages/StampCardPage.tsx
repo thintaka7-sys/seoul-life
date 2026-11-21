@@ -14,6 +14,7 @@ const ACTIVITY_LABELS: Record<StampActivity, string> = {
   hangulLesson: 'ハングルのレッスンに合格',
   listening: 'リスニングを1回',
   event: '物語のイベントを1つ',
+  ear: '聞き分けを1回',
 }
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { nowIso, useGame } from '../../app/GameContext'
 import { useSpeechStatus } from '../../app/hooks'
-import { chapterOfKey, learnedKeys, practiceIndex, type PracticeCategory } from '../../app/practice'
+import { chapterOfKey, learnedKeys, practiceIndex, reviewable, type PracticeCategory } from '../../app/practice'
 import { Button } from '../../components/Button'
 import { PracticeRunner } from '../../components/practice/PracticeRunner'
 import { ScreenLayout } from '../../components/ScreenLayout'
@@ -56,7 +56,7 @@ export function PracticePage() {
         onAnswer={(key, correct) => dispatch({ type: 'reviewAnswered', key, correct, source: 'practice', now: nowIso() })}
         onFinish={() => {
           // 今日の復習がない日（終えた日を含む）は、練習1回でスタンプ（計画 Q10）
-          if (save !== null && todaysReview(save.learning.review, localDate(nowIso()), content.balance.review, practiceIndex.exists).length === 0) {
+          if (save !== null && todaysReview(save.learning.review, localDate(nowIso()), content.balance.review, reviewable(speech.state === 'available')).length === 0) {
             dispatch({ type: 'activityCompleted', activity: 'review', now: nowIso() })
           }
         }}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { nowIso, useGame } from '../../app/GameContext'
 import { useSpeechStatus } from '../../app/hooks'
-import { chapterOfKey, practiceIndex } from '../../app/practice'
+import { chapterOfKey, practiceIndex, reviewable } from '../../app/practice'
 import { Button } from '../../components/Button'
 import { Notice } from '../../components/Notice'
 import { PracticeRunner } from '../../components/practice/PracticeRunner'
@@ -22,8 +22,12 @@ export function ReviewPage() {
 
   const today = localDate(nowIso())
   const records = save?.learning.review ?? {}
-  const keys = todaysReview(records, today, settings, practiceIndex.exists)
-  const due = dueCount(records, today, practiceIndex.exists)
+  const audio = speech.state === 'available'
+  const usable = reviewable(audio)
+  const keys = todaysReview(records, today, settings, usable)
+  const due = dueCount(records, today, usable)
+  // 読み上げが使えない日に残した聞き分けの組
+  const earWaiting = audio ? 0 : dueCount(records, today, practiceIndex.exists) - due
   const doneToday = reviewedToday(records, today)
   const tracked = Object.keys(records).filter(practiceIndex.exists)
   const mastered = tracked.filter((k) => {
@@ -33,7 +37,7 @@ export function ReviewPage() {
 
   function start() {
     if (save === null) return
-    const questions = buildQuestions(practiceIndex, keys, { audio: speech.state === 'available', random: Math.random, chapterOf: chapterOfKey(save) })
+    const questions = buildQuestions(practiceIndex, keys, { audio, random: Math.random, chapterOf: chapterOfKey(save) })
     setSession((s) => ({ questions, seq: (s?.seq ?? 0) + 1 }))
   }
 
@@ -62,7 +66,7 @@ export function ReviewPage() {
   } else {
     body = (
       <section className="panel">
-        <p>学んだ単語・文法や会話を、決まった間隔でもう一度解きます。正解するたびに、次に出るまでの間が延びます（1日 → 3日 → 7日 → 14日 → 30日）。間違えると、翌日にまた出ます。</p>
+        <p>学んだ単語・文法・会話や、聞き分けで間違えた組を、決まった間隔でもう一度解きます。正解するたびに、次に出るまでの間が延びます（1日 → 3日 → 7日 → 14日 → 30日）。間違えると、翌日にまた出ます。</p>
         <ul className="info-list">
           <li>
             今日の問題：<strong>{keys.length}</strong>問
@@ -72,6 +76,7 @@ export function ReviewPage() {
             復習中：{tracked.length - mastered}　覚えた：{mastered}
           </li>
         </ul>
+        {earWaiting > 0 && <p className="muted small">聞き分けの組（{earWaiting}組）は、読み上げが使える端末で出ます。</p>}
         {keys.length > 0 ? (
           <Button variant="primary" onClick={start}>
             はじめる

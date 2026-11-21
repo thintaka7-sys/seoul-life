@@ -54,6 +54,10 @@ export type Scene =
   | { name: 'chapterTest'; testId: string; back: Scene }
   /** スタンプカード（GAME_SPEC 7-6）。自宅から開く */
   | { name: 'stamps'; back: Scene }
+  /** 聞き分け練習：組の一覧（GAME_SPEC 4-10） */
+  | { name: 'ear'; back: Scene }
+  /** 聞き分け練習：1つの組（試しに聞く・練習）。setId が null なら全部の組からまぜて練習 */
+  | { name: 'earSet'; setId: string | null; back: Scene }
   /** 会話をもう一度：終えたイベントの会話の一覧（BUG-007） */
   | { name: 'conversations'; back: Scene }
   /** 会話をもう一度：1つの会話を遊ぶ（locationId は背景のため） */
@@ -127,6 +131,9 @@ export type GameAction =
   | { type: 'openChapterTest'; testId: string }
   | { type: 'openStamps' }
   | { type: 'openConversations' }
+  | { type: 'openEar' }
+  /** 聞き分けの組を開く（null なら全部の組からまぜて練習） */
+  | { type: 'openEarSet'; setId: string | null }
   /** 会話をもう一度遊ぶ（会話の一覧・章末テストから。終えたイベントの会話だけ） */
   | { type: 'openConversationReplay'; conversationId: string }
   /** 会話をもう一度で、1往復に答えた */
@@ -215,6 +222,8 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'stamps':
     case 'conversations':
     case 'conversationReplay':
+    case 'ear':
+    case 'earSet':
       return 'closeStudyScene'
     case 'location':
     case 'main':
@@ -229,10 +238,27 @@ export function backTarget(state: GameState): GameAction['type'] | null {
 /** 学習画面のなかまの画面（閉じると back に戻る） */
 type StudyScene = Extract<
   Scene,
-  { name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' | 'drills' | 'drill' | 'chapterTest' | 'stamps' | 'conversations' | 'conversationReplay' }
+  {
+    name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' | 'drills' | 'drill' | 'chapterTest' | 'stamps' | 'conversations' | 'conversationReplay' | 'ear' | 'earSet'
+  }
 >
 
-const STUDY_SCENES: readonly Scene['name'][] = ['study', 'hangul', 'hangulLesson', 'listening', 'review', 'practice', 'drills', 'drill', 'chapterTest', 'stamps', 'conversations', 'conversationReplay']
+const STUDY_SCENES: readonly Scene['name'][] = [
+  'study',
+  'hangul',
+  'hangulLesson',
+  'listening',
+  'review',
+  'practice',
+  'drills',
+  'drill',
+  'chapterTest',
+  'stamps',
+  'conversations',
+  'conversationReplay',
+  'ear',
+  'earSet',
+]
 
 function isStudyScene(scene: Scene): scene is StudyScene {
   return STUDY_SCENES.includes(scene.name)
@@ -331,6 +357,14 @@ export function createGameReducer(deps: GameDeps) {
       case 'openChapterTest':
         if (state.scene.name !== 'drills') return state
         return { ...state, scene: { name: 'chapterTest', testId: action.testId, back: state.scene } }
+
+      case 'openEar':
+        if (state.scene.name !== 'study') return state
+        return { ...state, scene: { name: 'ear', back: state.scene } }
+
+      case 'openEarSet':
+        if (state.scene.name !== 'ear') return state
+        return { ...state, scene: { name: 'earSet', setId: action.setId, back: state.scene } }
 
       case 'openConversations':
         if (state.scene.name !== 'study') return state

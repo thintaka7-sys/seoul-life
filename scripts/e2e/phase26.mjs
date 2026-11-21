@@ -3,21 +3,24 @@
 // 実際の音が聞き分けられるかは、実機で確かめる（報告では未確認に入れる）。使い方は scripts/e2e/README.md。
 
 import { openBrowser, sleep } from './browser.mjs'
-import { practiceAnswers } from './practice-answers.mjs'
+import { practiceAnswers, readdirJson } from './practice-answers.mjs'
 
 const b = await openBrowser('phase26')
-const { evaluate, click, mainText, viewport, shot, freshStart, check, layoutCheck, send } = b
-const { readQuestion, correctAnswer, typeInto } = practiceAnswers(b)
+const { evaluate, click, mainText, viewport, shot, freshStart, check, layoutCheck, send, saved, reload } = b
+const { readQuestion, correctAnswer, typeInto, norm } = practiceAnswers(b)
+const earSets = readdirJson('src/data/ear')
 
-// ---------- 偽の読み上げ ----------
+// ---------- 偽の読み上げ・日付 ----------
 
+// localStorage の e2e:noSpeech があれば、韓国語の音声がない端末にする
 await send('Page.addScriptToEvaluateOnNewDocument', {
   source: `(() => {
     const voice = { lang: 'ko-KR', name: 'e2e', localService: true, default: false, voiceURI: 'e2e-ko' }
+    const noSpeech = localStorage.getItem('e2e:noSpeech') === '1'
     window.__spokenLog = []
     const synth = {
       speaking: false, pending: false, paused: false,
-      getVoices: () => [voice],
+      getVoices: () => (noSpeech ? [] : [voice]),
       speak(u) { window.__spoken = u.text; window.__spokenLog.push({ text: u.text, rate: u.rate }); setTimeout(() => { u.onstart?.(); u.onend?.() }, 10) },
       cancel() {}, pause() {}, resume() {},
       addEventListener() {}, removeEventListener() {},
@@ -28,6 +31,18 @@ await send('Page.addScriptToEvaluateOnNewDocument', {
   })()`,
 })
 const lastSpoken = () => evaluate(`window.__spokenLog.at(-1) ?? null`)
+
+// ページの「今」を dayOffset 日進める（phase25.mjs と同じ。localStorage の e2e:dayOffset）
+await send('Page.addScriptToEvaluateOnNewDocument', {
+  source: `(() => { const days = Number(localStorage.getItem('e2e:dayOffset') || 0); if (!days) return; const off = days * 86400000; const R = Date;
+    class D extends R { constructor(...a) { if (a.length === 0) super(R.now() + off); else super(...a) } static now() { return R.now() + off } }
+    window.Date = D })()`,
+})
+const pad = (n) => String(n).padStart(2, '0')
+const dayAfter = (n) => {
+  const d = new Date(Date.now() + n * 86400000)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
 
 // ---------- セーブデータ：1日目を終え、単語3つ・文法1つを覚えた ----------
 
@@ -290,5 +305,136 @@ for (let i = 0; i < entries && !played; i++) {
   await layoutCheck('375 会話のふり返り')
 }
 check('375 会話をもう一度：書いて答えられる会話がある', played)
+
+// ---------- 4-10：聞き分け練習 ----------
+
+const firstSet = earSets[0]
+const themes = [...new Set(earSets.map((e) => e.theme))]
+for (const [W, H, mobile] of [
+  [320, 640, true],
+  [1280, 800, false],
+]) {
+  const P = `${W}`
+  await viewport(W, H, mobile)
+  await openStudy()
+  await click('聞き分け')
+  const list = await evaluate(`({ themes: document.querySelectorAll('main h2.step-heading').length, sets: document.querySelectorAll('.lesson-item').length })`)
+  check(`${P} 聞き分け：組（${earSets.length}組）をテーマ（${themes.length}つ）ごとにまとめて出す`, list.themes === themes.length && list.sets === earSets.length, JSON.stringify(list))
+  await layoutCheck(`${P} 聞き分けの組の一覧`)
+  if (P === '320') await shot('ear-list-320')
+
+  // 試しに聞く
+  await evaluate(`document.querySelector('.lesson-item').click()`)
+  await sleep(150)
+  const preview = await evaluate(`[...document.querySelectorAll('.ear-preview__item')].map((li) => li.textContent)`)
+  check(`${P} 試しに聞く：組の音（${firstSet.items.length}つ）を意味つきで出す`, preview.length === firstSet.items.length && firstSet.items.every((i, k) => preview[k].includes(i.korean) && preview[k].includes(i.japanese)), JSON.stringify(preview))
+  const second = firstSet.items[1]
+  await evaluate(`document.querySelectorAll('.ear-preview__item')[1].querySelectorAll('button')[0].click()`)
+  await sleep(60)
+  const normal = await lastSpoken()
+  await evaluate(`document.querySelectorAll('.ear-preview__item')[1].querySelectorAll('button')[1].click()`)
+  await sleep(60)
+  const slow = await lastSpoken()
+  check(`${P} 試しに聞く：音ごとに「▶ ふつう」（速さ1）と「ゆっくり」（0.7）で聞ける`, normal?.text === second.korean && normal?.rate === 1 && slow?.text === second.korean && slow?.rate === 0.7, JSON.stringify([normal, slow]))
+  check(`${P} 試しに聞く：聞き分けのこつを出す`, (await mainText()).includes(firstSet.tipJa))
+  await layoutCheck(`${P} 試しに聞く`)
+  if (P === '320') await shot('ear-preview-320')
+
+  // 練習する：1問目だけわざと間違える
+  await click('練習する')
+  const own = firstSet.items.map((i) => i.korean).sort().join('|')
+  const targets = []
+  let sameSet = true
+  let meaningsBefore = true
+  let noFurigana = true
+  let wrongGiven = null
+  for (let i = 0; i < 25 && !(await evaluate(`!!document.querySelector('.result')`)); i++) {
+    const q = await readQuestion()
+    const retry = (q.position ?? '').includes('もう一度')
+    const options = q.options.map((o) => (o.match(/^[가-힣 ]+/)?.[0] ?? o).trim())
+    if (options.sort().join('|') !== own) sameSet = false
+    if ((await evaluate(`document.querySelectorAll('.quiz-option .quiz-option__meaning').length`)) !== firstSet.items.length) meaningsBefore = false
+    if ((await furiganaInOptions()) !== 0) noFurigana = false
+    await click('▶ 聞く')
+    const target = (await lastSpoken())?.text
+    if (!retry) targets.push(target)
+    const wrong = i === 0
+    const choice = wrong ? firstSet.items.map((x) => x.korean).find((k) => k !== target) : target
+    await evaluate(`(() => { const o = [...document.querySelectorAll('.quiz-option')].find((b) => b.querySelector('.ko-text') && (${plain})(b.querySelector('.ko-text')) === ${JSON.stringify(choice)}); o.click() })()`)
+    await sleep(100)
+    if (wrong) {
+      wrongGiven = choice
+      check(`${P} 聞き分け：間違えると ✗・✓ と、聞き分けのこつを出す`, (await marks()).includes('✗ あなたの答え') && (await mainText()).includes(firstSet.tipJa))
+      await checkListenCompare(`${P} 聞き分け`, choice, target)
+      await layoutCheck(`${P} 聞き分け：答えた後`)
+      if (P === '320') await shot('ear-feedback-320')
+    }
+    await click((await nextLabel('.practice')) || '次へ')
+  }
+  check(`${P} 聞き分け：選択肢はいつも同じ組の音だけ`, sameSet)
+  check(`${P} 聞き分け：選択肢には答える前から意味を出し、フリガナは出さない`, meaningsBefore && noFurigana)
+  const counts = firstSet.items.map((i) => targets.filter((t) => t === i.korean).length)
+  check(`${P} 聞き分け：${targets.length}問で、読み上げる音がかたよらない（回数の差は1回まで）`, targets.length === 10 && Math.max(...counts) - Math.min(...counts) <= 1, JSON.stringify(counts))
+  const missed = await evaluate(`[...document.querySelectorAll('.missed__item')].map((li) => li.textContent)`)
+  check(`${P} 聞き分けの結果画面：間違えた1問を、こつと一緒に見返せる`, missed.length === 1 && missed[0].includes(wrongGiven) && missed[0].includes(firstSet.tipJa), JSON.stringify(missed))
+  const s = await saved()
+  const record = s.learning.review[`ear:${firstSet.id}`]
+  check(`${P} 間違えた組を復習に入れる（明日 ${dayAfter(1)}）`, record?.due === dayAfter(1), JSON.stringify(record))
+  check(`${P} 聞き分けを1回終えると、今日のスタンプ`, s.daily.stamps.includes(dayAfter(0)), JSON.stringify(s.daily.stamps))
+}
+
+// 翌日の今日の復習に、聞き分けの組が出る（選択肢は同じ組の音だけ）。正解すると次の間隔へ
+await evaluate(`localStorage.setItem('e2e:dayOffset', '1')`)
+await reload()
+await click('つづきから')
+await click('勉強する（復習・練習・ハングル）')
+await click('今日の復習', { exact: false })
+await click('はじめる')
+let earInReview = null
+for (let i = 0; i < 30 && !(await evaluate(`!!document.querySelector('.result')`)) && earInReview === null; i++) {
+  const q = await readQuestion()
+  if (q.heading === 'どれが聞こえましたか') {
+    await click('▶ 聞く')
+    const target = (await lastSpoken())?.text
+    earInReview = q.options.map((o) => (o.match(/^[가-힣 ]+/)?.[0] ?? o).trim()).sort().join('|')
+    await evaluate(`(() => { const plain = ${plain}; const o = [...document.querySelectorAll('.quiz-option')].find((b) => b.querySelector('.ko-text') && plain(b.querySelector('.ko-text')) === window.__spoken); o.click() })()`)
+    await sleep(100)
+    check('375 今日の復習：聞き分けの組で正解できる', (await mainText()).includes('正解！'), target)
+    break
+  }
+  // ほかの問題は正解して進める
+  const right = await correctAnswer(q)
+  if (q.options.length > 0) await clickOption(right)
+  else if (q.tiles.length > 0) {
+    for (const t of q.heading.includes('語を並べて') ? norm(right).split(' ') : [...norm(right)]) await evaluate(`[...document.querySelectorAll('.arrange__pool .letter-tile')].find((x) => x.textContent === ${JSON.stringify(t)} && !x.disabled).click()`)
+    await click('答える')
+  } else if (q.number) {
+    await typeInto('input[aria-label="答え（数字）"]', right)
+    await click('答える')
+  } else {
+    await click('端末のキーボードを使う')
+    await typeInto('input[aria-label="答え（韓国語）"]', right)
+    await click('答える')
+  }
+  await sleep(100)
+  await click((await nextLabel('.practice')) || '次へ')
+}
+check(`翌日の今日の復習に、聞き分けの組が出る（選択肢は同じ組の音だけ）`, earInReview === firstSet.items.map((i) => i.korean).sort().join('|'), earInReview ?? '')
+const afterReview = (await saved()).learning.review[`ear:${firstSet.id}`]
+check('今日の復習で聞き分けの組に正解すると、次の間隔（3日後）へ', afterReview?.stage === 1 && afterReview?.due === dayAfter(1 + 3), JSON.stringify(afterReview))
+
+// 韓国語の音声がない端末：聞き分けは練習できないと案内し、今日の復習では期限を残して出さない（3日後の期限の日に確かめる）
+await evaluate(`localStorage.setItem('e2e:dayOffset', '4'); localStorage.setItem('e2e:noSpeech', '1')`)
+await reload()
+await sleep(2300)
+await click('つづきから')
+await click('勉強する（復習・練習・ハングル）')
+check('音声のない端末：学習画面に、聞き分けが使えない理由を出す', (await mainText()).includes('聞き分けの練習は使えません'))
+await click('聞き分け')
+check('音声のない端末：組の一覧で案内し、まぜた練習は押せない', (await mainText()).includes('聞き分けの練習は使えません') && (await evaluate(`[...document.querySelectorAll('main button')].find((b) => b.textContent.includes('まぜて練習'))?.disabled === true`)))
+await click('戻る')
+await click('今日の復習', { exact: false })
+check('音声のない端末：今日の復習に聞き分けの組を出さず、残っていることを案内する', (await mainText()).includes('聞き分けの組（1組）は、読み上げが使える端末で出ます'), (await mainText()).slice(0, 300))
+await evaluate(`localStorage.removeItem('e2e:noSpeech'); localStorage.removeItem('e2e:dayOffset')`)
 
 b.finish()

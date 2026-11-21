@@ -1393,7 +1393,7 @@ export const DEFAULT_BALANCE: Balance = {
   testQuestions: 10,
   testPassPercent: 80,
   earQuestions: 10,
-  stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'],
+  stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event', 'ear'],
 }
 
 const BALANCE_KEYS = [

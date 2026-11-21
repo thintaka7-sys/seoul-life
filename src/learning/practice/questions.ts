@@ -2,7 +2,7 @@
 // 1つの問題のもと（単語・文法・会話の往復・ドリルの問題）から、使える問題の形を集め、1つを選ぶ。
 // 乱数は引数で受け取る（テストで同じ問題を作れるように）。
 
-import type { Conversation, ConversationLine, ConversationTurn, DrillItem, Grammar, GrammarExample, Vocab } from '../../data/types'
+import type { Conversation, ConversationLine, ConversationTurn, DrillItem, EarItem, EarSet, Grammar, GrammarExample, Vocab } from '../../data/types'
 import { shuffle, type Random } from '../hangul/quiz'
 import { normalizeAnswer } from '../judge/judgeAnswer'
 import { parseReviewKey } from '../review/review'
@@ -33,6 +33,8 @@ export interface ChoiceOption {
   /** 読み（韓国語の選択肢だけ。ない場合は null） */
   reading: string | null
   lang: 'ko' | 'ja'
+  /** 答える前から添える意味（聞き分けの選択肢。불（火）のように） */
+  meaning?: string
 }
 
 /** 答え方 */
@@ -61,6 +63,8 @@ export type QuestionForm =
   | 'grammarBlank'
   | 'grammarArrange'
   | 'grammarWrite'
+  /** 聞き分け：組の1つを聞いて、同じ組の中から選ぶ（GAME_SPEC 4-10） */
+  | 'ear'
 
 export interface PracticeQuestion {
   /** 復習のキー（word:vocab_001 など） */
@@ -350,6 +354,29 @@ export function drillQuestions(item: DrillItem, siblings: readonly DrillItem[], 
   return questions
 }
 
+// ---------- 聞き分け（GAME_SPEC 4-10） ----------
+
+/**
+ * 聞き分けの問題：target を読み上げ、組の音をすべて選択肢にする（ほかの組の音は混ぜない）。
+ * 選択肢には答える前から意味を添え、答えた後に組のこつ（tipJa）を添える
+ */
+export function earQuestion(set: EarSet, target: EarItem, options: Pick<QuestionOptions, 'random' | 'chapter'>): PracticeQuestion {
+  return {
+    key: `ear:${set.id}`,
+    form: 'ear',
+    chapter: options.chapter ?? 1,
+    heading: 'どれが聞こえましたか',
+    prompt: { kind: 'audio', phrase: target },
+    body: {
+      type: 'choose',
+      options: shuffle(set.items, options.random).map((i) => ({ text: i.korean, reading: i.pronunciation, lang: 'ko' as const, meaning: i.japanese })),
+      answers: [target.korean],
+    },
+    model: target,
+    note: set.tipJa,
+  }
+}
+
 // ---------- 復習のキーから問題を作る ----------
 
 export interface PracticeSources {
@@ -358,6 +385,8 @@ export interface PracticeSources {
   conversations: readonly Conversation[]
   /** ドリル・章末テストの問題（グループごと。同じグループの問題を選択肢に使う） */
   drillGroups: readonly (readonly DrillItem[])[]
+  /** 聞き分けの組 */
+  earSets?: readonly EarSet[]
 }
 
 export interface PracticeIndex {
@@ -375,6 +404,7 @@ export function createPracticeIndex(sources: PracticeSources): PracticeIndex {
   const conversations = new Map(sources.conversations.map((c) => [c.id, c]))
   const drillItems = new Map<string, { item: DrillItem; group: readonly DrillItem[] }>()
   for (const group of sources.drillGroups) for (const item of group) drillItems.set(item.id, { item, group })
+  const earSets = new Map((sources.earSets ?? []).map((e) => [e.id, e]))
 
   function turnOf(id: string): { conversation: Conversation; index: number } | null {
     const hash = id.lastIndexOf('#')
@@ -404,6 +434,12 @@ export function createPracticeIndex(sources: PracticeSources): PracticeIndex {
         const d = drillItems.get(parsed.id)
         return d === undefined ? [] : drillQuestions(d.item, d.group, options)
       }
+      case 'ear': {
+        // 聞き分けは聞く問題だけなので、読み上げが使えなければ作らない（復習では期限を残す）
+        const set = earSets.get(parsed.id)
+        const target = set === undefined ? undefined : pick(set.items, options.random)
+        return set === undefined || target === undefined || !options.audio ? [] : [earQuestion(set, target, options)]
+      }
     }
   }
 
@@ -419,6 +455,8 @@ export function createPracticeIndex(sources: PracticeSources): PracticeIndex {
         return turnOf(parsed.id) !== null
       case 'drill':
         return drillItems.has(parsed.id)
+      case 'ear':
+        return earSets.has(parsed.id)
     }
   }
 

@@ -2507,3 +2507,41 @@ h2.step-heading {
   display: grid;
   gap: 10px;
 }
+
+/* ---------- 聞き分け練習（GAME_SPEC 4-10） ---------- */
+
+.ear-preview {
+  display: grid;
+  gap: 10px;
+}
+
+.ear-preview__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ear-preview__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.ear-preview__word {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-family: var(--font-ko);
+  font-size: 1.4rem;
+}
+
+.ear-preview__word .muted {
+  font-family: var(--font-ja);
+}

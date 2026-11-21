@@ -11,11 +11,11 @@ import { addDays, localDate } from './dates'
 export type ReviewSettings = Balance['review']
 
 /** 復習の問題の種類 */
-export type ReviewKind = 'word' | 'grammar' | 'turn' | 'drill'
+export type ReviewKind = 'word' | 'grammar' | 'turn' | 'drill' | 'ear'
 
-const REVIEW_KINDS: readonly ReviewKind[] = ['word', 'grammar', 'turn', 'drill']
+const REVIEW_KINDS: readonly ReviewKind[] = ['word', 'grammar', 'turn', 'drill', 'ear']
 
-/** 復習の記録のキー（例：word:vocab_001、turn:cafe_001#0） */
+/** 復習の記録のキー（例：word:vocab_001、turn:cafe_001#0、ear:ear_001。聞き分けは組ごと） */
 export function reviewKey(kind: ReviewKind, id: string): string {
   return `${kind}:${id}`
 }

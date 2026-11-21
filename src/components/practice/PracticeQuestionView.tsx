@@ -103,6 +103,7 @@ function ChooseBody({
           <li key={o.text} className="choice">
             <button type="button" className={`choice__button quiz-option${optionClass(state)}`} lang={o.lang} disabled={selected !== null} onClick={() => onSelect(o.text)}>
               {o.lang === 'ko' ? <KoreanText korean={o.text} reading={o.reading} display={shown} /> : o.text}
+              {o.meaning !== undefined && <span className="quiz-option__meaning">{o.meaning}</span>}
               <OptionMark state={state} />
             </button>
           </li>
