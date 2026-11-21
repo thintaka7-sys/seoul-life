@@ -1,11 +1,13 @@
 import { useGame } from '../app/GameContext'
-import { useFuriganaDisplay, useRecognitionStatus } from '../app/hooks'
+import { useFuriganaDisplay, useRecognitionStatus, useSpeechStatus } from '../app/hooks'
 import { Button } from '../components/Button'
 import { KoreanText } from '../components/KoreanText'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { content } from '../data'
 import { useState } from 'react'
 import { playSfx } from '../audio/sfx'
+import { clearSlowNotice, measureSpeech } from '../audio/speech'
+import type { RateSupport } from '../audio/speechPlayer'
 import { TEXT_SPEED_MS, totalChars } from '../components/dialogue/typewriter'
 import { useTypewriter } from '../components/dialogue/useTypewriter'
 import { pairReading } from '../learning/furigana/furigana'
@@ -22,6 +24,56 @@ import {
   type TextSpeed,
   type TranslationMode,
 } from '../storage/settings'
+
+/** 読み上げの確認に使う言葉（教材の単語から、長めのもの。短いと時間の差が測りにくいため） */
+const SPEECH_CHECK_WORD = content.vocabulary.find((v) => [...v.korean.replace(/\s/g, '')].length >= 4) ?? content.vocabulary[0]
+
+const SPEECH_CHECK_RESULT: Record<RateSupport, string> = {
+  works: 'この端末では「ゆっくり」で遅くなります。',
+  ignored: 'この端末では、読み上げの速さが変わらないようです。「ゆっくり」のボタンは、間を空けて2回くり返して読みます。',
+  unknown: '時間をうまく測れませんでした。もう一度お試しください。',
+}
+
+/** 読み上げの確認（GAME_SPEC 10-4。BUG-010）：同じ言葉を、ふつう → ゆっくりで読み、かかった時間をくらべる */
+function SpeechCheck() {
+  const speech = useSpeechStatus()
+  const [running, setRunning] = useState(false)
+  const [result, setResult] = useState<{ normal: number | null; slow: number | null; support: RateSupport } | null>(null)
+  if (SPEECH_CHECK_WORD === undefined) return null
+  const word = SPEECH_CHECK_WORD.korean
+  const seconds = (ms: number | null) => (ms === null ? '測れませんでした' : `${(ms / 1000).toFixed(2)}秒`)
+
+  async function run() {
+    setRunning(true)
+    const r = await measureSpeech(word)
+    setResult(r)
+    // ここで結果を伝えたので、練習の画面では知らせを出さない
+    if (r?.support === 'ignored') clearSlowNotice()
+    setRunning(false)
+  }
+
+  return (
+    <div className="speech-check">
+      <p className="step-heading">読み上げの確認</p>
+      <p className="muted small">
+        「<span lang="ko">{word}</span>」を、ふつう → ゆっくりの順に読んで、かかった時間をくらべます。端末によっては、読み上げの速さを変えられないことがあります。
+      </p>
+      <Button onClick={() => void run()} disabled={speech.state !== 'available' || running}>
+        {running ? '読み上げ中…' : '確かめる'}
+      </Button>
+      {speech.state === 'unavailable' && <p className="muted small">読み上げは使えません：{speech.reason}</p>}
+      {result !== null && (
+        <div aria-live="polite">
+          <ul className="info-list">
+            <li>ふつう：{seconds(result.normal)}</li>
+            <li>ゆっくり：{seconds(result.slow)}</li>
+          </ul>
+          <p className="small">{SPEECH_CHECK_RESULT[result.support]}</p>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const FURIGANA_LABELS: Record<FuriganaMode, string> = {
   recommended: `おすすめ（第${content.balance.furiganaAlwaysUntilChapter}章まではいつも表示、その後はタップで表示）`,
@@ -136,6 +188,7 @@ export function SettingsPage() {
             <span>{SPEECH_LABELS[rate]}</span>
           </label>
         ))}
+        <SpeechCheck />
       </fieldset>
 
       <fieldset className="field">

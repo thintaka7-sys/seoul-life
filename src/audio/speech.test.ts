@@ -22,8 +22,8 @@ describe('pickKoreanVoice', () => {
 })
 
 describe('speechRateValue', () => {
-  it('ゆっくりは 0.7、ふつうは 1', () => {
-    expect(speechRateValue('slow')).toBe(0.7)
+  it('ゆっくりは 0.5、ふつうは 1（BUG-010 で 0.7 → 0.5）', () => {
+    expect(speechRateValue('slow')).toBe(0.5)
     expect(speechRateValue('normal')).toBe(1)
   })
 })

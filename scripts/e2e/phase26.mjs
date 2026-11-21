@@ -21,7 +21,13 @@ await send('Page.addScriptToEvaluateOnNewDocument', {
     const synth = {
       speaking: false, pending: false, paused: false,
       getVoices: () => (noSpeech ? [] : [voice]),
-      speak(u) { window.__spoken = u.text; window.__spokenLog.push({ text: u.text, rate: u.rate }); setTimeout(() => { u.onstart?.(); u.onend?.() }, 10) },
+      // 1文字200ミリ秒（速さ1）。e2e:ignoreRate があれば、速さの指定を無視する端末（iPhone など。BUG-010）
+      speak(u) {
+        window.__spoken = u.text
+        window.__spokenLog.push({ text: u.text, rate: u.rate, t: performance.now() })
+        const ms = (200 * [...u.text].length) / (localStorage.getItem('e2e:ignoreRate') === '1' ? 1 : u.rate)
+        setTimeout(() => { u.onstart?.(); setTimeout(() => u.onend?.(), ms) }, 10)
+      },
       cancel() {}, pause() {}, resume() {},
       addEventListener() {}, removeEventListener() {},
     }
@@ -81,10 +87,10 @@ async function checkListenCompare(label, given, answer) {
   const buttons = await evaluate(`[...document.querySelectorAll('.listen-compare button')].map((b) => b.textContent.trim())`)
   check(`${label}：聞き比べのボタン（あなたの答え・正解）`, buttons.length === 2 && buttons[0].includes(given) && buttons[1].includes(answer), JSON.stringify(buttons))
   await evaluate(`document.querySelectorAll('.listen-compare button')[0]?.click()`)
-  await sleep(60)
+  await sleep(250)
   const g = await lastSpoken()
   await evaluate(`document.querySelectorAll('.listen-compare button')[1]?.click()`)
-  await sleep(60)
+  await sleep(250)
   const a = await lastSpoken()
   check(`${label}：聞き比べで、選んだ音と正解の音を読む`, g?.text === given && a?.text === answer, JSON.stringify([g, a]))
 }
@@ -176,12 +182,12 @@ await openStudy()
 await click('リスニング')
 await click('はじめる')
 await click('ゆっくり')
-await sleep(60)
+await sleep(250)
 const slow = await lastSpoken()
 await click('▶ 聞く')
-await sleep(60)
+await sleep(250)
 const normal = await lastSpoken()
-check('375 リスニング：「ゆっくり」は遅い速さ（0.7）、「▶ 聞く」は設定の速さ（1）で読む', slow?.rate === 0.7 && normal?.rate === 1 && slow?.text === normal?.text, JSON.stringify([slow, normal]))
+check('375 リスニング：「ゆっくり」は遅い速さ（0.5）、「▶ 聞く」は設定の速さ（1）で読む', slow?.rate === 0.5 && normal?.rate === 1 && slow?.text === normal?.text, JSON.stringify([slow, normal]))
 
 // ---------- 4-0：リスニング ----------
 
@@ -330,12 +336,12 @@ for (const [W, H, mobile] of [
   check(`${P} 試しに聞く：組の音（${firstSet.items.length}つ）を意味つきで出す`, preview.length === firstSet.items.length && firstSet.items.every((i, k) => preview[k].includes(i.korean) && preview[k].includes(i.japanese)), JSON.stringify(preview))
   const second = firstSet.items[1]
   await evaluate(`document.querySelectorAll('.ear-preview__item')[1].querySelectorAll('button')[0].click()`)
-  await sleep(60)
+  await sleep(250)
   const normal = await lastSpoken()
   await evaluate(`document.querySelectorAll('.ear-preview__item')[1].querySelectorAll('button')[1].click()`)
-  await sleep(60)
+  await sleep(250)
   const slow = await lastSpoken()
-  check(`${P} 試しに聞く：音ごとに「▶ ふつう」（速さ1）と「ゆっくり」（0.7）で聞ける`, normal?.text === second.korean && normal?.rate === 1 && slow?.text === second.korean && slow?.rate === 0.7, JSON.stringify([normal, slow]))
+  check(`${P} 試しに聞く：音ごとに「▶ ふつう」（速さ1）と「ゆっくり」（0.5）で聞ける`, normal?.text === second.korean && normal?.rate === 1 && slow?.text === second.korean && slow?.rate === 0.5, JSON.stringify([normal, slow]))
   check(`${P} 試しに聞く：聞き分けのこつを出す`, (await mainText()).includes(firstSet.tipJa))
   await layoutCheck(`${P} 試しに聞く`)
   if (P === '320') await shot('ear-preview-320')
@@ -436,5 +442,72 @@ await click('戻る')
 await click('今日の復習', { exact: false })
 check('音声のない端末：今日の復習に聞き分けの組を出さず、残っていることを案内する', (await mainText()).includes('聞き分けの組（1組）は、読み上げが使える端末で出ます'), (await mainText()).slice(0, 300))
 await evaluate(`localStorage.removeItem('e2e:noSpeech'); localStorage.removeItem('e2e:dayOffset')`)
+
+// ---------- BUG-010：「ゆっくり」の速さが変わらない端末 ----------
+
+const logSince = (n) => evaluate(`window.__spokenLog.slice(${n})`)
+const logLength = () => evaluate(`window.__spokenLog.length`)
+const waitUntil = async (expr, ms = 8000) => {
+  for (let t = 0; t < ms && !(await evaluate(expr)); t += 100) await sleep(100)
+}
+
+async function openSettings() {
+  await click('はじめから')
+  await click('このまま物語を始める')
+  await click('設定', { exact: false })
+}
+
+// 速さが効く端末：設定の「読み上げの確認」
+await viewport(375, 760, true)
+await freshStart()
+await openSettings()
+await click('確かめる')
+await waitUntil(`!!document.querySelector('.speech-check [aria-live]')`)
+const works = await evaluate(`document.querySelector('.speech-check').textContent`)
+check('BUG-010 読み上げの確認：ふつう・ゆっくりの時間を出し、速さが効く端末では「遅くなります」', /ふつう：\d+\.\d+秒/.test(works) && /ゆっくり：\d+\.\d+秒/.test(works) && works.includes('「ゆっくり」で遅くなります'), works)
+await shot('bug010-settings-works-375')
+
+// 速さが効かない端末：設定の「読み上げの確認」
+await evaluate(`localStorage.setItem('e2e:ignoreRate', '1')`)
+await freshStart()
+await evaluate(`localStorage.setItem('e2e:ignoreRate', '1')`)
+await openSettings()
+await click('確かめる')
+await waitUntil(`!!document.querySelector('.speech-check [aria-live]')`)
+const ignored = await evaluate(`document.querySelector('.speech-check').textContent`)
+check('BUG-010 読み上げの確認：速さが変わらない端末では、そう出して「2回くり返して読みます」と伝える', ignored.includes('読み上げの速さが変わらないようです') && ignored.includes('2回くり返して読みます'), ignored)
+await layoutCheck('BUG-010 設定の読み上げの確認')
+await shot('bug010-settings-ignored-375')
+
+// 速さが効かない端末：試しに聞く（ふつう → ゆっくり で分かり、その場でもう1回。知らせとボタンの名前が変わる）
+await openStudy()
+await evaluate(`localStorage.setItem('e2e:ignoreRate', '1')`)
+await click('聞き分け')
+await evaluate(`document.querySelector('.lesson-item').click()`)
+await sleep(150)
+const word = await evaluate(`document.querySelectorAll('.ear-preview__item')[0].querySelector('.ko-text').textContent.replace(/[ァ-ヺー]/g, '').trim()`)
+await evaluate(`document.querySelectorAll('.ear-preview__item')[0].querySelectorAll('button')[0].click()`)
+await sleep(800)
+const before = await logLength()
+await evaluate(`document.querySelectorAll('.ear-preview__item')[0].querySelectorAll('button')[1].click()`)
+await waitUntil(`window.__spokenLog.length >= ${before + 2}`)
+const first = await logSince(before)
+check('BUG-010 速さが変わらないと分かったら、その場でもう1回読む（ゆっくり → ふつう）', first.length === 2 && first[0].rate === 0.5 && first[1].rate === 1 && first[0].text === first[1].text, JSON.stringify(first))
+check('BUG-010 「2回くり返して読みます」と知らせ、ボタンの名前を「2回くり返す」にする', (await mainText()).includes('間を空けて2回くり返して読みます') && (await evaluate(`[...document.querySelectorAll('.ear-preview__item button')].filter((b) => b.textContent.trim() === '2回くり返す').length`)) > 0)
+await layoutCheck('BUG-010 試しに聞く（知らせつき）')
+await shot('bug010-ear-preview-375')
+await sleep(1500)
+const before2 = await logLength()
+await evaluate(`document.querySelectorAll('.ear-preview__item')[1].querySelectorAll('button')[1].click()`)
+await waitUntil(`window.__spokenLog.length >= ${before2 + 2}`)
+const twice = await logSince(before2)
+check('BUG-010 次からは「2回くり返す」で、ふつうの速さで間を空けて2回読む', twice.length === 2 && twice.every((l) => l.rate === 1) && twice[0].text === twice[1].text && twice[1].t - twice[0].t >= 1000, JSON.stringify(twice))
+// 画面を離れて戻ると、知らせは出さない（1回だけ）
+await click('戻る')
+await evaluate(`document.querySelector('.lesson-item').click()`)
+await sleep(150)
+check('BUG-010 知らせは1回だけ（画面を離れて戻ると出さない）。ボタンは「2回くり返す」のまま', !(await mainText()).includes('間を空けて2回くり返して読みます') && (await mainText()).includes('2回くり返す'))
+check(`BUG-010 試しに聞く：最初の音は ${word}`, word.length > 0)
+await evaluate(`localStorage.removeItem('e2e:ignoreRate')`)
 
 b.finish()

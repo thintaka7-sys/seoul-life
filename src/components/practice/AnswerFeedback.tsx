@@ -5,10 +5,13 @@
 // - 聞く問題：選んだ音と正解の音を聞き比べる
 // - 結果画面：間違えた問題の一覧
 
-import { useSpeak, useSpeechStatus } from '../../app/hooks'
+import { useEffect } from 'react'
+import { clearSlowNotice } from '../../audio/speech'
+import { useSlowState, useSpeak, useSpeakSlow, useSpeechStatus } from '../../app/hooks'
 import { diffAnswer, diffDigits, type DiffPart } from '../../learning/feedback/diff'
 import type { MissedItem, OptionState } from '../../learning/feedback/missed'
 import { Button } from '../Button'
+import { Notice } from '../Notice'
 
 const MARK_LABELS: Record<Exclude<OptionState, null>, string> = {
   chosenAnswer: '✓ あなたの答え（正解）',
@@ -77,18 +80,41 @@ export function AnswerCompare({ given, answers, digits = false, givenLabel = '�
   )
 }
 
+/** 「ゆっくり」のボタンの名前（速さが変わらない端末では、2回くり返して読む） */
+export function SlowLabel() {
+  return <>{useSlowState().support === 'ignored' ? '2回くり返す' : 'ゆっくり'}</>
+}
+
+/**
+ * 速さが変わらない端末だと分かったときの知らせ（1回だけ。GAME_SPEC 10-4）。
+ * 出ている画面を離れたら、出したことにする
+ */
+export function SlowRepeatNotice() {
+  const { noticePending } = useSlowState()
+  useEffect(() => {
+    if (!noticePending) return
+    return () => clearSlowNotice()
+  }, [noticePending])
+  if (!noticePending) return null
+  return <Notice>この端末では読み上げの速さを変えられないようです。「ゆっくり」の代わりに、間を空けて2回くり返して読みます。</Notice>
+}
+
 /** 「▶ 聞く」と「ゆっくり」 */
 export function ListenButtons({ text, label = '聞く' }: { text: string; label?: string }) {
   const speak = useSpeak()
+  const speakSlow = useSpeakSlow()
   return (
-    <div className="listen-buttons">
-      <Button variant="primary" sound={null} onClick={() => speak(text)}>
-        ▶ {label}
-      </Button>
-      <Button sound={null} onClick={() => speak(text, 'slow')}>
-        ゆっくり
-      </Button>
-    </div>
+    <>
+      <div className="listen-buttons">
+        <Button variant="primary" sound={null} onClick={() => speak(text)}>
+          ▶ {label}
+        </Button>
+        <Button sound={null} onClick={() => speakSlow(text)}>
+          <SlowLabel />
+        </Button>
+      </div>
+      <SlowRepeatNotice />
+    </>
   )
 }
 

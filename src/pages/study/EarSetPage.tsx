@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { nowIso, useGame } from '../../app/GameContext'
-import { useSpeak, useSpeechStatus } from '../../app/hooks'
+import { useSpeak, useSpeakSlow, useSpeechStatus } from '../../app/hooks'
 import { Button } from '../../components/Button'
 import { DraftBadge } from '../../components/DraftBadge'
 import { KoreanText } from '../../components/KoreanText'
 import { Notice } from '../../components/Notice'
+import { SlowLabel, SlowRepeatNotice } from '../../components/practice/AnswerFeedback'
 import { PracticeRunner } from '../../components/practice/PracticeRunner'
 import { ScreenLayout } from '../../components/ScreenLayout'
 import { content } from '../../data'
@@ -18,6 +19,7 @@ import type { PracticeQuestion } from '../../learning/practice/questions'
  */
 function EarPreview({ set }: { set: EarSet }) {
   const speak = useSpeak()
+  const speakSlow = useSpeakSlow()
   const available = useSpeechStatus().state === 'available'
   return (
     <section className="panel ear-preview" aria-labelledby="ear-preview-heading">
@@ -36,13 +38,14 @@ function EarPreview({ set }: { set: EarSet }) {
               <Button sound={null} disabled={!available} onClick={() => speak(item.korean, 'normal')} aria-label={`${item.korean} をふつうの速さで聞く`}>
                 ▶ ふつう
               </Button>
-              <Button sound={null} disabled={!available} onClick={() => speak(item.korean, 'slow')} aria-label={`${item.korean} をゆっくり聞く`}>
-                ゆっくり
+              <Button sound={null} disabled={!available} onClick={() => speakSlow(item.korean)} aria-label={`${item.korean} をゆっくり聞く`}>
+                <SlowLabel />
               </Button>
             </span>
           </li>
         ))}
       </ul>
+      <SlowRepeatNotice />
       <p className="answer-note small">{set.tipJa}</p>
     </section>
   )

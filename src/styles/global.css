@@ -2545,3 +2545,16 @@ h2.step-heading {
 .ear-preview__word .muted {
   font-family: var(--font-ja);
 }
+
+/* 設定の「読み上げの確認」（BUG-010） */
+.speech-check {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.speech-check p {
+  margin: 0;
+}
