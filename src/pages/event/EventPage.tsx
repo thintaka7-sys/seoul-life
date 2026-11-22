@@ -84,6 +84,22 @@ export function EventPage() {
       // 背景の切り替えは進行の処理で飛ばすので、ここには来ない（来た場合は何も出さない）
       body = null
       break
+    case 'story':
+    case 'reading':
+    case 'order':
+    case 'listening':
+    case 'chapterEnd':
+    case 'hangulIntro':
+      // Phase 3 の区切り2・3で作る段階。教材にはまだ使われていないが、来た場合は飛ばせるようにする
+      body = (
+        <>
+          <p className="message">この段階は準備中です。</p>
+          <Button variant="primary" onClick={() => dispatch({ type: 'stepDone', now: nowIso() })}>
+            次へ
+          </Button>
+        </>
+      )
+      break
   }
 
   return (

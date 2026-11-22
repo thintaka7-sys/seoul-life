@@ -434,6 +434,11 @@ const base: ContentInput = {
   drills: {},
   chapterTests: {},
   earSets: {},
+  stories: {},
+  readings: {},
+  menus: {},
+  orders: {},
+  chapters: { 'ch.json': Array.from({ length: 10 }, (_, i) => ({ chapter: i + 1, titleJa: `第${i + 1}章`, goalJa: 'できること' })) },
   balance: { 'balance.json': validBalance },
 }
 

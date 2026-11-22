@@ -16,3 +16,6 @@ assets-inbox/*.png
 
 # ブラウザでの確認スクリプトの出力（scripts/e2e）
 e2e-output/
+
+# 元の音（Gemini で作った曲など）は公開リポジトリに入れない（使うファイルだけ public/audio/ に入れる。Phase 3 計画 Q8）
+assets-inbox/audio/

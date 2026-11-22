@@ -1,6 +1,6 @@
 [
-  { "id": "home", "nameJa": "自宅", "mapArea": { "x": 10, "y": 7, "w": 52, "h": 30 } },
-  { "id": "cafe", "nameJa": "カフェ", "mapArea": { "x": 60, "y": 25, "w": 38, "h": 21 } },
+  { "id": "home", "nameJa": "自宅", "mapArea": { "x": 10, "y": 7, "w": 52, "h": 30 }, "bgm": "home" },
+  { "id": "cafe", "nameJa": "カフェ", "mapArea": { "x": 60, "y": 25, "w": 38, "h": 21 }, "bgm": "cafe" },
   { "id": "convenience_store", "nameJa": "コンビニ", "mapArea": { "x": 3, "y": 40, "w": 42, "h": 20 } },
   { "id": "bookstore", "nameJa": "本屋", "mapArea": { "x": 54, "y": 49, "w": 44, "h": 24 } },
   { "id": "park", "nameJa": "公園", "mapArea": { "x": 2, "y": 64, "w": 53, "h": 26 } },

@@ -94,6 +94,10 @@ export const ID_PATTERNS = {
   drillItem: /^dq_\d{3,}$/,
   chapterTest: /^test_\d{3,}$/,
   earSet: /^ear_\d{3,}$/,
+  story: /^story_\d{3,}$/,
+  reading: /^reading_\d{3,}$/,
+  menu: /^menu_\d{3,}$/,
+  order: /^order_\d{3,}$/,
   /** つまずきリスト（docs/STUMBLING_POINTS.md）のID */
   stumbling: /^[SGVWH]\d{2}$/,
   key: /^[a-z][a-z0-9_]*$/,
@@ -125,6 +129,45 @@ export interface Vocab extends ContentBase {
   /** 例文の読み（カタカナ。韓国語と同じ位置で空白を入れる） */
   examplePronunciation?: string
   exampleJapanese?: string
+  /** 元の形（辞書の形）。見出し語が元の形でないとき（例：주세요 → 주다）に書く（GAME_SPEC 4-3） */
+  base?: VocabBase
+  /** 形が変わった言葉（해요の形・過去の形・縮んだ形など。GAME_SPEC 4-3） */
+  forms?: VocabForm[]
+}
+
+/** 単語の元の形（辞書の形） */
+export interface VocabBase {
+  korean: string
+  pronunciation: string
+  /** 元の形の意味（見出し語の意味と違うときに書く。例：주다＝あげる・くれる） */
+  japanese?: string
+}
+
+/** 形が変わる言葉の種類（GAME_SPEC 4-3。単語カード・図鑑に出す名前は FORM_KIND_LABELS） */
+export const FORM_KINDS = ['present', 'past', 'seyo', 'contraction', 'other'] as const
+export type FormKind = (typeof FORM_KINDS)[number]
+
+/** 形の種類の表示名（docs/CONTENT_FORMAT.md の 10-12 と同じ。テストで照合する） */
+export const FORM_KIND_LABELS: Record<FormKind, string> = {
+  present: 'です・ます形（해요の形）',
+  past: '過去の形',
+  seyo: '세요の形（丁寧なお願い・尊敬）',
+  contraction: '縮んだ形',
+  other: 'そのほかの形',
+}
+
+/** 形が変わった言葉の1つ：「部品（元の形＋語尾など）→ くっついた形」 */
+export interface VocabForm {
+  kind: FormKind
+  /** くっついた形（例：가요） */
+  korean: string
+  pronunciation: string
+  /** 部品（例：["가", "아요"]）。2個以上 */
+  parts: string[]
+  /** 初心者が作りがちな誤った形（例：가아요）。問題の不正解の選択肢に使う */
+  wrong?: string[]
+  /** 説明（日本語。説明のためにハングルを入れてよい） */
+  noteJa?: string
 }
 
 export interface GrammarExample {
@@ -148,6 +191,8 @@ export interface Grammar extends ContentBase {
   /** 接続ルールの説明（日本語。説明のためにハングルを入れてよい） */
   connectionJa?: string
   examples: GrammarExample[]
+  /** 図や絵（GAME_SPEC 4-11） */
+  figures?: Figure[]
 }
 
 export interface ConversationLine {
@@ -159,6 +204,25 @@ export interface ConversationLine {
   japanese: string
   /** 話すときの表情（主人公の台詞には付けない）。省略したら自動（ふだんは normal） */
   expression?: Expression
+  /** タップで意味を見る語句（字が単語の教材と一致しない語句だけ書く。GAME_SPEC 4-8） */
+  glosses?: Gloss[]
+}
+
+/**
+ * タップで意味を見る語句（GAME_SPEC 4-8）。
+ * 単語の教材とつなぐ（vocab）か、読み・意味を直接書く（pronunciation・japanese）。
+ */
+export interface Gloss {
+  /** 台詞・本文の中の語句（空白で区切った1つ以上のまとまり。句読点は付けない） */
+  text: string
+  /** 単語の教材のID。図鑑の内容を出し、「覚える」で復習に加えられる */
+  vocab?: string
+  /** vocab がないときの読み（カタカナ） */
+  pronunciation?: string
+  /** vocab がないときの意味 */
+  japanese?: string
+  /** ひとこと（例：이름（名前）＋이（〜が））。説明のためにハングルを入れてよい */
+  noteJa?: string
 }
 
 export interface ConversationChoice {
@@ -255,6 +319,7 @@ export interface HangulLetter {
   tipJa: string
   /** まぎらわしい字母（聞いて選ぶ問題で、選択肢に混ぜる） */
   confusableWith?: string[]
+  figures?: Figure[]
 }
 
 /** パッチムの代表音ごとのグループ */
@@ -266,6 +331,7 @@ export interface HangulFinal {
   /** 聞かせる音節（パッチムのある1音節。例：악） */
   sounds: HangulSound[]
   tipJa: string
+  figures?: Figure[]
 }
 
 /** 音の変化の例 */
@@ -285,6 +351,7 @@ export interface SoundChangeRule {
   titleJa: string
   explanationJa: string
   examples: SoundChangeExample[]
+  figures?: Figure[]
 }
 
 /** 読む練習の単語（図鑑には入れない） */
@@ -313,6 +380,8 @@ export interface HangulLesson extends ContentBase {
   words: HangulWord[]
   /** 読む練習に使う、教材の単語のID（reading のレッスンだけ） */
   vocabulary: string[]
+  /** 導入の説明の後に出す図や絵 */
+  figures?: Figure[]
 }
 
 // ---------- リスニング（GAME_SPEC 4-5） ----------
@@ -361,6 +430,8 @@ export interface Drill extends ContentBase {
   /** 1回の問題数（省略したら balance.json の値） */
   questionCount?: number
   items: DrillItem[]
+  /** 説明に添える図や絵 */
+  figures?: Figure[]
 }
 
 /** 章末テスト。問題は章の単語・文法・会話から作り、items があれば混ぜる */
@@ -412,6 +483,8 @@ export interface EarSet extends ContentBase {
   /** つまずきリストのID（例：S01） */
   stumbling: string[]
   items: EarItem[]
+  /** 説明に添える図や絵 */
+  figures?: Figure[]
 }
 
 /** 1つの組の音の数 */
@@ -430,7 +503,7 @@ export type EventStep =
   | { type: 'column'; id: string }
   /** 図鑑を開いて見返す */
   | { type: 'dictionary'; textJa: string }
-  /** 1日の終わりの画面を出す */
+  /** 1日の終わりの画面を出す（Phase 3 からは chapterEnd を使う） */
   | { type: 'dayEnd'; textJa: string }
   /**
    * 背景を切り替える（画面には何も出さず、すぐ次の段階へ進む）。
@@ -438,11 +511,23 @@ export type EventStep =
    * id は場面の背景（SCENE_BACKGROUNDS）か施設ID（その施設のふだんの背景に戻す）
    */
   | { type: 'background'; id: string }
+  /** おはなしを1つ見る（GAME_SPEC 3-2） */
+  | { type: 'story'; id: string }
+  /** 読み物を1つ読んで、問題に答える（GAME_SPEC 4-7） */
+  | { type: 'reading'; id: string }
+  /** メニューを見て、書く・話すで注文する（GAME_SPEC 4-4） */
+  | { type: 'order'; id: string }
+  /** このイベントのリスニングの文（afterEvent がこのイベントのもの）を、その場で聞いて答える */
+  | { type: 'listening' }
+  /** 章の終わりの画面を出す（その章で覚えたことのまとめと、章末テストの案内） */
+  | { type: 'chapterEnd'; textJa: string }
+  /** 「ハングルは読めますか？」と聞き、学ぶならハングルのレッスン1へ案内する（ゲーム全体で1回だけ） */
+  | { type: 'hangulIntro' }
 
-export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'column', 'dictionary', 'dayEnd', 'background'] as const
+export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'column', 'dictionary', 'dayEnd', 'background', 'story', 'reading', 'order', 'listening', 'chapterEnd', 'hangulIntro'] as const
 
 /** 施設のほかに使える、場面の背景のID（画像は docs/ART_GUIDE.md の手順で作る。画像がなければ施設の背景のまま） */
-export const SCENE_BACKGROUNDS = ['entrance'] as const
+export const SCENE_BACKGROUNDS = ['entrance', 'airport', 'taxi', 'street'] as const
 
 /** イベント：どの施設で、何を、どの順に行うか */
 export interface GameEvent {
@@ -456,8 +541,251 @@ export interface GameEvent {
   objectiveJa: string
   /** 施設の画面に出すボタンの文字（韓国語は入れない） */
   actionJa: string
+  /** "auto" なら、前提を満たしたらボタンを押さなくても始まる（はじめからの直後の空港など） */
+  start?: 'auto'
+  /** 終えたら行けるようになる施設のID */
+  unlocks?: string[]
   steps: EventStep[]
   notes?: string
+}
+
+// ---------- 図と絵（GAME_SPEC 4-11） ----------
+
+/** 図の種類。文字・矢印・ハングルは画像に描かず、画面の作りで描く */
+export const FIGURE_TYPES = ['image', 'formation', 'syllable', 'compare'] as const
+export type FigureType = (typeof FIGURE_TYPES)[number]
+
+/** 絵の上に重ねる札（位置は絵の幅・高さに対する割合。0〜100） */
+export interface FigureLabel {
+  x: number
+  y: number
+  /** 札の文字（日本語。説明のためにハングルを入れてよい） */
+  textJa: string
+  /** 札から出す矢印の向き（省略したら矢印なし） */
+  arrow?: 'up' | 'down' | 'left' | 'right'
+}
+
+export const FIGURE_ARROWS = ['up', 'down', 'left', 'right'] as const
+
+/** 比べる図の1つ */
+export interface CompareItem {
+  korean: string
+  pronunciation: string
+  /** 絵のキー（fig_キー.png） */
+  image?: string
+  noteJa?: string
+}
+
+export type Figure =
+  /** 絵（Gemini で作る。文字は入れない）。札を重ねられる */
+  | { type: 'image'; image: string; captionJa?: string; labels?: FigureLabel[] }
+  /** 部品 → くっついた形（例：가＋아요 → 가요。GAME_SPEC 4-3） */
+  | { type: 'formation'; parts: string[]; result: string; resultPronunciation?: string; noteJa?: string }
+  /** 1音節を、子音・母音・パッチムのマスに分けて見せる（分け方はプログラムが決める） */
+  | { type: 'syllable'; korean: string; noteJa?: string }
+  /** 2〜3個を並べて比べる（例：ㅓ と ㅗ の口の形） */
+  | { type: 'compare'; items: CompareItem[]; captionJa?: string }
+
+// ---------- おはなし（GAME_SPEC 3-2） ----------
+
+/** BGM のID（曲のファイルとループの位置は src/data/game/audio.json） */
+export const BGM_IDS = ['title', 'home', 'map', 'cafe', 'study', 'story'] as const
+export type BgmId = (typeof BGM_IDS)[number]
+
+/** おはなしで鳴らす場面の効果音のID */
+export const SCENE_SOUNDS = ['door_bell', 'cup', 'buzzer', 'page', 'airplane', 'car'] as const
+export type SceneSound = (typeof SCENE_SOUNDS)[number]
+
+/** おはなしの台詞（話者と表情は会話の台詞と同じ） */
+export type StoryLine = ConversationLine
+
+export interface StoryChoice {
+  korean: string
+  pronunciation: string
+  japanese: string
+  /** 選んだときの反応（1つ以上） */
+  reply: StoryLine[]
+}
+
+export type StoryBeat =
+  /**
+   * 場面を変える。書いた項目だけが変わる。
+   * - background：背景（場面の背景か施設ID）
+   * - image：一枚絵のキー（cg_キー.png）。null で消す
+   * - character：立ち絵を出す人（null で誰も出さない）。台詞を話すと、その人に切り替わる
+   * - call：ビデオ通話の枠に出す人（null で通話を終える）
+   */
+  | { type: 'scene'; background?: string; image?: string | null; character?: string | null; call?: string | null }
+  /** 地の文（日本語。ハングルは入れない） */
+  | { type: 'narration'; textJa: string }
+  /** 台詞 */
+  | ({ type: 'line' } & StoryLine)
+  /** 画面に出る韓国語の文字（案内表示・看板・メモなど）。読み・訳つき */
+  | { type: 'sign'; korean: string; pronunciation: string; japanese: string; glosses?: Gloss[] }
+  /** 返事を選ぶ（正解・不正解はない。選んだもので反応だけが変わる） */
+  | { type: 'choice'; promptJa?: string; choices: StoryChoice[] }
+  /** 場面の効果音を鳴らす */
+  | { type: 'sfx'; id: SceneSound }
+  /** BGM を変える（"none" で止める） */
+  | { type: 'bgm'; id: BgmId | 'none' }
+
+export const STORY_BEAT_TYPES = ['scene', 'narration', 'line', 'sign', 'choice', 'sfx', 'bgm'] as const
+
+/** おはなし */
+export interface Story extends ContentBase {
+  chapter: number
+  /** おはなしの題（アルバムに出す。ハングルは入れない） */
+  titleJa: string
+  /** 始めに流す BGM（省略したら、その場所の曲のまま） */
+  bgm?: BgmId
+  beats: StoryBeat[]
+}
+
+// ---------- 読み物（GAME_SPEC 4-7） ----------
+
+/** 読み物の見た目 */
+export const READING_STYLES = ['memo', 'notice', 'message', 'diary', 'menu'] as const
+export type ReadingStyle = (typeof READING_STYLES)[number]
+
+/** 本文の1文 */
+export interface ReadingLine {
+  korean: string
+  pronunciation: string
+  japanese: string
+  glosses?: Gloss[]
+}
+
+/** 選ぶ問題の選択肢：日本語（textJa）か韓国語（korean・pronunciation・japanese） */
+export type ReadingChoice = ({ textJa: string } | { korean: string; pronunciation: string; japanese: string }) & { correct: boolean }
+
+export type ReadingQuestion =
+  /** 選ぶ（正解はちょうど1つ） */
+  | { type: 'choice'; questionJa: string; choices: ReadingChoice[]; explanationJa?: string }
+  /** 数字を入れる（値段など。選択肢は出さない） */
+  | { type: 'number'; questionJa: string; digits: string; explanationJa?: string }
+  /** 韓国語で書く */
+  | { type: 'write'; questionJa: string; answers: string[]; explanationJa?: string }
+  /** 本文の中から探して押す（answer は本文の中の語句） */
+  | { type: 'find'; questionJa: string; answer: string; explanationJa?: string }
+
+export const READING_QUESTION_TYPES = ['choice', 'number', 'write', 'find'] as const
+
+export interface Reading extends ContentBase {
+  chapter: number
+  titleJa: string
+  style: ReadingStyle
+  /** 本文（style が menu のときは省略できる） */
+  lines: ReadingLine[]
+  /** style が menu のときの、メニューのID */
+  menu?: string
+  questions: ReadingQuestion[]
+}
+
+// ---------- メニューと注文（GAME_SPEC 4-4） ----------
+
+/** メニューの絵のキー（menu_cafe_1.png・menu_cafe_2.png のマス。並びは docs/ART_GUIDE.md 4-2） */
+export const MENU_IMAGES = [
+  'americano',
+  'cafe_latte',
+  'vanilla_latte',
+  'green_tea_latte',
+  'strawberry_latte',
+  'yuzu_tea',
+  'lemonade',
+  'cheesecake',
+  'croffle',
+  'macaron',
+  'croissant',
+  'cookie',
+] as const
+
+export interface MenuItem {
+  /** 品物のキー（メニューの中で一意。注文の記録に使う） */
+  key: string
+  /** 品名の単語のID（品名・読み・意味は単語の教材から出す。注文では別表記も正解） */
+  vocab: string
+  /** 値段（ウォン。半角の整数） */
+  price: number
+  /** 値段の読み（例：4,500원 → サチョノベグォン） */
+  pricePronunciation: string
+  /** 絵のキー（MENU_IMAGES） */
+  image?: string
+  /** 数え方の単位（例：잔、개）。注文の counts の counter と合わせる */
+  counter: string
+  /** この品物を注文したときの店員のひとこと */
+  reply: ConversationLine[]
+}
+
+export interface Menu extends ContentBase {
+  /** どの施設のメニューか */
+  location: string
+  titleJa: string
+  /** 値段の単位（例：원） */
+  currency: { korean: string; pronunciation: string }
+  items: MenuItem[]
+}
+
+/** 注文で言える数（例：한 잔） */
+export interface OrderCount {
+  korean: string
+  pronunciation: string
+  /** 数（1以上） */
+  number: number
+  /** 数え方の単位（省略したら、どの品物にも使える。例：하나） */
+  counter?: string
+  /** この数で注文されたときの、数を確かめる台詞 */
+  confirm: ConversationLine[]
+}
+
+/** 注文の終わりの言い方（例：주세요） */
+export interface OrderEnding {
+  korean: string
+  /** 読み（attached でないときは必須） */
+  pronunciation?: string
+  /** true なら前の語にくっつける言い方（例：아메리카노요 の 요、한 잔이요 の 이요）。答えの例には使わない */
+  attached?: boolean
+}
+
+/** 品物の前に付けてよい言葉（例：따뜻한、아이스） */
+export interface OrderModifier {
+  korean: string
+  pronunciation: string
+  /** この数え方の品物にだけ付けられる（省略したら、どの品物にも） */
+  counter?: string
+}
+
+export interface Order extends ContentBase {
+  chapter: number
+  location: string
+  /** 注文を受ける人（店員） */
+  character: string
+  menu: string
+  /** 言うこと（日本語。ハングルは入れない） */
+  task: string
+  /** 注文の前の台詞 */
+  lines: ConversationLine[]
+  counts: OrderCount[]
+  endings: OrderEnding[]
+  modifiers?: OrderModifier[]
+  /** 注文を受けた後の締めの台詞 */
+  closing: ConversationLine[]
+  /** メニューにない品物を頼んだとき */
+  notOnMenu: ConversationLine[]
+  /** 聞き取れない・言い方が分からないとき */
+  unclear: ConversationLine[]
+  /** 数え方の単位が品物と合わないとき（例：아메리카노 한 개）に出す注意。日本語（ハングルを入れてよい） */
+  counterNoteJa?: string
+}
+
+// ---------- 章（GAME_SPEC 5章） ----------
+
+/** 章（ゲームデータ。韓国語を含まないので reviewed は持たない） */
+export interface Chapter {
+  chapter: number
+  /** 章の題（例：韓国に到着） */
+  titleJa: string
+  /** できるようになること */
+  goalJa: string
 }
 
 /** マップの絵の上での位置（絵の幅・高さに対する割合。0〜100） */
@@ -474,6 +802,8 @@ export interface Location {
   nameJa: string
   /** マップの絵の上で、施設を押せる範囲。省略したらマップの絵の上には出さない */
   mapArea?: MapArea
+  /** この施設で流す BGM（省略したら、街のマップの曲） */
+  bgm?: BgmId
 }
 
 /** キャラクターの名前（韓国語なので、読みと確認済みの印を持つ） */

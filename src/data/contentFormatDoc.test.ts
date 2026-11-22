@@ -6,7 +6,29 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
-import { EAR_THEME_LABELS, EAR_THEMES, EVENT_STEP_TYPES, EXPRESSIONS, HANGUL_LESSON_KINDS, GENRE_LABELS, PARTS_OF_SPEECH, PART_OF_SPEECH_LABELS, PLAYER_SPEAKER_ID, SCENE_BACKGROUNDS, VOCAB_GENRES } from './types'
+import {
+  BGM_IDS,
+  EAR_THEME_LABELS,
+  EAR_THEMES,
+  EVENT_STEP_TYPES,
+  EXPRESSIONS,
+  FIGURE_TYPES,
+  FORM_KIND_LABELS,
+  FORM_KINDS,
+  HANGUL_LESSON_KINDS,
+  GENRE_LABELS,
+  MENU_IMAGES,
+  PARTS_OF_SPEECH,
+  PART_OF_SPEECH_LABELS,
+  PLAYER_SPEAKER_ID,
+  READING_QUESTION_TYPES,
+  READING_STYLES,
+  SCENE_BACKGROUNDS,
+  SCENE_SOUNDS,
+  STORY_BEAT_TYPES,
+  VOCAB_GENRES,
+  type Figure,
+} from './types'
 import { formatIssue, loadContent } from './validate'
 
 const docPath = fileURLToPath(new URL('../../docs/CONTENT_FORMAT.md', import.meta.url))
@@ -57,9 +79,9 @@ function labelsInSection(markdown: string, headingPrefix: string): Record<string
 
 describe('docs/CONTENT_FORMAT.md の見本', () => {
   const samples = extractSamples(doc)
-  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests', 'earSets'] as const
+  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests', 'earSets', 'stories', 'readings', 'menus', 'orders'] as const
 
-  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テスト・聞き分けの組の見本がそろっている', () => {
+  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テスト・聞き分けの組・おはなし・読み物・メニュー・注文の見本がそろっている', () => {
     expect(sorted(samples.keys())).toEqual(sorted(kinds))
   })
 
@@ -75,9 +97,14 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
       drills: { 'sample-drills': samples.get('drills') },
       chapterTests: { 'sample-chapterTests': samples.get('chapterTests') },
       earSets: { 'sample-earSets': samples.get('earSets') },
-      // 施設・キャラクター・調整値は実際のデータを使う
+      stories: { 'sample-stories': samples.get('stories') },
+      readings: { 'sample-readings': samples.get('readings') },
+      menus: { 'sample-menus': samples.get('menus') },
+      orders: { 'sample-orders': samples.get('orders') },
+      // 施設・キャラクター・章・調整値は実際のデータを使う
       locations: { 'locations.json': content.locations },
       characters: { 'characters.json': content.characters },
+      chapters: { 'chapters.json': content.chapters },
       balance: { 'balance.json': content.balance },
     })
     expect(result.issues.map(formatIssue)).toEqual([])
@@ -102,6 +129,23 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
     expect(result.chapterTests.length).toBeGreaterThan(0)
     // 見本の聞き分けの組は、3つの音の組と2つの音の組を含む
     expect([...new Set(result.earSets.map((e) => e.items.length))].sort((a, b) => a - b)).toEqual([2, 3])
+    // Phase 3 の見本：おはなしの段階・読み物の問題・図の種類をすべて含み、注文・メニュー・形が変わる言葉・glosses がある
+    expect(sorted(new Set(result.stories.flatMap((st) => st.beats.map((b) => b.type))))).toEqual(sorted(STORY_BEAT_TYPES))
+    expect(sorted(new Set(result.readings.flatMap((r) => r.questions.map((q) => q.type))))).toEqual(sorted(READING_QUESTION_TYPES))
+    const figures: Figure[] = [
+      ...result.grammar.flatMap((g) => g.figures ?? []),
+      ...result.hangulLessons.flatMap((l) => [...(l.figures ?? []), ...l.letters.flatMap((x) => x.figures ?? [])]),
+      ...result.earSets.flatMap((e) => e.figures ?? []),
+    ]
+    expect(sorted(new Set(figures.map((f) => f.type)))).toEqual(sorted(FIGURE_TYPES))
+    expect(result.menus.length).toBeGreaterThan(0)
+    expect(result.orders.length).toBeGreaterThan(0)
+    expect(result.vocabulary.some((v) => v.base !== undefined && (v.forms?.length ?? 0) > 0)).toBe(true)
+    expect(result.conversations.some((c) => c.turns.some((t) => t.lines.some((l) => l.glosses !== undefined)))).toBe(true)
+    // 見本のイベントは、新しい段階と start・unlocks を使う
+    const stepTypes = new Set(result.events.flatMap((e) => e.steps.map((st) => st.type)))
+    for (const t of ['story', 'reading', 'order', 'listening', 'chapterEnd', 'hangulIntro'] as const) expect(stepTypes.has(t), t).toBe(true)
+    expect(result.events.some((e) => e.start === 'auto' && e.unlocks !== undefined)).toBe(true)
   })
 
   it('見本のIDは仮データ用の900番台を使っていない', () => {
@@ -156,6 +200,26 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
     const ids = new Set([...stumblingDoc.matchAll(/^\| ([SGVWH]\d{2}) \|/gm)].map((m) => m[1]))
     expect(ids.size).toBeGreaterThan(0)
     for (const set of content.earSets) for (const s of set.stumbling) expect(ids.has(s), `${set.id}: ${s}`).toBe(true)
+  })
+
+  it('BGM（10-10）・場面の効果音（10-11）・読み物の見た目（10-13）・メニューの絵（10-14）がプログラムと一致する', () => {
+    expect(keysInSection(doc, '### 10-10.')).toEqual([...BGM_IDS])
+    expect(keysInSection(doc, '### 10-11.')).toEqual([...SCENE_SOUNDS])
+    expect(keysInSection(doc, '### 10-13.')).toEqual([...READING_STYLES])
+    expect(keysInSection(doc, '### 10-14.')).toEqual([...MENU_IMAGES])
+  })
+
+  it('形の種類（10-12）がプログラムと一致し、名前も同じ', () => {
+    expect(keysInSection(doc, '### 10-12.')).toEqual([...FORM_KINDS])
+    expect(labelsInSection(doc, '### 10-12.')).toEqual(FORM_KIND_LABELS)
+  })
+
+  it('おはなしの段階（20-1）・図の種類（23-1）・読み物の問題（25-2）・新しいイベントの段階（19-3）がプログラムと一致する', () => {
+    expect(sorted(keysInSection(doc, '### 20-1.'))).toEqual(sorted(STORY_BEAT_TYPES))
+    expect(sorted(keysInSection(doc, '### 23-1.'))).toEqual(sorted(FIGURE_TYPES))
+    expect(sorted(keysInSection(doc, '### 25-2.'))).toEqual(sorted(READING_QUESTION_TYPES))
+    const added = keysInSection(doc, '### 19-3.')
+    expect(added.every((k) => (EVENT_STEP_TYPES as readonly string[]).includes(k))).toBe(true)
   })
 
   it('表情（10-6）がプログラムと一致する', () => {
