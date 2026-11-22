@@ -1,4 +1,4 @@
-// Phase 2「文字と音」の確認：はじめからの案内 → ハングルのレッスン1（小テストに合格）→ 物語へ、
+// Phase 2「文字と音」の確認：物語の中の「ハングルは読めますか？」（第1章の先生の授業）→ ハングルのレッスン1（小テストに合格）→ 物語へ、
 // 学習画面・レッスン一覧、日本語訳の表示の切り替え、話して答える（マイク）の表示、設定画面。
 // 実機確認で見つかった不具合の確認：指のタップで効果音が鳴る準備ができること（BUG-002）、
 // 小さい画面でも「話して答える前に」のボタンが押せること（BUG-003）、幅320〜390pxでキーボードがはみ出さないこと（BUG-005）。
@@ -6,10 +6,11 @@
 // 使い方は scripts/e2e/README.md。
 
 import { readdirSync, readFileSync } from 'node:fs'
-import { FAST_SETTINGS, openBrowser, sleep } from './browser.mjs'
+import { FAST_SETTINGS, openBrowser, saveAtHome, sleep } from './browser.mjs'
 
 const b = await openBrowser('phase2')
-const { evaluate, click, chooseMode, heading, mainText, saved, stepHeading, viewport, shot, view, freshStart, check, layoutCheck, nextCards, send } = b
+const { evaluate, click, chooseMode, heading, mainText, saved, stepHeading, viewport, shot, view, freshStart, check, layoutCheck, nextCards, send, advanceEvent } = b
+const atHome = `!document.querySelector('.event-header') && document.querySelector('h1')?.textContent.trim() === '自宅'`
 
 /** フォルダの JSON（配列）をすべて読んでつなげる */
 function readdirJson(dir) {
@@ -86,12 +87,15 @@ for (const [W, H, mobile] of [
   const P = `${W}`
   await viewport(W, H, mobile)
 
-  // --- はじめから → ハングルから学ぶ → レッスン1 ---
+  // --- はじめから → 第1章のおはなし → 先生の授業で「ハングルは読めますか？」→ ハングルから学ぶ → レッスン1 ---
   await freshStart()
   await recordSpeech()
   await click('はじめから')
-  check(`${P} はじめから → ハングルを読めるかを聞く`, (await heading()) === 'ハングルは読めますか？')
-  await layoutCheck(`${P} はじめからの案内`)
+  await advanceEvent(atHome, '空港・タクシーのおはなしの後')
+  await click('ノートパソコンを開く')
+  await advanceEvent(`!!document.querySelector('.hangul-intro')`, 'ハングルは読めますか？')
+  check(`${P} 先生の授業で、ハングルを読めるかを聞く`, (await mainText()).includes('ハングルは読めますか？'))
+  await layoutCheck(`${P} ハングルは読めますか`)
   await click(`ハングルから学ぶ（${firstLesson.titleJa}）`)
   check(`${P} レッスン1を開く`, (await heading()).includes(firstLesson.titleJa), await heading())
   check(`${P} 続きは「勉強する」から進められると案内する`, (await mainText()).includes('「勉強する」→「ハングル」'))
@@ -122,8 +126,8 @@ for (const [W, H, mobile] of [
   const s1 = await saved()
   check(`${P} 合格を記録し、経験値 +20`, s1.learning.hangul[firstLesson.id]?.bestScore === 100 && s1.stats.xp - xp0 === 20, JSON.stringify(s1.learning.hangul) + ` xp ${xp0}→${s1.stats.xp}`)
   if (W === 375) await shot('result-375')
-  await click('物語を始める')
-  check(`${P} 物語を始める → 自宅`, (await heading()) === '自宅')
+  await click('物語に戻る')
+  check(`${P} 物語に戻る → 自宅（先生の授業は終わり）`, (await heading()) === '自宅')
 
   // --- 自宅 → 勉強する → ハングル一覧 ---
   await click('勉強する（復習・練習・ハングル）')
@@ -198,9 +202,8 @@ for (const [mode, expectButton, expectText] of [
   ['off', false, false],
   ['always', false, true],
 ]) {
-  await freshStart({ settings: { ...FAST_SETTINGS, translation: mode } })
-  await click('はじめから')
-  await click('このまま物語を始める')
+  await freshStart({ settings: { ...FAST_SETTINGS, translation: mode }, save: saveAtHome() })
+  await click('つづきから')
   await click('玄関に出る')
   // 案内文 → 単語カード → 会話
   for (let i = 0; i < 6 && !(await evaluate(`!!document.querySelector('.dialogue')`)); i++) {
@@ -323,9 +326,8 @@ await send('Page.addScriptToEvaluateOnNewDocument', {
     window.webkitSpeechRecognition = FakeRecognition
   })()`,
 })
-await freshStart({ settings: { ...FAST_SETTINGS, voiceInputNoticeSeen: true } })
-await click('はじめから')
-await click('このまま物語を始める')
+await freshStart({ settings: { ...FAST_SETTINGS, voiceInputNoticeSeen: true }, save: saveAtHome() })
+await click('つづきから')
 await click('玄関に出る')
 for (let i = 0; i < 6 && !(await evaluate(`!!document.querySelector('.dialogue')`)); i++) {
   if (await evaluate(`!!document.querySelector('.learn-card')`)) await nextCards(Number(/\/\s*(\d+)/.exec(await stepHeading())?.[1]))

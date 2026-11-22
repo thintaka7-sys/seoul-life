@@ -265,7 +265,7 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
   /** 小テストを始めた回数（やり直すたびに問題を作り直し、答えた状態を消す） */
   const [round, setRound] = useState(0)
   const close = () => dispatch({ type: 'closeStudyScene' })
-  const closeLabel = onboarding ? '物語を始める' : 'レッスン一覧へ'
+  const closeLabel = onboarding ? '物語に戻る' : 'レッスン一覧へ'
 
   if (lesson === undefined) {
     return (
@@ -394,7 +394,7 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
       }
       footer={
         phase.name !== 'result' && (
-          <Button onClick={close}>{onboarding ? 'やめて物語を始める' : 'やめる'}</Button>
+          <Button onClick={close}>{onboarding ? 'やめて物語に戻る' : 'やめる'}</Button>
         )
       }
     >

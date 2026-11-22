@@ -17,7 +17,42 @@ const BROWSER_CANDIDATES = [
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** 設定を「文字送りなし」にして、操作を速く・確実にする（文字送りの確認をするときは使わない） */
-export const FAST_SETTINGS = { version: 4, furigana: 'recommended', translation: 'always', speechRate: 'normal', textSpeed: 'instant', soundEffects: true, effects: 'normal', voiceInput: true, voiceInputNoticeSeen: false, slowSpeech: null }
+export const FAST_SETTINGS = {
+  version: 5,
+  furigana: 'recommended',
+  translation: 'always',
+  speechRate: 'normal',
+  textSpeed: 'instant',
+  soundEffects: true,
+  effects: 'normal',
+  voiceInput: true,
+  voiceInputNoticeSeen: false,
+  slowSpeech: null,
+  bgm: true,
+  bgmVolume: 60,
+  sfxVolume: 80,
+}
+
+/** いまのセーブデータの版（src/storage/saveData.ts の CURRENT_SAVE_VERSION） */
+export const SAVE_VERSION = 6
+
+/**
+ * いまの版のセーブデータ。第1章のはじめ（空港・タクシー・先生の授業。event_004・005）を終えて、自宅にいる。
+ * progress・learning などは patch で上書きできる（足りない項目は空で埋める）
+ */
+export function saveAtHome(patch = {}) {
+  const now = new Date().toISOString()
+  const base = {
+    version: SAVE_VERSION,
+    createdAt: now,
+    updatedAt: now,
+    progress: { currentLocationId: 'home', completedEvents: ['event_004', 'event_005'], activeEvent: null, storiesSeen: {}, notices: [] },
+    learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {}, review: {}, drills: {}, tests: {}, seen: {}, readings: {}, orders: {}, forms: {} },
+    stats: { xp: 0 },
+    daily: { stamps: [] },
+  }
+  return { ...base, ...patch, progress: { ...base.progress, ...patch.progress }, learning: { ...base.learning, ...patch.learning } }
+}
 
 /**
  * ブラウザを開き、確認に使う関数をまとめて返す。
@@ -166,6 +201,30 @@ export async function openBrowser(name) {
     await reload()
   }
 
+  /**
+   * イベントの段階（おはなし・案内文・単語カード・「ハングルは読めますか？」）を、cond を満たすまで進める。
+   * おはなしの選択は最初の返事を選ぶ。会話の答えは選ばない（会話は別に進める）
+   */
+  async function advanceEvent(cond, label) {
+    for (let i = 0; i < 200; i++) {
+      if (await evaluate(cond)) return
+      const did = await evaluate(`(() => {
+        const byText = (t) => [...document.querySelectorAll('main button')].find((b) => b.textContent.replace(/▼/g, '').trim() === t && !b.disabled)
+        const c = document.querySelector('.story__choice-button'); if (c) { c.click(); return 'choice' }
+        const n = document.querySelector('.dialogue__next'); if (n) { n.click(); return 'next' }
+        for (const t of ['覚えた！', '次へ', '会話をはじめる', 'このまま物語を進める']) { const b = byText(t); if (b) { b.click(); return t } }
+        return '' })()`)
+      await sleep(did ? 120 : 250)
+    }
+    throw new Error(`進めません: ${label}`)
+  }
+
+  /** つづきから。物語の最初の（自動で始まる）イベントが始まったら、やめて施設の画面にする */
+  async function continueToHome() {
+    await click('つづきから')
+    if (await evaluate(`!!document.querySelector('.event-header')`)) await click('やめる')
+  }
+
   const results = []
   const check = (label, ok, detail = '') => results.push([label, !!ok, ok ? '' : detail])
   /** 横スクロールがないこと、ボタンが44px以上あることを確かめる */
@@ -219,6 +278,8 @@ export async function openBrowser(name) {
     check,
     layoutCheck,
     nextCards,
+    advanceEvent,
+    continueToHome,
     finish,
   }
 }

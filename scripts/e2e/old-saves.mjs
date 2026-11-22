@@ -1,9 +1,9 @@
-// 教材が差し替わる前のセーブデータ（古い会話IDの記録・ずれた段階の番号・旧形式 v2）で、
-// 「つづきから」再開でき、そのイベントを最後まで進められることを確かめる。
-// 選択肢はランダムに選ぶ（正解するまで選び直す）。
+// 教材が差し替わる前のセーブデータ（古い会話IDの記録・ずれた段階の番号・旧形式 v2）を読み込めることを確かめる。
+// Phase 3（セーブデータ v6）で物語を章立てに組み直したので、物語の進み具合は最初から（第1章の空港）になり、
+// 覚えた単語・会話の記録・経験値は残り、「物語が新しくなりました」を一度だけ知らせる（計画 Q5）。
 // 使い方: node scripts/e2e/old-saves.mjs <URL>
 
-import { openBrowser, sleep } from './browser.mjs'
+import { SAVE_VERSION, openBrowser, sleep } from './browser.mjs'
 
 const b = await openBrowser('old-saves')
 const { evaluate, click, saved, viewport, freshStart, check } = b
@@ -41,23 +41,16 @@ for (const [label, save] of cases) {
   await click('つづきから')
   await sleep(300)
   const s = await saved()
-  const inEvent = await evaluate(`!!document.querySelector('.event-progress')`)
-  check(`${label}：つづきからイベント画面で再開し、v5 に移行（段階 ${s.progress.activeEvent?.step}）`, inEvent && s.version === 5, `v${s.version} ${JSON.stringify(s.progress)}`)
-  for (let i = 0; i < 80 && (await evaluate(`!!document.querySelector('.event-progress')`)); i++) {
-    await evaluate(`(() => {
-      const start = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === '会話をはじめる'); if (start) { start.click(); return }
-      const n = document.querySelector('.dialogue__next'); if (n) { n.click(); return }
-      const ch = [...document.querySelectorAll('.choice__button:not([disabled])')]; if (ch.length) { ch[Math.floor(Math.random() * ch.length)].click(); return }
-      const tab = document.querySelector('.mode-tab[aria-label="選んで答える"]'); if (tab && tab.getAttribute('aria-pressed') !== 'true') { tab.click(); return }
-      const b = [...document.querySelectorAll('main button')].find(b => ['次へ', '覚えた！', '閉じる'].includes(b.textContent.trim()) && !b.disabled); if (b) b.click() })()`)
-    await sleep(150)
-  }
-  const after = await saved()
+  const inStory = await evaluate(`!!document.querySelector('.story')`)
   check(
-    `${label}：そのイベントを最後まで進められる・古い会話の記録は残る`,
-    after.progress.activeEvent === null && Object.keys(after.learning.conversations).some((k) => k.startsWith('home_001')),
-    JSON.stringify(after.progress),
+    `${label}：v${SAVE_VERSION} に移行し、物語は第1章の最初（空港のおはなし）から。経験値・会話の記録は残る`,
+    inStory && s.version === SAVE_VERSION && s.progress.activeEvent?.id === 'event_004' && s.stats.xp === save.stats.xp && Object.keys(s.learning.conversations).some((k) => k.startsWith('home_001')),
+    `v${s.version} ${JSON.stringify(s.progress)} xp ${s.stats.xp}`,
   )
+  await click('やめる')
+  check(`${label}：施設の画面で「物語が新しくなりました」を知らせる`, (await evaluate(`document.querySelector('main').textContent`)).includes('物語が新しくなりました'))
+  await click('わかりました')
+  check(`${label}：お知らせは一度だけ（閉じたら消える）`, (await saved()).progress.notices.length === 0 && !(await evaluate(`document.querySelector('main').textContent`)).includes('物語が新しくなりました'))
 }
 
 // 古い会話（教材から消えた home_001・home_003・cafe_005）の往復も復習の記録に移すが、今日の復習には出さない
@@ -66,12 +59,12 @@ await click('つづきから')
 await sleep(200)
 const migrated = await saved()
 check(
-  'v4 → v5：覚えた単語と正解した往復（消えた会話のものも）を復習の記録に移す',
+  'v4 → v5 → v6：覚えた単語と正解した往復（消えた会話のものも）を復習の記録に移す',
   ['word:vocab_001', 'turn:home_001#0', 'turn:home_003#0', 'turn:cafe_005#0'].every((k) => migrated.learning.review[k] !== undefined),
   JSON.stringify(Object.keys(migrated.learning.review)),
 )
 // 期限を過ぎたことにして、自宅から学習画面を開く
-await evaluate(`(() => { const s = JSON.parse(localStorage.getItem('seoul-life:save')); for (const r of Object.values(s.learning.review)) r.due = '2000-01-01'; s.progress.activeEvent = null; s.progress.currentLocationId = 'home'; localStorage.setItem('seoul-life:save', JSON.stringify(s)) })()`)
+await evaluate(`(() => { const s = JSON.parse(localStorage.getItem('seoul-life:save')); for (const r of Object.values(s.learning.review)) r.due = '2000-01-01'; s.progress.activeEvent = null; s.progress.completedEvents = ['event_004', 'event_005']; s.progress.currentLocationId = 'home'; localStorage.setItem('seoul-life:save', JSON.stringify(s)) })()`)
 await b.reload()
 await click('つづきから')
 await click('勉強する（復習・練習・ハングル）')

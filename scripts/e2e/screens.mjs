@@ -5,16 +5,23 @@
 // - 検索サイトに載せない指定（robots の noindex）がある
 // 使い方: node scripts/e2e/screens.mjs <URL>
 
-import { openBrowser, sleep } from './browser.mjs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { openBrowser, saveAtHome, sleep } from './browser.mjs'
 
 const b = await openBrowser('screens')
 const { evaluate, click, heading, viewport, view, freshStart, check, layoutCheck } = b
 
 const T = '2026-11-19T10:00:00.000Z'
-const newSave = { version: 3, createdAt: T, updatedAt: T, progress: { currentLocationId: 'home', completedEvents: [], activeEvent: null }, learning: { words: {}, grammar: {}, conversations: {} }, stats: { xp: 0 } }
-const words = Object.fromEntries(Array.from({ length: 26 }, (_, i) => [`vocab_${String(i + 1).padStart(3, '0')}`, { learnedAt: T, chapter: 1 }]))
+const dataDir = new URL('../../src/data/', import.meta.url)
+const readDir = (d) => readdirSync(new URL(`${d}/`, dataDir)).filter((f) => f.endsWith('.json')).sort().flatMap((f) => JSON.parse(readFileSync(new URL(`${d}/${f}`, dataDir), 'utf8')))
+const eventIds = readDir('events').map((e) => e.id)
+const vocabIds = readDir('vocabulary').map((v) => v.id)
+// カフェが開いたところ（カフェを開くイベントまで終えた）
+const opener = readDir('events').find((e) => (e.unlocks ?? []).includes('cafe')).id
+const newSave = saveAtHome({ progress: { completedEvents: eventIds.slice(0, eventIds.indexOf(opener) + 1) } })
+const words = Object.fromEntries(vocabIds.map((id) => [id, { learnedAt: T, chapter: 1 }]))
 // event_003 の段階2（図鑑の段階）の途中
-const dictSave = { ...newSave, progress: { currentLocationId: 'home', completedEvents: ['event_001', 'event_002'], activeEvent: { id: 'event_003', step: 2 } }, learning: { words, grammar: {}, conversations: {} }, stats: { xp: 100 } }
+const dictSave = saveAtHome({ progress: { completedEvents: eventIds.filter((id) => id !== 'event_003'), activeEvent: { id: 'event_003', step: 2 } }, learning: { words }, stats: { xp: 100 } })
 
 const backdrop = () => evaluate(`(() => { const a = document.querySelector('.app'); const img = document.querySelector('.backdrop__sharp'); return { cls: a.classList.contains('app--backdrop'), src: img ? img.getAttribute('src') : null } })()`)
 const dictCount = () => evaluate(`(() => { const p = document.querySelector('.dict-count'); const cs = getComputedStyle(p); return { bg: cs.backgroundColor, pad: cs.paddingLeft, text: p.textContent.trim() } })()`)
@@ -66,7 +73,7 @@ for (const [w, h, m] of [
   await click('図鑑を見る')
   await sleep(300)
   dc = await dictCount()
-  check(`${w} 図鑑画面：「学んだ単語」を板に載せる（BUG-001）`, dc.bg !== 'rgba(0, 0, 0, 0)' && dc.pad === '14px' && dc.text.includes('26 / 26'), JSON.stringify(dc))
+  check(`${w} 図鑑画面：「学んだ単語」を板に載せる（BUG-001）`, dc.bg !== 'rgba(0, 0, 0, 0)' && dc.pad === '14px' && dc.text.includes(`${vocabIds.length} / ${vocabIds.length}`), JSON.stringify(dc))
   await layoutCheck(`${w} 図鑑`)
   await view(`${w}-dictionary`)
 }

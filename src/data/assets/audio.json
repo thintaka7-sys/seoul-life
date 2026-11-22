@@ -25,5 +25,24 @@
       "duration": 153
     }
   },
-  "sfx": {}
+  "sfx": {
+    "door_bell": {
+      "src": "audio/sfx/door_bell.mp3?v=7641a490e1"
+    },
+    "cup": {
+      "src": "audio/sfx/cup.mp3?v=6e69f9d536"
+    },
+    "buzzer": {
+      "src": "audio/sfx/buzzer.mp3?v=767ec8fe66"
+    },
+    "page": {
+      "src": "audio/sfx/page.mp3?v=53a2f0d535"
+    },
+    "car": {
+      "src": "audio/sfx/car.mp3?v=a679575ae2"
+    },
+    "call": {
+      "src": "audio/sfx/call.mp3?v=f0a042241a"
+    }
+  }
 }

@@ -3,12 +3,55 @@
   "outputDir": "public/audio",
   "manifest": "src/data/assets/audio.json",
   "bgm": [
-    { "id": "title", "file": "bgm_title.mp3" },
-    { "id": "home", "file": "bgm_home.mp3" },
-    { "id": "map", "file": "bgm_map.mp3" },
-    { "id": "cafe", "file": "bgm_cafe.mp3" },
-    { "id": "study", "file": "bgm_study.mp3" },
-    { "id": "story", "file": "bgm_story.mp3" }
+    {
+      "id": "title",
+      "file": "bgm_title.mp3"
+    },
+    {
+      "id": "home",
+      "file": "bgm_home.mp3"
+    },
+    {
+      "id": "map",
+      "file": "bgm_map.mp3"
+    },
+    {
+      "id": "cafe",
+      "file": "bgm_cafe.mp3"
+    },
+    {
+      "id": "study",
+      "file": "bgm_study.mp3"
+    },
+    {
+      "id": "story",
+      "file": "bgm_story.mp3"
+    }
   ],
-  "sfx": []
+  "sfx": [
+    {
+      "id": "door_bell",
+      "file": "sfx/pleasing-bell.wav"
+    },
+    {
+      "id": "cup",
+      "file": "sfx/kenney-impactPlate_light_002.ogg"
+    },
+    {
+      "id": "buzzer",
+      "file": "sfx/buzz.ogg"
+    },
+    {
+      "id": "page",
+      "file": "sfx/kenney-bookFlip2.ogg"
+    },
+    {
+      "id": "car",
+      "file": "sfx/car-engine-start.mp3"
+    },
+    {
+      "id": "call",
+      "file": "sfx/chirptone.wav"
+    }
+  ]
 }

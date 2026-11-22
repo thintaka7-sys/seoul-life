@@ -141,3 +141,10 @@
 | bgm_map.mp3 | 街のマップ | BGM | Gemini アプリの音楽生成（開発者の Google AI Pro プラン）。指示文は 2-3 の「街のマップ」 | Google は所有権を主張しない（独占不可）。SynthID 入り | 2026-11-22 | 約2分57秒・192kbps。最後は無音で終わる（フェードアウト）ので、ループはその手前で切ってつなぐ。モデル：Lyria 3.5 |
 | bgm_study.mp3 | 学習画面 | BGM | Gemini アプリの音楽生成（開発者の Google AI Pro プラン）。指示文は 2-3 の「学習画面」 | Google は所有権を主張しない（独占不可）。SynthID 入り | 2026-11-22 | 約3分02秒・192kbps。最後は無音で終わる（フェードアウト）ので、ループはその手前で切ってつなぐ。モデル：Lyria 3.5。曲の中ほどの音量はほかの曲と同じくらいなので、学習画面では BGM を小さめに流す（読み上げを聞き取りやすくするため） |
 | bgm_story.mp3 | おはなし（空港・タクシー） | BGM | Gemini アプリの音楽生成（開発者の Google AI Pro プラン）。指示文は 2-3 の「おはなし（空港・タクシー）」 | Google は所有権を主張しない（独占不可）。SynthID 入り | 2026-11-22 | 約2分41秒・192kbps。最後は無音で終わる（フェードアウト）ので、ループはその手前で切ってつなぐ。モデル：Lyria 3.5 |
+| sfx/door_bell.mp3 | カフェのドアのベル（`door_bell`） | 効果音 | OpenGameArt「pleasing bell sound effect」（https://opengameart.org/content/pleasing-bell-sound-effect）の pleasing-bell.wav | CC0 | 2026-11-23 | Claude Code が選んだ。大きさをそろえて MP3 にした（npm run audio） |
+| sfx/cup.mp3 | カップを置く音（`cup`） | 効果音 | Kenney「Impact Sounds」の impactPlate_light_002.ogg | CC0 | 2026-11-23 | 同上 |
+| sfx/buzzer.mp3 | 呼び出しベルの振動（`buzzer`） | 効果音 | OpenGameArt「Electric Buzz」（https://opengameart.org/content/electric-buzz）の buzz.ogg | CC0 | 2026-11-23 | 同上 |
+| sfx/page.mp3 | ページをめくる音（`page`） | 効果音 | Kenney「RPG Audio」の bookFlip2.ogg | CC0 | 2026-11-23 | 同上 |
+| sfx/car.mp3 | 車の音（`car`。タクシー） | 効果音 | OpenGameArt「Car engine start 01」（https://opengameart.org/content/car-engine-start-01）の engine_start_01.mp3 | CC0 | 2026-11-23 | 同上 |
+| sfx/call.mp3 | ビデオ通話の呼び出し音（`call`） | 効果音 | OpenGameArt「Modern Ringtone [Chirptone]」（https://opengameart.org/content/modern-ringtone-chirptone）の chirptone.wav | CC0 | 2026-11-23 | 同上 |
+| （未定） | 飛行機の音（`airplane`） | 効果音 | 候補：Wikimedia Commons「Sound inside the Copa Airlines flight during landing.flac」（CC0） | CC0 | － | 2026-11-23 は取得できず（混雑で拒否）。決まるまで、この音は鳴らさない |

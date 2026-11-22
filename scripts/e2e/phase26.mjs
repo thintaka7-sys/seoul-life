@@ -2,7 +2,8 @@
 // ヘッドレスのブラウザには韓国語の音声がないことが多いので、偽の読み上げ（何を・どの速さで読んだかを記録する）を入れて確かめる。
 // 実際の音が聞き分けられるかは、実機で確かめる（報告では未確認に入れる）。使い方は scripts/e2e/README.md。
 
-import { openBrowser, sleep } from './browser.mjs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { openBrowser, saveAtHome, sleep } from './browser.mjs'
 import { practiceAnswers, readdirJson } from './practice-answers.mjs'
 
 const b = await openBrowser('phase26')
@@ -56,27 +57,24 @@ const dayAfter = (n) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-// ---------- セーブデータ：1日目を終え、単語3つ・文法1つを覚えた ----------
+// ---------- セーブデータ：すべてのイベントを終え、単語3つ・文法1つを覚えた ----------
 
 const NOW = new Date().toISOString()
-const SAVE = {
-  version: 4,
-  createdAt: NOW,
-  updatedAt: NOW,
-  progress: { currentLocationId: 'home', completedEvents: ['event_001', 'event_002', 'event_003'], activeEvent: null },
+// いまの版（v6）で、すべてのイベントを終えた形（会話の記録はない）
+const allEventIds = readdirSync('src/data/events').filter((n) => n.endsWith('.json')).sort().flatMap((n) => JSON.parse(readFileSync(`src/data/events/${n}`, 'utf8'))).map((e) => e.id)
+const SAVE = saveAtHome({
+  progress: { completedEvents: allEventIds },
   learning: {
     words: { vocab_001: { learnedAt: NOW, chapter: 1 }, vocab_012: { learnedAt: NOW, chapter: 1 }, vocab_013: { learnedAt: NOW, chapter: 1 } },
     grammar: { grammar_002: { learnedAt: NOW, chapter: 1 } },
-    conversations: {},
-    hangul: {},
-    listening: {},
+    review: Object.fromEntries(['word:vocab_001', 'word:vocab_012', 'word:vocab_013', 'grammar:grammar_002'].map((k) => [k, { stage: 0, due: dayAfter(1), correct: 0, wrong: 0, lastAt: null }])),
   },
   stats: { xp: 100 },
-}
+})
 
 async function openStudy() {
   await freshStart({ save: SAVE })
-  await click('つづきから')
+  await b.continueToHome()
   await click('勉強する（復習・練習・ハングル）')
 }
 
@@ -398,7 +396,7 @@ for (const [W, H, mobile] of [
 // 翌日の今日の復習に、聞き分けの組が出る（選択肢は同じ組の音だけ）。正解すると次の間隔へ
 await evaluate(`localStorage.setItem('e2e:dayOffset', '1')`)
 await reload()
-await click('つづきから')
+await b.continueToHome()
 await click('勉強する（復習・練習・ハングル）')
 await click('今日の復習', { exact: false })
 await click('はじめる')
@@ -439,7 +437,7 @@ check('今日の復習で聞き分けの組に正解すると、次の間隔（3
 await evaluate(`localStorage.setItem('e2e:dayOffset', '4'); localStorage.setItem('e2e:noSpeech', '1')`)
 await reload()
 await sleep(2300)
-await click('つづきから')
+await b.continueToHome()
 await click('勉強する（復習・練習・ハングル）')
 check('音声のない端末：学習画面に、聞き分けが使えない理由を出す', (await mainText()).includes('聞き分けの練習は使えません'))
 await click('聞き分け')
@@ -468,8 +466,9 @@ async function speechCheck() {
   return evaluate(`document.querySelector('.speech-check').textContent`)
 }
 async function startGame() {
+  // はじめからで第1章のおはなしが始まるので、やめて自宅にいる状態にする
   await click('はじめから')
-  await click('このまま物語を始める')
+  await click('やめる')
 }
 
 await viewport(375, 760, true)
@@ -480,7 +479,7 @@ await device({ strength: 1 })
 await startGame()
 let text = await speechCheck()
 check('BUG-010 読み上げの確認（十分に遅くなる端末）：ふつうと速さ 0.5 の時間・倍率を出し、「速さ 0.5 で読みます」', /ふつう（速さ 1）：\d+\.\d+秒/.test(text) && /速さ 0\.5：\d+\.\d+秒（2\.0倍）/.test(text) && !text.includes('速さ 0.35：') && text.includes('「ゆっくり」を速さ 0.5 で読みます'), text)
-check('BUG-010 読み上げの確認の結果を、設定に保存する（v4 の slowSpeech）', (await savedSettings())?.version === 4 && (await savedSettings())?.slowSpeech?.rate === 0.5, JSON.stringify(await savedSettings()))
+check('BUG-010 読み上げの確認の結果を、設定に保存する（v5 の slowSpeech）', (await savedSettings())?.version === 5 && (await savedSettings())?.slowSpeech?.rate === 0.5, JSON.stringify(await savedSettings()))
 await shot('bug010-check-works-375')
 
 // 2. 弱くしか効かない端末（iPhone の 1.3倍）：0.35 まで試して選ぶ。測り方も出す
@@ -493,7 +492,7 @@ await layoutCheck('BUG-010 読み上げの確認（結果）')
 await shot('bug010-check-weak-375')
 // 再読み込みしても、保存した速さを使う（試しに聞くの短い単語は、0.35 で読んだうえでもう1回）
 await reload()
-await click('つづきから')
+await b.continueToHome()
 await click('設定', { exact: false })
 check('BUG-010 再読み込み後、「前に確かめた結果：速さ 0.35」を出す', (await evaluate(`document.querySelector('.speech-check').textContent`)).includes('前に確かめた結果：「ゆっくり」を速さ 0.35 で読みます'))
 await click('戻る')

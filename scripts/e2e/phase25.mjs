@@ -3,13 +3,16 @@
 // ページの日付を進めて（翌日・2日後・4日後）、間違えた問題が翌日に、正解した問題が決めた間隔で出ることを確かめる。
 // 問題の正解は、教材の JSON から求める。使い方は scripts/e2e/README.md。
 
-import { openBrowser, sleep } from './browser.mjs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { openBrowser, saveAtHome, sleep } from './browser.mjs'
 import { practiceAnswers } from './practice-answers.mjs'
 
 const b = await openBrowser('phase25')
 const { evaluate, click, mainText, saved, viewport, shot, freshStart, reload, check, layoutCheck, send } = b
 
 const { conversations, drills, tests, koToDigits, norm, readQuestion, correctAnswer, typeInto } = practiceAnswers(b)
+/** すべてのイベントのID（ファイル名の順・ファイル内の順。ゲームと同じ順） */
+const allEventIds = readdirSync('src/data/events').filter((n) => n.endsWith('.json')).sort().flatMap((n) => JSON.parse(readFileSync(`src/data/events/${n}`, 'utf8'))).map((e) => e.id)
 
 const formsSeen = new Set()
 let digitsRejectedSeen = false
@@ -92,7 +95,7 @@ async function goToDay(n) {
   await evaluate(`localStorage.setItem('e2e:dayOffset', '${n}')`)
   await reload()
   await evaluate(`(() => { if (!window.speechSynthesis) return; const orig = window.speechSynthesis.speak.bind(window.speechSynthesis); window.speechSynthesis.speak = (u) => { window.__spoken = u.text; return orig(u) } })()`)
-  await click('つづきから')
+  await b.continueToHome()
   await click('勉強する（復習・練習・ハングル）')
 }
 const studyButton = (prefix) => evaluate(`[...document.querySelectorAll('main button')].map((b) => b.textContent.trim()).find((t) => t.startsWith(${JSON.stringify(prefix)})) ?? ''`)
@@ -132,13 +135,14 @@ async function playReplayConversation() {
 // --- BUG-007：Phase 2 で1日目を終えたセーブデータ（作り直した会話の記録がない）でも、章末テストの条件を満たせる ---
 async function replaySection(P, W) {
   const T = new Date().toISOString()
-  const phase2Done = {
-    ...v4,
-    progress: { currentLocationId: 'home', completedEvents: ['event_001', 'event_002', 'event_003'], activeEvent: null },
+  // いまの版（v6）で、すべてのイベントを終えた形（作り直す前の会話の記録だけがある）
+  const phase2Done = saveAtHome({
+    progress: { completedEvents: allEventIds },
     learning: { ...v4.learning, conversations: { 'home_003#0': { choice: true, write: false }, 'home_003#1': { choice: true, write: false }, 'home_004#0': { choice: true, write: false } } },
+    stats: { xp: v4.stats.xp },
     createdAt: T,
     updatedAt: T,
-  }
+  })
   const test = tests.find((t) => t.chapter === 1)
   const ch1 = conversations.filter((c) => c.chapter === 1)
   await freshStart({ save: phase2Done })
@@ -179,7 +183,7 @@ async function runWidth(W, H, mobile) {
 
   // --- 移行と、今日（覚えた日）---
   let s = await saved()
-  check(`${P} v4 のセーブデータを v5 に移行し、覚えたもの5つを翌日の復習に入れる`, s.version === 5 && KEYS.every((k) => s.learning.review[k]?.due === dayAfter(1)), JSON.stringify(s.learning.review))
+  check(`${P} v4 のセーブデータを v6 に移行し、覚えたもの5つを翌日の復習に入れる`, s.version === 6 && KEYS.every((k) => s.learning.review[k]?.due === dayAfter(1)), JSON.stringify(s.learning.review))
   check(`${P} 学習画面：今日の復習（0問）と練習`, (await studyButton('今日の復習')) === '今日の復習（0問）' && (await studyButton('練習')) === '練習')
   await layoutCheck(`${P} 学習画面`)
   await click('今日の復習（0問）')
@@ -325,7 +329,7 @@ async function runWidth(W, H, mobile) {
 
   // --- スタンプカード：今日（4日後）押したので、続けている日数1・集めたスタンプ4。再読み込みしても残る ---
   await reload()
-  await click('つづきから')
+  await b.continueToHome()
   await click('スタンプカード')
   card = await mainText()
   check(`${P} スタンプが再読み込みしても残る（今日押した・続けて1日・集めた4個）`, card.includes('今日のスタンプを押しました') && card.includes('続けている日数：1日') && card.includes('集めたスタンプ：4個'), card.slice(0, 200))
