@@ -1,6 +1,8 @@
-// 効果音。素材ファイルは使わず、Web Audio API で短い音を作って鳴らす（GAME_SPEC 10-4）。
+// 効果音（ボタン・正解など）。Web Audio API で短い音を作って鳴らす（GAME_SPEC 10-4）。場面の効果音（ドアのベルなど）は sceneSounds.ts。
 // ブラウザは、利用者が画面を操作する前に音を出させないため、最初のタップ（またはキー操作）で準備する。
 // iPhone はマナーモード（消音スイッチ）のとき、この音は鳴らない（端末の仕様）。
+
+import { ensureAudioEngine } from './engine'
 
 export const SFX_NAMES = ['button', 'correct', 'wrong', 'xp', 'fanfare'] as const
 export type SfxName = (typeof SFX_NAMES)[number]
@@ -135,8 +137,8 @@ export function createSfxPlayer(env: SfxEnvironment): SfxPlayer {
   }
 }
 
-/** ブラウザの AudioContext を SfxContext の形で包む */
-function wrapAudioContext(ctx: AudioContext): SfxContext {
+/** ブラウザの AudioContext を SfxContext の形で包む。音は out（効果音の音量のつまみ）を通して出す */
+function wrapAudioContext(ctx: AudioContext, out: AudioNode): SfxContext {
   return {
     get state() {
       return ctx.state
@@ -164,7 +166,7 @@ function wrapAudioContext(ctx: AudioContext): SfxContext {
         gain.gain.setValueAtTime(0.0001, start + n.at)
         gain.gain.exponentialRampToValueAtTime(n.gain, start + n.at + 0.012)
         gain.gain.exponentialRampToValueAtTime(0.0001, start + n.at + n.dur)
-        osc.connect(gain).connect(ctx.destination)
+        osc.connect(gain).connect(out)
         osc.start(start + n.at)
         osc.stop(start + n.at + n.dur + 0.02)
       }
@@ -177,13 +179,9 @@ function browserEnvironment(): SfxEnvironment {
   return {
     target: window,
     createContext() {
-      const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-      if (Ctor === undefined) return null
-      try {
-        return wrapAudioContext(new Ctor())
-      } catch {
-        return null
-      }
+      // BGM・場面の効果音と、同じ AudioContext を使う（engine.ts）
+      const engine = ensureAudioEngine()
+      return engine === null ? null : wrapAudioContext(engine.ctx, engine.sfx)
     },
     // 操作の外で音の準備をすると、ブラウザが警告を出すうえに失敗するので、操作の最中かを確かめる
     isUserActive: () => (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive ?? true,
@@ -191,10 +189,17 @@ function browserEnvironment(): SfxEnvironment {
 }
 
 const player = createSfxPlayer(browserEnvironment())
+let sfxEnabled = true
 
 /** 設定の「効果音」を反映する */
 export function setSfxEnabled(value: boolean): void {
+  sfxEnabled = value
   player.setEnabled(value)
+}
+
+/** 効果音がオンか（場面の効果音もこれに従う） */
+export function isSfxEnabled(): boolean {
+  return sfxEnabled
 }
 
 /** 起動時に1回呼ぶ。最初の操作で音の準備をする（それより前には音を出さない） */

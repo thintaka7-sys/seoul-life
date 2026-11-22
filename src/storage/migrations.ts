@@ -64,6 +64,27 @@ export const MIGRATIONS: MigrationTable = {
     }
     return { ...d, version: 5, learning: { ...learning, review, drills: {}, tests: {} }, daily: { stamps: [] } }
   },
+  // v5（Phase 2.5）→ v6（Phase 3）：物語を「1日目」から章立てに組み直したので、物語の進み具合（終えたイベント・途中のイベント・いた場所）だけを
+  // 最初からにする。覚えた単語・復習・スタンプ・経験値はそのまま（計画 Q5）。物語を進めていたときは、一度だけお知らせを出す。
+  // おはなし・見かけた単語・読み物・注文・形が変わる言葉の記録を空で足す
+  5: (d) => {
+    const progress = isObj(d['progress']) ? d['progress'] : {}
+    const learning = isObj(d['learning']) ? d['learning'] : {}
+    const completed = progress['completedEvents']
+    const loc = progress['currentLocationId']
+    const added = { storiesSeen: {}, notices: [] }
+    // 形の崩れた進み具合は直さずに残す（読み込みの検証で「壊れたデータ」として扱い、元のデータを退避するため）
+    if (!Array.isArray(completed) || !(loc === null || typeof loc === 'string')) {
+      return { ...d, version: 6, progress: { ...progress, ...added }, learning: { ...learning, seen: {}, readings: {}, orders: {}, forms: {} } }
+    }
+    const played = completed.length > 0 || isObj(progress['activeEvent'])
+    return {
+      ...d,
+      version: 6,
+      progress: { currentLocationId: null, completedEvents: [], activeEvent: null, ...added, notices: played ? ['storyRestructured'] : [] },
+      learning: { ...learning, seen: {}, readings: {}, orders: {}, forms: {} },
+    }
+  },
 }
 
 export type MigrateResult =

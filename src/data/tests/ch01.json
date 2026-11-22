@@ -1,0 +1,11 @@
+[
+  {
+    "id": "test_001",
+    "chapter": 1,
+    "titleJa": "第1章のテスト",
+    "questionCount": 10,
+    "passPercent": 80,
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）。問題はプログラムが第1章の単語・文法・会話から作る。足す問題はなし／確認：ChatGPT（2026-11-23、第1章の教材として）"
+  }
+]

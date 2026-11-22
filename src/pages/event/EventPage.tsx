@@ -1,12 +1,16 @@
+import { useCallback } from 'react'
 import { eventBackdrop } from '../../app/backdrop'
 import { useGame, nowIso } from '../../app/GameContext'
 import { Button } from '../../components/Button'
-import { findColumn, findConversation, findGameEvent, findLocation } from '../../data'
-import { stepProgress } from '../../game/events/events'
+import { findColumn, findConversation, findGameEvent, findLocation, findStory } from '../../data'
+import { backgroundAt, stepProgress } from '../../game/events/events'
 import { DictionaryList } from '../DictionaryPage'
 import { ColumnStep } from './ColumnStep'
 import { ConversationStep } from './ConversationStep'
+import { ChapterEndStep } from './ChapterEndStep'
 import { DayEndStep } from './DayEndStep'
+import { HangulIntroStep } from './HangulIntroStep'
+import { StoryStep } from './StoryStep'
 import { LearnStep } from './LearnStep'
 
 /** イベントの段階を1つずつ表示する画面 */
@@ -15,6 +19,7 @@ export function EventPage() {
   const run = state.run
   const event = run === null ? undefined : findGameEvent(run.eventId)
   const step = run === null ? undefined : event?.steps[run.step]
+  const storyDone = useCallback(() => dispatch({ type: 'storyDone', now: nowIso() }), [dispatch])
 
   if (run === null || event === undefined || step === undefined) {
     return (
@@ -84,13 +89,21 @@ export function EventPage() {
       // 背景の切り替えは進行の処理で飛ばすので、ここには来ない（来た場合は何も出さない）
       body = null
       break
-    case 'story':
+    case 'story': {
+      const story = findStory(step.id)
+      body = story === undefined ? <p>おはなしが見つかりませんでした。</p> : <StoryStep key={stepKey} story={story} background={backgroundAt(event, run.step)} onDone={storyDone} />
+      break
+    }
+    case 'hangulIntro':
+      body = <HangulIntroStep />
+      break
+    case 'chapterEnd':
+      body = <ChapterEndStep key={stepKey} chapter={event.chapter} textJa={step.textJa} />
+      break
     case 'reading':
     case 'order':
     case 'listening':
-    case 'chapterEnd':
-    case 'hangulIntro':
-      // Phase 3 の区切り2・3で作る段階。教材にはまだ使われていないが、来た場合は飛ばせるようにする
+      // Phase 3 の区切り3で作る段階。教材にはまだ使われていないが、来た場合は飛ばせるようにする
       body = (
         <>
           <p className="message">この段階は準備中です。</p>
@@ -124,7 +137,7 @@ export function EventPage() {
       <progress className="event-progress" max={progress.total} value={progress.done} aria-label="イベントの進み具合" />
       <div className="screen__body">
         <div key={stepKey} className="step-enter">
-          {step.type === 'conversation' ? body : <div className="panel">{body}</div>}
+          {step.type === 'conversation' || step.type === 'story' ? body : <div className="panel">{body}</div>}
         </div>
       </div>
     </main>

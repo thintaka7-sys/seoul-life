@@ -1,0 +1,203 @@
+// BGM（GAME_SPEC 10-4）。場面に合わせた曲を、くり返して流す。
+// - 曲は2つの audio 要素（デッキ）を交互に使い、Web Audio の音量のつまみ（GainNode）を通して鳴らす。
+//   iPhone の Safari は audio.volume が効かないため、音量はつまみで変える。
+// - 曲の終わり（フェードアウトの手前で切ってある。npm run audio）が近づいたら、同じ曲の始めをもう一方のデッキで重ねて始める。
+// - 場面が変わったら、新しい曲を重ねながら切り替える。読み上げの間は小さくする。
+// - ブラウザは操作の前に音を出させないので、最初の操作で AudioContext ができてから鳴らし始める。
+//   iPhone は、操作の中で一度 play() した audio 要素でないと後から鳴らせないことがあるため、最初の操作で両方のデッキを一度鳴らして止める。
+
+import { audioAssets } from '../data'
+import type { BgmId } from '../data/types'
+import { currentAudioEngine, onAudioEngineReady } from './engine'
+import { DUCK_VOLUME, LOOP_CROSSFADE_SEC, SWITCH_FADE_SEC, loopDue } from './bgmTiming'
+import { UNLOCK_EVENTS } from './sfx'
+
+interface Deck {
+  el: HTMLAudioElement
+  gain: GainNode
+  track: BgmId | null
+  /** フェードアウトの後に止めるタイマー */
+  stopTimer: number | null
+  /** 再生を断られた（操作の前など）。次の操作で再び試す */
+  pending: boolean
+}
+
+interface Desired {
+  track: BgmId | null
+  /** 曲の大きさ（学習画面では小さめ） */
+  level: number
+}
+
+let ctx: AudioContext | null = null
+let mix: GainNode | null = null
+let decks: [Deck, Deck] | null = null
+let active: 0 | 1 = 0
+
+function flip(i: 0 | 1): 0 | 1 {
+  return i === 0 ? 1 : 0
+}
+let desired: Desired = { track: null, level: 1 }
+let enabled = true
+let ducked = false
+let primed = false
+
+function urlOf(track: BgmId): string | null {
+  const entry = audioAssets.bgm[track]
+  return entry === undefined ? null : `${import.meta.env.BASE_URL}${entry.src}`
+}
+
+function ramp(gain: GainNode, to: number, sec: number): void {
+  if (ctx === null) return
+  const now = ctx.currentTime
+  gain.gain.cancelScheduledValues(now)
+  gain.gain.setValueAtTime(gain.gain.value, now)
+  gain.gain.linearRampToValueAtTime(to, now + Math.max(0.01, sec))
+}
+
+function play(deck: Deck): void {
+  deck.el
+    .play()
+    .then(() => {
+      deck.pending = false
+    })
+    .catch(() => {
+      deck.pending = true
+    })
+}
+
+function fadeOut(deck: Deck, sec: number): void {
+  ramp(deck.gain, 0, sec)
+  if (deck.stopTimer !== null) window.clearTimeout(deck.stopTimer)
+  deck.stopTimer = window.setTimeout(() => {
+    deck.stopTimer = null
+    deck.el.pause()
+    deck.pending = false
+  }, sec * 1000 + 100)
+}
+
+/** deck で track を始めから流し、sec 秒かけて大きくする */
+function start(deck: Deck, track: BgmId, sec: number): void {
+  const url = urlOf(track)
+  if (url === null) return
+  if (deck.stopTimer !== null) {
+    window.clearTimeout(deck.stopTimer)
+    deck.stopTimer = null
+  }
+  if (!deck.el.src.endsWith(url)) deck.el.src = url
+  try {
+    deck.el.currentTime = 0
+  } catch {
+    // 読み込み前は位置を変えられない（始めから流れる）
+  }
+  deck.track = track
+  deck.gain.gain.value = 0
+  play(deck)
+  ramp(deck.gain, desired.level, sec)
+}
+
+/** 望む曲・オン/オフに合わせて、いまの再生を変える */
+function apply(): void {
+  if (decks === null) return
+  const current = decks[active]
+  const other = decks[flip(active)]
+  const target = enabled ? desired.track : null
+  if (target === null || urlOf(target) === null) {
+    if (!current.el.paused) fadeOut(current, SWITCH_FADE_SEC)
+    if (!other.el.paused) fadeOut(other, SWITCH_FADE_SEC)
+    current.track = null
+    return
+  }
+  if (current.track === target && (!current.el.paused || current.pending)) {
+    ramp(current.gain, desired.level, SWITCH_FADE_SEC)
+    if (current.pending) play(current)
+    return
+  }
+  if (!current.el.paused) fadeOut(current, SWITCH_FADE_SEC)
+  current.track = null
+  active = flip(active)
+  start(other, target, current.el.paused ? 0.3 : SWITCH_FADE_SEC)
+}
+
+/** 定期的に：曲の終わりが近ければ重ねて始め直す。読み上げの間は小さくする */
+function tick(): void {
+  if (decks === null || mix === null) return
+  const current = decks[active]
+  const track = current.track
+  const entry = track === null ? undefined : audioAssets.bgm[track]
+  if (track !== null && entry !== undefined && !current.el.paused && loopDue(current.el.currentTime, entry.duration)) {
+    const other = decks[flip(active)]
+    fadeOut(current, LOOP_CROSSFADE_SEC)
+    current.track = null
+    active = flip(active)
+    start(other, track, LOOP_CROSSFADE_SEC)
+  }
+  const speaking = typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking
+  if (speaking !== ducked) {
+    ducked = speaking
+    ramp(mix, speaking ? DUCK_VOLUME : 1, speaking ? 0.15 : 0.6)
+  }
+}
+
+/** 操作のたびに：断られた再生をもう一度試す。最初の操作では、両方のデッキを一度鳴らして止める（iPhone） */
+function onGesture(): void {
+  if (decks === null) return
+  if (ctx !== null && ctx.state !== 'running') void ctx.resume().catch(() => undefined)
+  for (const deck of decks) if (deck.pending) play(deck)
+  if (!primed) {
+    primed = true
+    const idle = decks[flip(active)]
+    const url = desired.track === null ? null : urlOf(desired.track)
+    if (idle.el.paused && url !== null) {
+      idle.el.src = url
+      idle.gain.gain.value = 0
+      idle.el
+        .play()
+        .then(() => {
+          if (idle.track === null) idle.el.pause()
+        })
+        .catch(() => undefined)
+    }
+  }
+}
+
+function setup(audio: AudioContext, output: AudioNode): void {
+  if (decks !== null || typeof Audio === 'undefined') return
+  ctx = audio
+  mix = audio.createGain()
+  mix.connect(output)
+  const make = (): Deck => {
+    const el = new Audio()
+    el.preload = 'auto'
+    const gain = audio.createGain()
+    gain.gain.value = 0
+    audio.createMediaElementSource(el).connect(gain).connect(mix as GainNode)
+    return { el, gain, track: null, stopTimer: null, pending: false }
+  }
+  decks = [make(), make()]
+  window.setInterval(tick, 250)
+  for (const type of UNLOCK_EVENTS) window.addEventListener(type, onGesture, { passive: true, capture: true })
+  onGesture()
+  apply()
+}
+
+/** 起動時に1回呼ぶ。最初の操作で AudioContext ができたら準備する */
+export function initBgm(): void {
+  onAudioEngineReady((audio) => {
+    const engine = currentAudioEngine()
+    if (engine !== null) setup(audio, engine.bgm)
+  })
+}
+
+/** 流す曲（null なら止める）と、その大きさ（0〜1） */
+export function setBgm(track: BgmId | null, level: number): void {
+  if (desired.track === track && desired.level === level) return
+  desired = { track, level }
+  apply()
+}
+
+/** 設定の「BGM」のオン・オフ */
+export function setBgmEnabled(value: boolean): void {
+  if (enabled === value) return
+  enabled = value
+  apply()
+}

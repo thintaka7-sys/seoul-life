@@ -1,7 +1,7 @@
 // data/ 以下の JSON をすべて読み込み、検証してから渡す。
 // 新しい教材ファイルは、各フォルダに .json を置くだけで読み込まれる（docs/CONTENT_FORMAT.md）。
 
-import { parseAssetManifest } from './assets'
+import { parseAssetManifest, parseAudioManifest } from './assets'
 import { SCENE_BACKGROUNDS, type Expression } from './types'
 import { formatIssue, loadContent, type LoadedContent } from './validate'
 
@@ -76,6 +76,12 @@ const assetResult = parseAssetManifest(import.meta.glob<unknown>('./assets/manif
 })
 for (const issue of assetResult.issues) console.error(`[画像] ${formatIssue(issue)}`)
 
+const audioResult = parseAudioManifest(import.meta.glob<unknown>('./assets/audio.json', { eager: true, import: 'default' })['./assets/audio.json'])
+for (const issue of audioResult.issues) console.error(`[音] ${formatIssue(issue)}`)
+
+/** 音の一覧（BGM・場面の効果音。ないものは鳴らさない） */
+export const audioAssets = audioResult.manifest
+
 /** 画像の一覧（画像がないものは載らない） */
 export const assets = assetResult.manifest
 export const assetIssues = assetResult.issues
@@ -84,6 +90,15 @@ export const assetIssues = assetResult.issues
 export function characterImage(characterId: string, expression: Expression) {
   const images = assets.characters[characterId]
   return images?.[expression] ?? images?.normal
+}
+
+/** おはなしの一枚絵。なければ undefined（背景だけで進む） */
+export function cgImage(key: string) {
+  return assets.cg[key]
+}
+
+export function findStory(id: string) {
+  return content.stories.find((s) => s.id === id)
 }
 
 /** 背景（施設ID か場面の背景のID）。なければ undefined（仮の絵を出す） */

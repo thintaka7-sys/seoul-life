@@ -5,6 +5,7 @@ import { useCanSpeak, useFuriganaDisplay } from '../../app/hooks'
 import { AnswerInput } from '../../components/AnswerInput'
 import { Button } from '../../components/Button'
 import { DialogueBox } from '../../components/dialogue/DialogueBox'
+import { useGlossPopup } from '../../components/useGlossPopup'
 import { LogPanel } from '../../components/dialogue/LogPanel'
 import { ProfileCard } from '../../components/dialogue/ProfileCard'
 import { TEXT_SPEED_MS, plainSegments, totalChars } from '../../components/dialogue/typewriter'
@@ -310,6 +311,7 @@ export function ConversationStep({ conversation, replay, hasBackground, onTurnAn
   const character = findCharacter(conversation.character)
   const [profileOpen, setProfileOpen] = useState(() => !replay && character !== undefined && firstConversationWith(conversation.character) === conversation.id)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const gloss = useGlossPopup(conversation.chapter)
 
   const phase = sessionPhase(conversation, s)
   const lines = shownLines(conversation, s)
@@ -379,6 +381,7 @@ export function ConversationStep({ conversation, replay, hasBackground, onTurnAn
           canAdvance={phase !== 'answer'}
           onAdvance={advance}
           onOpenLog={() => setLogOpen(true)}
+          onGloss={gloss.onGloss}
           badge={
             current.kind === 'player' && answer !== null ? (
               <AnswerBadge answer={answer} model={turnModel(conversation.turns[s.turn])} lastMistake={lastWrittenMistake(s)} />
@@ -392,6 +395,7 @@ export function ConversationStep({ conversation, replay, hasBackground, onTurnAn
       {!reviewOpen && current?.kind === 'player' && (answer?.method === 'choice' || answer?.method === 'decision') && canSpeak && <SayItPractice key={s.turn} korean={answer.line.korean} />}
       {logOpen && <LogPanel lines={lines} display={display} onClose={() => setLogOpen(false)} />}
       {profileOpen && character !== undefined && <ProfileCard character={character} display={display} onClose={() => setProfileOpen(false)} />}
+      {gloss.popup}
     </div>
   )
 }

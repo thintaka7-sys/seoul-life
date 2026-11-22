@@ -2558,3 +2558,369 @@ h2.step-heading {
 .speech-check p {
   margin: 0;
 }
+
+/* ---------- Phase 3：おはなし（GAME_SPEC 3-2） ---------- */
+
+.story {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.story__stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: clamp(200px, 38dvh, 420px);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
+}
+
+.story__portrait {
+  height: 100%;
+  animation: portrait-enter var(--duration-move) ease-out;
+}
+
+.story__cg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius);
+  animation: fade-in var(--duration-fade) ease-out;
+}
+
+.story__stage .call-frame--story {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 1;
+}
+
+.story__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.chip-toggle {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-glass-strong);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chip-toggle[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.dialogue--narration {
+  border-style: dashed;
+}
+
+.story__narration {
+  margin: 0;
+  line-height: 1.8;
+}
+
+.dialogue--sign {
+  border-color: #2e4a7d;
+  background: #23365c;
+  color: #fff;
+  cursor: pointer;
+}
+
+.dialogue--sign .dialogue__ja {
+  color: #d8e2f3;
+}
+
+.nameplate--sign {
+  background: #fff;
+  color: #23365c;
+}
+
+.story__sign-text {
+  font-size: 1.6rem;
+  line-height: 2;
+  letter-spacing: 0.04em;
+}
+
+.dialogue--choice {
+  cursor: default;
+}
+
+.story__prompt {
+  margin: 0;
+  font-weight: 700;
+}
+
+.story__choices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.story__choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.story__choice-button {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  text-align: left;
+  min-width: 0;
+}
+
+.story__choice-ja {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.log-line--narration p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+/* ---------- Phase 3：ビデオ通話の枠（先生。GAME_SPEC 2-3） ---------- */
+
+.call-frame {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 3px solid #1f2a3d;
+  border-radius: 14px;
+  background: #1f2a3d;
+  box-shadow: var(--shadow-panel);
+}
+
+.call-frame--story {
+  width: min(62%, 260px);
+}
+
+.call-frame--mini {
+  width: 72px;
+  flex: none;
+  border-width: 2px;
+  border-radius: 10px;
+}
+
+.call-frame__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.call-frame__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e5484d;
+  animation: next-bob 1.4s ease-in-out infinite;
+}
+
+.call-frame__video {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: linear-gradient(160deg, #e9eef6, #cdd8ea);
+}
+
+.call-frame--mini .call-frame__video {
+  aspect-ratio: 1 / 1;
+}
+
+/* 立ち絵の顔と肩のあたりだけを見せる */
+.call-frame__portrait {
+  position: absolute;
+  left: 50%;
+  top: 4%;
+  width: 150%;
+  max-width: none;
+  translate: -50% 0;
+}
+
+.call-frame__portrait .portrait__img {
+  object-position: top;
+}
+
+.teacher-says {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  min-width: 0;
+}
+
+.teacher-says__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teacher-says__bubbles {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.teacher-says__bubble {
+  position: relative;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #c6d2e6;
+  border-radius: 4px 14px 14px 14px;
+  background: #f1f5fb;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Phase 3：単語のタップ（GAME_SPEC 4-8） ---------- */
+
+.gloss {
+  display: inline;
+  margin: 0;
+  padding: 0 1px;
+  border: none;
+  border-bottom: 2px dotted var(--color-primary);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.gloss:hover,
+.gloss:focus-visible {
+  background: #fff1e6;
+}
+
+.dialogue--sign .gloss {
+  border-bottom-color: #ffd28a;
+}
+
+.dialogue--sign .gloss:hover,
+.dialogue--sign .gloss:focus-visible {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.gloss-popup__word {
+  align-items: center;
+}
+
+.gloss-popup__text {
+  font-family: var(--font-ko);
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.gloss-popup__head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+}
+
+.gloss-popup__reading {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.gloss-popup__meaning {
+  margin: 4px 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.gloss-popup__note {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+}
+
+.gloss-popup__status {
+  margin: 0;
+}
+
+.dict-status--seen {
+  background: var(--color-draft-bg);
+  color: var(--color-draft-text);
+}
+
+.mode-tabs--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* ---------- Phase 3：章の終わり・アルバム・音量・お知らせ ---------- */
+
+.chapter-end__title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.album-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.album-list__item {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.volume {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 3em;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap-min);
+}
+
+.volume input[type='range'] {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--tap-min);
+}
+
+.volume__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.toast__unlock {
+  font-weight: 700;
+}
+
+.hangul-intro {
+  display: grid;
+  gap: 12px;
+}

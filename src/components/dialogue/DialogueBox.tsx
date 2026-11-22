@@ -1,6 +1,8 @@
-import type { MouseEvent, ReactNode } from 'react'
+import { useMemo, type MouseEvent, type ReactNode } from 'react'
+import { glossSpansOf } from '../../app/glossary'
 import type { ShownLine } from '../../learning/conversation/session'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
+import type { GlossSpan } from '../../learning/gloss/resolve'
 import { KoreanText } from '../KoreanText'
 import { SpeakButton } from '../SpeakButton'
 import { Translation } from '../Translation'
@@ -18,13 +20,16 @@ interface DialogueBoxProps {
   onOpenLog: () => void
   /** 台詞の上に出す知らせ（「正解！」など） */
   badge?: ReactNode
+  /** 単語をタップしたとき（主人公の返事はタップできない。GAME_SPEC 4-8） */
+  onGloss?: (span: GlossSpan) => void
 }
 
 /**
  * いまの台詞を1つだけ見せる枠。枠をタップすると、文字送りの途中なら全文を表示し、表示し終えていれば次へ進む。
  * 日本語訳は、韓国語を表示し終えてから出す。
  */
-export function DialogueBox({ line, display, typing, canAdvance, onAdvance, onOpenLog, badge }: DialogueBoxProps) {
+export function DialogueBox({ line, display, typing, canAdvance, onAdvance, onOpenLog, badge, onGloss }: DialogueBoxProps) {
+  const spans = useMemo(() => (line.kind === 'player' ? [] : glossSpansOf(line.korean, line.glosses)), [line])
   function tap(e: MouseEvent<HTMLElement>) {
     // 枠の中のボタン（読み上げ・フリガナ・ログ・次へ）は、それぞれの動きだけにする
     if (e.target instanceof Element && e.target.closest('button') !== null) return
@@ -47,7 +52,15 @@ export function DialogueBox({ line, display, typing, canAdvance, onAdvance, onOp
       </div>
       {badge}
       <div className="ko-row">
-        <KoreanText korean={line.korean} reading={line.pronunciation} display={display} className="dialogue__ko" visibleChars={typing.done ? undefined : typing.visible} />
+        <KoreanText
+          korean={line.korean}
+          reading={line.pronunciation}
+          display={display}
+          className="dialogue__ko"
+          visibleChars={typing.done ? undefined : typing.visible}
+          glossSpans={spans}
+          onGloss={onGloss}
+        />
         <SpeakButton text={line.korean} />
       </div>
       <Translation text={line.japanese} className={`dialogue__ja${typing.done ? '' : ' dialogue__ja--waiting'}`} />

@@ -4,7 +4,7 @@
 // Phase 7 の「AI会話」も、ここに方法を足して同じ入口から使う。
 // プレイヤーが選んだ答え方（preferred）は往復をまたいで覚えておき、使える往復ではその方法で始める（計画 Q9）。
 
-import { DEFAULT_EXPRESSION, PLAYER_SPEAKER_ID, type Conversation, type ConversationLine, type ConversationTurn, type Expression } from '../../data/types'
+import { DEFAULT_EXPRESSION, PLAYER_SPEAKER_ID, type Conversation, type ConversationLine, type ConversationTurn, type Expression, type Gloss } from '../../data/types'
 import { judgeAnswer, normalizeAnswer, type JudgeResult } from '../judge/judgeAnswer'
 import { judgeSpoken } from '../judge/judgeSpoken'
 
@@ -316,12 +316,16 @@ export interface ShownLine {
   japanese: string
   /** 台詞に書かれた表情。書かれていなければ autoExpression を使う */
   expression: Expression | undefined
+  /** タップで意味を見る語句（教材の glosses。GAME_SPEC 4-8） */
+  glosses?: Gloss[]
   /** 自動で決めた表情（ふだんの台詞は normal、正解の後の反応は笑顔、間違いへの反応は困り顔） */
   autoExpression: Expression
 }
 
 function fromLine(kind: ShownLine['kind'], line: ConversationLine, autoExpression: Expression): ShownLine {
-  return { kind, speaker: line.speaker, korean: line.korean, pronunciation: line.pronunciation, japanese: line.japanese, expression: line.expression, autoExpression }
+  const shown: ShownLine = { kind, speaker: line.speaker, korean: line.korean, pronunciation: line.pronunciation, japanese: line.japanese, expression: line.expression, autoExpression }
+  if (line.glosses !== undefined) shown.glosses = line.glosses
+  return shown
 }
 
 function fromAnswer(answer: TurnAnswer, shownReply: number): ShownLine[] {

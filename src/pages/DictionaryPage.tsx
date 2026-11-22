@@ -10,11 +10,11 @@ import { content } from '../data'
 import { GENRE_LABELS, PART_OF_SPEECH_LABELS, PARTS_OF_SPEECH, VOCAB_GENRES, type PartOfSpeech, type Vocab, type VocabGenre } from '../data/types'
 import { isMastered, reviewKey } from '../learning/review/review'
 
-/** 習得状況（GAME_SPEC 7-4。「見かけた」は Phase 3 で足す） */
-type Status = 'reviewing' | 'mastered'
+/** 習得状況（GAME_SPEC 7-4）。seen は、おはなしなどでタップして「覚える」を押した単語（見かけた単語。4-8） */
+type Status = 'reviewing' | 'mastered' | 'seen'
 type StatusFilter = 'all' | Status
 
-const STATUS_LABELS: Record<StatusFilter, string> = { all: 'すべて', reviewing: '復習中', mastered: '覚えた' }
+const STATUS_LABELS: Record<StatusFilter, string> = { all: 'すべて', reviewing: '復習中', mastered: '覚えた', seen: '見かけた' }
 
 function WordEntry({ vocab, chapter, status }: { vocab: Vocab; chapter: number; status: Status }) {
   const display = useFuriganaDisplay(chapter)
@@ -43,6 +43,7 @@ function WordEntry({ vocab, chapter, status }: { vocab: Vocab; chapter: number; 
 export function DictionaryList() {
   const { state } = useGame()
   const words = state.save?.learning.words ?? {}
+  const seen = state.save?.learning.seen ?? {}
   const review = state.save?.learning.review ?? {}
   const [genre, setGenre] = useState<'all' | VocabGenre>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
@@ -50,20 +51,23 @@ export function DictionaryList() {
 
   const learned = content.vocabulary.flatMap((v) => {
     const record = words[v.id]
-    if (record === undefined) return []
+    const seenRecord = seen[v.id]
+    if (record === undefined && seenRecord === undefined) return []
     const r = review[reviewKey('word', v.id)]
-    const s: Status = r !== undefined && isMastered(r, content.balance.review) ? 'mastered' : 'reviewing'
-    return [{ vocab: v, chapter: record.chapter, status: s }]
+    const s: Status = r !== undefined && isMastered(r, content.balance.review) ? 'mastered' : record === undefined ? 'seen' : 'reviewing'
+    return [{ vocab: v, chapter: record?.chapter ?? seenRecord?.chapter ?? 1, status: s }]
   })
+  const statuses: Status[] = ['reviewing', 'mastered', ...(learned.some((w) => w.status === 'seen') ? (['seen'] as const) : [])]
   const genres = VOCAB_GENRES.filter((g) => learned.some((w) => w.vocab.genre === g))
   const parts = PARTS_OF_SPEECH.filter((p) => learned.some((w) => w.vocab.partOfSpeech === p))
   const shown = learned.filter((w) => (genre === 'all' || w.vocab.genre === genre) && (status === 'all' || w.status === status) && (pos === 'all' || w.vocab.partOfSpeech === pos))
   const masteredCount = learned.filter((w) => w.status === 'mastered').length
+  const seenCount = learned.filter((w) => w.status === 'seen').length
 
   return (
     <>
       <p className="dict-count">
-        学んだ単語：{learned.length} / {content.vocabulary.length} 語（覚えた：{masteredCount} 語）
+        学んだ単語：{learned.length - seenCount} / {content.vocabulary.length} 語（覚えた：{masteredCount} 語）{seenCount > 0 && `・見かけた単語：${seenCount} 語`}
       </p>
       <SpeechNotice />
       {learned.length === 0 ? (
@@ -80,8 +84,8 @@ export function DictionaryList() {
               ))}
             </div>
             <div className="dict-filters__row">
-              <div className="mode-tabs mode-tabs--3" role="group" aria-label="習得状況">
-                {(['all', 'reviewing', 'mastered'] as const).map((s) => (
+              <div className={`mode-tabs mode-tabs--${statuses.length + 1}`} role="group" aria-label="習得状況">
+                {(['all', ...statuses] as const).map((s) => (
                   <button key={s} type="button" className="mode-tab" aria-pressed={status === s} onClick={() => setStatus(s)}>
                     {STATUS_LABELS[s]}
                   </button>

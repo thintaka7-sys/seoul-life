@@ -6,7 +6,7 @@ describe('設定の保存と読み込み', () => {
   it('保存されていなければ初期値（フリガナはおすすめ、訳はいつも表示、読み上げ・文字送りはふつう、効果音はオン、演出はふつう、音声入力はオンで説明は未読）', () => {
     expect(loadSettings(new MemoryStorage())).toEqual({ kind: 'default', settings: DEFAULT_SETTINGS })
     expect(DEFAULT_SETTINGS).toEqual({
-      version: 4,
+      version: 5,
       furigana: 'recommended',
       translation: 'always',
       speechRate: 'normal',
@@ -16,6 +16,9 @@ describe('設定の保存と読み込み', () => {
       voiceInput: true,
       voiceInputNoticeSeen: false,
       slowSpeech: null,
+      bgm: true,
+      bgmVolume: 60,
+      sfxVolume: 80,
     })
   })
 
@@ -54,6 +57,19 @@ describe('設定の保存と読み込み', () => {
     expect(loadSettings(storage)).toEqual({ kind: 'ok', settings: { ...DEFAULT_SETTINGS, furigana: 'off', translation: 'tap', voiceInputNoticeSeen: true } })
   })
 
+  it('v4 の設定は、すべての項目を引き継いで v5 にする（BGM はオン、音量は初期値）', () => {
+    const storage = new MemoryStorage()
+    const { bgm: _b, bgmVolume: _v, sfxVolume: _s, ...v4 } = { ...DEFAULT_SETTINGS, version: 4, soundEffects: false, slowSpeech: { rate: 0.35, measuredAt: '2026-11-22T10:00:00.000Z' } }
+    storage.setItem(SETTINGS_KEY, JSON.stringify(v4))
+    expect(loadSettings(storage)).toEqual({ kind: 'ok', settings: { ...DEFAULT_SETTINGS, soundEffects: false, slowSpeech: v4.slowSpeech } })
+  })
+
+  it('BGM・音量の正しくない値は初期値に戻す', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, bgm: 'on', bgmVolume: 150, sfxVolume: 12.5 }))
+    expect(loadSettings(storage)).toMatchObject({ kind: 'repaired', settings: { bgm: true, bgmVolume: 60, sfxVolume: 80 } })
+  })
+
   it('ゆっくりの読み上げ（slowSpeech）を読み込む。正しくない値は「まだ確かめていない」に戻す', () => {
     const storage = new MemoryStorage()
     for (const slowSpeech of [{ rate: 0.35, measuredAt: '2026-11-22T10:00:00.000Z' }, { rate: null, measuredAt: '2026-11-22T10:00:00.000Z' }]) {
@@ -75,7 +91,7 @@ describe('設定の保存と読み込み', () => {
   it('保存した設定を読み込める', () => {
     const storage = new MemoryStorage()
     const settings: Settings = {
-      version: 4,
+      version: 5,
       furigana: 'tap',
       translation: 'off',
       speechRate: 'slow',
@@ -85,6 +101,9 @@ describe('設定の保存と読み込み', () => {
       voiceInput: false,
       voiceInputNoticeSeen: true,
       slowSpeech: { rate: 0.35, measuredAt: '2026-11-22T10:00:00.000Z' },
+      bgm: false,
+      bgmVolume: 25,
+      sfxVolume: 0,
     }
     expect(saveSettings(storage, settings)).toEqual({ ok: true })
     expect(loadSettings(storage)).toEqual({ kind: 'ok', settings })

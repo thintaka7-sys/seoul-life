@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import { boot } from './app/boot'
 import { GameProvider } from './app/GameProvider'
+import { initBgm } from './audio/bgm'
 import { initSfx } from './audio/sfx'
 import { initSpeech } from './audio/speech'
 import { getBrowserStorage } from './storage/browserStorage'
@@ -16,6 +17,7 @@ const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduc
 const bootResult = boot(getBrowserStorage(), new Date(), prefersReducedMotion)
 initSpeech()
 initSfx()
+initBgm()
 
 createRoot(rootElement).render(
   <StrictMode>

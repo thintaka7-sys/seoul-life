@@ -5,7 +5,7 @@
 
 import { isDateString } from '../learning/review/dates'
 
-export const CURRENT_SAVE_VERSION = 5
+export const CURRENT_SAVE_VERSION = 6
 
 /** v1（Phase 0）。移行のために型を残しておく */
 export interface SaveDataV1 {
@@ -140,8 +140,55 @@ export interface SaveDataV5 extends Omit<SaveDataV4, 'version' | 'learning'> {
   }
 }
 
+/** 見かけた単語の記録（おはなし・読み物・台詞で単語をタップして「覚える」を押したもの。GAME_SPEC 4-8） */
+export interface SeenRecord {
+  /** 「覚える」を押した日時（ISO形式） */
+  seenAt: string
+  /** そのときの章（フリガナの表示の判定に使う） */
+  chapter: number
+}
+
+/** 見たおはなしの記録（おはなしのアルバム。GAME_SPEC 3-2） */
+export interface StorySeenRecord {
+  /** 初めて最後まで見た日時（ISO形式） */
+  seenAt: string
+}
+
+/** 注文の記録（経験値を初回だけにするため） */
+export interface OrderRecord {
+  /** 初めて注文できた日時（ISO形式） */
+  firstAt: string
+  /** これまでに注文した品物のキー（メニューの key） */
+  items: string[]
+}
+
+/** 一度だけ画面に出すお知らせ（storyRestructured：物語が章立てに変わり、進み具合を最初からにした） */
+export const SAVE_NOTICES = ['storyRestructured'] as const
+export type SaveNotice = (typeof SAVE_NOTICES)[number]
+
+/** v6（Phase 3）：おはなし・見かけた単語・読み物・注文・形が変わる言葉の記録と、一度だけのお知らせを追加 */
+export interface SaveDataV6 extends Omit<SaveDataV5, 'version' | 'progress' | 'learning'> {
+  version: 6
+  progress: SaveDataV5['progress'] & {
+    /** おはなしID → 見た記録 */
+    storiesSeen: Record<string, StorySeenRecord>
+    /** まだ出していないお知らせ */
+    notices: SaveNotice[]
+  }
+  learning: SaveDataV5['learning'] & {
+    /** 単語ID → 見かけた記録（図鑑で「覚えた」単語とは別） */
+    seen: Record<string, SeenRecord>
+    /** 読み物の問題のキー（reading_001#0）→ 初めて正解した記録 */
+    readings: Record<string, DrillRecord>
+    /** 注文ID → 記録 */
+    orders: Record<string, OrderRecord>
+    /** 形が変わる言葉の問題のキー → 初めて正解した記録 */
+    forms: Record<string, DrillRecord>
+  }
+}
+
 /** 現在のバージョンのセーブデータ */
-export type SaveData = SaveDataV5
+export type SaveData = SaveDataV6
 
 /** 会話の記録のキー（会話ID#往復の番号） */
 export function conversationTurnKey(conversationId: string, turn: number): string {
@@ -150,11 +197,11 @@ export function conversationTurnKey(conversationId: string, turn: number): strin
 
 export function createNewSave(nowIso: string): SaveData {
   return {
-    version: 5,
+    version: 6,
     createdAt: nowIso,
     updatedAt: nowIso,
-    progress: { currentLocationId: null, completedEvents: [], activeEvent: null },
-    learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {}, review: {}, drills: {}, tests: {} },
+    progress: { currentLocationId: null, completedEvents: [], activeEvent: null, storiesSeen: {}, notices: [] },
+    learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {}, review: {}, drills: {}, tests: {}, seen: {}, readings: {}, orders: {}, forms: {} },
     stats: { xp: 0 },
     daily: { stamps: [] },
   }
@@ -200,6 +247,19 @@ function isReviewRecord(v: unknown): boolean {
   return isNonNegativeInt(v['stage']) && isDateString(v['due']) && isNonNegativeInt(v['correct']) && isNonNegativeInt(v['wrong']) && (lastAt === null || isIsoDate(lastAt))
 }
 
+function isSeenRecord(v: unknown): boolean {
+  return isObj(v) && isIsoDate(v['seenAt']) && isNonNegativeInt(v['chapter'])
+}
+
+function isStorySeenRecord(v: unknown): boolean {
+  return isObj(v) && isIsoDate(v['seenAt'])
+}
+
+function isOrderRecord(v: unknown): boolean {
+  const items = isObj(v) ? v['items'] : undefined
+  return isObj(v) && isIsoDate(v['firstAt']) && Array.isArray(items) && items.every((i) => typeof i === 'string')
+}
+
 function isTestRecord(v: unknown): boolean {
   if (!isObj(v)) return false
   const passedAt = v['passedAt']
@@ -221,6 +281,9 @@ export function isSaveData(v: unknown): v is SaveData {
   if (!Array.isArray(completed) || !completed.every((e) => typeof e === 'string')) return false
   const active = progress['activeEvent']
   if (!(active === null || (isObj(active) && typeof active['id'] === 'string' && isNonNegativeInt(active['step'])))) return false
+  if (!isRecordOf(progress['storiesSeen'], isStorySeenRecord)) return false
+  const notices = progress['notices']
+  if (!Array.isArray(notices) || !notices.every((n) => (SAVE_NOTICES as readonly unknown[]).includes(n))) return false
 
   const learning = v['learning']
   if (!isObj(learning)) return false
@@ -232,6 +295,10 @@ export function isSaveData(v: unknown): v is SaveData {
   if (!isRecordOf(learning['review'], isReviewRecord)) return false
   if (!isRecordOf(learning['drills'], isCorrectAtRecord)) return false
   if (!isRecordOf(learning['tests'], isTestRecord)) return false
+  if (!isRecordOf(learning['seen'], isSeenRecord)) return false
+  if (!isRecordOf(learning['readings'], isCorrectAtRecord)) return false
+  if (!isRecordOf(learning['orders'], isOrderRecord)) return false
+  if (!isRecordOf(learning['forms'], isCorrectAtRecord)) return false
 
   const stats = v['stats']
   if (!isObj(stats) || !isNonNegativeInt(stats['xp'])) return false

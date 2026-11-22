@@ -11,7 +11,7 @@
     "chapterTest": 30
   },
   "furiganaAlwaysUntilChapter": 3,
-  "initialLocations": ["home", "cafe"],
+  "initialLocations": ["home"],
   "startLocation": "home",
   "writeAttemptsBeforeReveal": 2,
   "hangulQuizQuestions": 8,

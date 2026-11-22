@@ -5,9 +5,7 @@ import { TownMap } from '../components/scene/TownMap'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { assets, content } from '../data'
 import type { Location } from '../data/types'
-import { nextEvent } from '../game/events/events'
-
-const unlocked = new Set(content.balance.initialLocations)
+import { nextEvent, unlockedLocations } from '../game/events/events'
 
 type MappedLocation = Location & { mapArea: NonNullable<Location['mapArea']> }
 const mapped = content.locations.filter((l): l is MappedLocation => l.mapArea !== undefined)
@@ -15,6 +13,8 @@ const mapped = content.locations.filter((l): l is MappedLocation => l.mapArea !=
 export function MainPage() {
   const { state, dispatch } = useGame()
   const target = state.save === null ? undefined : nextEvent(content.events, state.save.progress)?.location
+  // 最初から行ける施設と、終えたイベントで開いた施設（GAME_SPEC 6-1・計画 Q13）
+  const unlocked = unlockedLocations(content.events, content.balance.initialLocations, state.save?.progress.completedEvents ?? [])
   const go = (locationId: string) => dispatch({ type: 'goToLocation', locationId, now: nowIso() })
   // マップの絵に載せていない施設は、下のボタンの一覧で選ぶ（マップの絵がなければ、すべてボタンの一覧）
   const listed = assets.map === null ? content.locations : content.locations.filter((l) => l.mapArea === undefined)

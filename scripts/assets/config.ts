@@ -29,6 +29,8 @@ export interface AssetConfig {
   /** id は施設ID */
   backgrounds: { id: string; file: string }[]
   map: { file: string } | null
+  /** おはなしの一枚絵（id は一枚絵のキー。元の画像は cg_キー） */
+  cg: { id: string; file: string }[]
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -83,6 +85,7 @@ export function parseAssetConfig(raw: unknown): AssetConfig {
     return { id: str(c, 'id', where), sheet: str(c, 'sheet', where), expressions: parsed, keepGreen }
   })
   const backgrounds = list(raw, 'backgrounds').map((b, i) => ({ id: str(b, 'id', `backgrounds[${i}]`), file: str(b, 'file', `backgrounds[${i}]`) }))
+  const cg = raw['cg'] === undefined ? [] : list(raw, 'cg').map((b, i) => ({ id: str(b, 'id', `cg[${i}]`), file: str(b, 'file', `cg[${i}]`) }))
   const rawMap = raw['map']
   const map = rawMap === null || rawMap === undefined ? null : isObj(rawMap) ? { file: str(rawMap, 'file', 'map') } : null
   return {
@@ -96,5 +99,6 @@ export function parseAssetConfig(raw: unknown): AssetConfig {
     characters,
     backgrounds,
     map,
+    cg,
   }
 }

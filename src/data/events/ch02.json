@@ -1,0 +1,48 @@
+[
+  {
+    "id": "event_007",
+    "chapter": 2,
+    "location": "home",
+    "requires": [
+      "event_006"
+    ],
+    "objectiveJa": "近所の人と知り合おう",
+    "actionJa": "外に出てみる",
+    "steps": [
+      {
+        "type": "background",
+        "id": "street"
+      },
+      {
+        "type": "story",
+        "id": "story_905"
+      },
+      {
+        "type": "message",
+        "textJa": "近所の友人ができました。"
+      }
+    ],
+    "notes": "仮のおはなし（story_905）。自己紹介・質問の会話とコラムは、第2章の教材が届いたら入れる"
+  },
+  {
+    "id": "event_008",
+    "chapter": 2,
+    "location": "home",
+    "requires": [
+      "event_007"
+    ],
+    "objectiveJa": "先生と第2章をふり返ろう",
+    "actionJa": "先生に報告する",
+    "steps": [
+      {
+        "type": "story",
+        "id": "story_906"
+      },
+      {
+        "type": "chapterEnd",
+        "textJa": "近所に友だちができました。"
+      }
+    ],
+    "notes": "仮のおはなし（story_906）"
+  }
+]

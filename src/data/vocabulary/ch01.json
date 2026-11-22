@@ -144,5 +144,61 @@
     "exampleJapanese": "お餅、好きですか？",
     "reviewed": true,
     "notes": "米の粉などで作る韓国のお餅の総称。語頭の ㄸ（濃音）は「ッ」で表した／確認：ChatGPT（2026-11-19）"
+  },
+  {
+    "id": "vocab_027",
+    "korean": "공항",
+    "pronunciation": "コンハン",
+    "japanese": "空港",
+    "partOfSpeech": "noun",
+    "genre": "place",
+    "level": 1,
+    "example": "공항에 가요.",
+    "examplePronunciation": "コンハンエ ガヨ",
+    "exampleJapanese": "空港に行きます。",
+    "reviewed": true,
+    "notes": "第1章のおはなし（空港）で使う／確認：ChatGPT（2026-11-23）"
+  },
+  {
+    "id": "vocab_028",
+    "korean": "택시",
+    "pronunciation": "テクシ",
+    "japanese": "タクシー",
+    "partOfSpeech": "noun",
+    "genre": "transport",
+    "level": 1,
+    "example": "택시를 타요.",
+    "examplePronunciation": "テクシルル タヨ",
+    "exampleJapanese": "タクシーに乗ります。",
+    "reviewed": true,
+    "notes": "外来語の発音が日本語と違う例（つまずきリスト W05）。日本語の「タクシー」ではなく「テクシ」に近い音。乗り物に「乗る」は 을/를 타다 で、助詞は 을/를（〜を）を使う／確認：ChatGPT（2026-11-23）"
+  },
+  {
+    "id": "vocab_029",
+    "korean": "한국",
+    "pronunciation": "ハングク",
+    "japanese": "韓国",
+    "partOfSpeech": "noun",
+    "genre": "place",
+    "level": 1,
+    "example": "한국은 처음이에요.",
+    "examplePronunciation": "ハンググン チョウミエヨ",
+    "exampleJapanese": "韓国は初めてです。",
+    "reviewed": true,
+    "notes": "第1章のおはなし（空港・タクシー）と会話 home_005 に出る／確認：ChatGPT（2026-11-23）"
+  },
+  {
+    "id": "vocab_030",
+    "korean": "선생님",
+    "pronunciation": "ソンセンニム",
+    "japanese": "先生",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "선생님, 감사합니다.",
+    "examplePronunciation": "ソンセンニム カムサハムニダ",
+    "exampleJapanese": "先生、ありがとうございます。",
+    "reviewed": true,
+    "notes": "呼びかけにもそのまま使う。学校の先生や講師のほか、相手に敬意を示す呼びかけとしても使う。医師には 의사 선생님 という呼び方もある／確認：ChatGPT（2026-11-23）"
   }
 ]

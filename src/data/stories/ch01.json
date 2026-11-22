@@ -1,0 +1,742 @@
+[
+  {
+    "id": "story_001",
+    "chapter": 1,
+    "titleJa": "ソウルに到着",
+    "bgm": "story",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "airport"
+      },
+      {
+        "type": "sfx",
+        "id": "airplane"
+      },
+      {
+        "type": "narration",
+        "textJa": "飛行機が、ソウルの空港に着いた。今日から、この国で新しい生活が始まる。"
+      },
+      {
+        "type": "narration",
+        "textJa": "韓国語は、まだほとんど分からない。知っているのは、あいさつの「アンニョンハセヨ」くらいだ。"
+      },
+      {
+        "type": "line",
+        "speaker": "announcement",
+        "korean": "한국에 오신 것을 환영합니다.",
+        "pronunciation": "ハングゲ オシン ゴスル ファニョンハムニダ",
+        "japanese": "韓国へようこそ。",
+        "glosses": [
+          {
+            "text": "한국에",
+            "vocab": "vocab_029",
+            "noteJa": "한국（韓国）＋에（〜に）"
+          },
+          {
+            "text": "오신 것을",
+            "pronunciation": "オシン ゴスル",
+            "japanese": "いらっしゃったことを",
+            "noteJa": "오다（来る）のていねいな言い方＋것을（〜ことを）"
+          },
+          {
+            "text": "환영합니다",
+            "pronunciation": "ファニョンハムニダ",
+            "japanese": "歓迎します"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "入国審査の列に並んで、順番を待つ。"
+      },
+      {
+        "type": "line",
+        "speaker": "airport_staff",
+        "korean": "안녕하세요. 여권 주세요.",
+        "pronunciation": "アンニョンハセヨ ヨックォン ジュセヨ",
+        "japanese": "こんにちは。パスポートをください。",
+        "glosses": [
+          {
+            "text": "여권",
+            "pronunciation": "ヨックォン",
+            "japanese": "パスポート"
+          },
+          {
+            "text": "주세요",
+            "pronunciation": "チュセヨ",
+            "japanese": "ください",
+            "noteJa": "주다（くれる・あげる）＋세요（ていねいにお願いする形）"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "パスポートを渡しながら、なんと言う？",
+        "choices": [
+          {
+            "korean": "네, 여기요.",
+            "pronunciation": "ネ ヨギヨ",
+            "japanese": "はい、どうぞ。",
+            "reply": [
+              {
+                "speaker": "airport_staff",
+                "korean": "네, 감사합니다.",
+                "pronunciation": "ネ カムサハムニダ",
+                "japanese": "はい、ありがとうございます。"
+              }
+            ]
+          },
+          {
+            "korean": "여기 있어요.",
+            "pronunciation": "ヨギ イッソヨ",
+            "japanese": "ここにあります。（どうぞ）",
+            "reply": [
+              {
+                "speaker": "airport_staff",
+                "korean": "네.",
+                "pronunciation": "ネ",
+                "japanese": "はい。"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "line",
+        "speaker": "airport_staff",
+        "korean": "네, 됐습니다. 들어가세요.",
+        "pronunciation": "ネ ドェッスムニダ トゥロガセヨ",
+        "japanese": "はい、結構です。どうぞ、お進みください。",
+        "glosses": [
+          {
+            "text": "됐습니다",
+            "pronunciation": "トェッスムニダ",
+            "japanese": "（これで）結構です",
+            "noteJa": "되다（済む・大丈夫だ）の過去のていねいな形。手続きが済んだときに使う"
+          },
+          {
+            "text": "들어가세요",
+            "pronunciation": "トゥロガセヨ",
+            "japanese": "お進みください・お入りください",
+            "noteJa": "들어가다（入る）＋세요（ていねいにうながす形）"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "荷物を受け取って、到着ロビーに出た。広くて明るい。"
+      },
+      {
+        "type": "narration",
+        "textJa": "天井から下がった案内表示に、知らない文字が並んでいる。その中の一つを、思わず目で追った。"
+      },
+      {
+        "type": "sign",
+        "korean": "택시 타는 곳",
+        "pronunciation": "テクシ タヌン ゴッ",
+        "japanese": "タクシー乗り場",
+        "glosses": [
+          {
+            "text": "타는",
+            "pronunciation": "タヌン",
+            "japanese": "乗る〜",
+            "noteJa": "타다（乗る）＋는。次の名詞（곳）を説明する形"
+          },
+          {
+            "text": "곳",
+            "pronunciation": "コッ",
+            "japanese": "ところ・場所"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "「テクシ」……タクシーのことらしい。日本語の「タクシー」と、少し音が違う。"
+      },
+      {
+        "type": "narration",
+        "textJa": "知らない言葉ばかりだと思っていたけれど、分かるところもあるのかもしれない。案内に従って、外へ向かった。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：ChatGPT（2026-11-23）。採用しなかった指摘：여권 の読みをヨグォンに（標準発音は[여꿘]のため、ヨックォンのまま）、택시 타는 곳 の 곳 を濃音に（連体形 -는 の後は濃音にならないため、ゴッのまま）、출발할게요 をチュルバルハルッケヨに（ㄹの後の ㅎ の弱化を反映する表記ルールのため、チュルバラルッケヨのまま）、잘 부탁 の ㅂ を濃音に（単語の境目で濃音化しないため、ブタクのまま）"
+  },
+  {
+    "id": "story_002",
+    "chapter": 1,
+    "titleJa": "タクシーで新しい家へ",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "taxi"
+      },
+      {
+        "type": "sfx",
+        "id": "car"
+      },
+      {
+        "type": "line",
+        "speaker": "taxi_driver",
+        "korean": "안녕하세요. 어디로 가세요?",
+        "pronunciation": "アンニョンハセヨ オディロ ガセヨ",
+        "japanese": "こんにちは。どちらまで行かれますか？",
+        "glosses": [
+          {
+            "text": "어디로",
+            "pronunciation": "オディロ",
+            "japanese": "どこへ",
+            "noteJa": "어디（どこ）＋로（〜へ）"
+          },
+          {
+            "text": "가세요",
+            "pronunciation": "カセヨ",
+            "japanese": "行かれますか",
+            "noteJa": "가다（行く）＋세요（相手を敬う、ていねいな形）"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "住所を韓国語で言うのは、まだ難しい。スマホに新しい家の住所を出して、運転手さんに見せた。"
+      },
+      {
+        "type": "choice",
+        "promptJa": "スマホを見せながら、なんと言う？",
+        "choices": [
+          {
+            "korean": "여기요.",
+            "pronunciation": "ヨギヨ",
+            "japanese": "ここです。",
+            "reply": [
+              {
+                "speaker": "taxi_driver",
+                "korean": "네, 알겠습니다.",
+                "pronunciation": "ネ アルゲッスムニダ",
+                "japanese": "はい、かしこまりました。"
+              }
+            ]
+          },
+          {
+            "korean": "여기로 가 주세요.",
+            "pronunciation": "ヨギロ ガ ジュセヨ",
+            "japanese": "ここへ行ってください。",
+            "reply": [
+              {
+                "speaker": "taxi_driver",
+                "korean": "네, 알겠습니다. 출발할게요.",
+                "pronunciation": "ネ アルゲッスムニダ チュルバラルッケヨ",
+                "japanese": "はい、かしこまりました。出発しますね。"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "sfx",
+        "id": "car"
+      },
+      {
+        "type": "narration",
+        "textJa": "車が走り出した。窓の外を、高いビルと街路樹が流れていく。遠くには、緑の山も見える。"
+      },
+      {
+        "type": "line",
+        "speaker": "taxi_driver",
+        "korean": "한국은 처음이에요?",
+        "pronunciation": "ハンググン チョウミエヨ",
+        "japanese": "韓国は初めてですか？",
+        "glosses": [
+          {
+            "text": "한국은",
+            "vocab": "vocab_029",
+            "noteJa": "한국（韓国）＋은（〜は）"
+          },
+          {
+            "text": "처음이에요",
+            "pronunciation": "チョウミエヨ",
+            "japanese": "初めてです（か）",
+            "noteJa": "처음（初めて）＋이에요（〜です）"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう答える？",
+        "choices": [
+          {
+            "korean": "네.",
+            "pronunciation": "ネ",
+            "japanese": "はい。",
+            "reply": [
+              {
+                "speaker": "taxi_driver",
+                "korean": "아, 그래요? 환영합니다!",
+                "pronunciation": "ア クレヨ ファニョンハムニダ",
+                "japanese": "あ、そうですか？ようこそ！"
+              }
+            ]
+          },
+          {
+            "korean": "아니요.",
+            "pronunciation": "アニヨ",
+            "japanese": "いいえ。",
+            "reply": [
+              {
+                "speaker": "taxi_driver",
+                "korean": "아, 한국에 와 보셨군요! 이번에는 오래 지내시겠네요.",
+                "pronunciation": "ア ハングゲ ワ ボショックンニョ イボネヌン オレ ジネシゲンネヨ",
+                "japanese": "あ、韓国に来たことがあるんですね！今回は、長く住まわれるんですね。"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "しばらく走ると、静かな住宅街に入った。車が、小さなマンションの前で止まる。"
+      },
+      {
+        "type": "line",
+        "speaker": "taxi_driver",
+        "korean": "여기예요.",
+        "pronunciation": "ヨギエヨ",
+        "japanese": "ここです。（着きましたよ）",
+        "glosses": [
+          {
+            "text": "여기예요",
+            "pronunciation": "ヨギエヨ",
+            "japanese": "ここです",
+            "noteJa": "여기（ここ）＋예요（〜です）"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "料金を払って、荷物を降ろした。運転手さんにお礼を言おう。"
+      },
+      {
+        "type": "choice",
+        "promptJa": "なんと言う？",
+        "choices": [
+          {
+            "korean": "감사합니다.",
+            "pronunciation": "カムサハムニダ",
+            "japanese": "ありがとうございます。",
+            "reply": [
+              {
+                "speaker": "taxi_driver",
+                "korean": "네, 안녕히 가세요.",
+                "pronunciation": "ネ アンニョンヒ ガセヨ",
+                "japanese": "はい、お気をつけて。"
+              }
+            ]
+          },
+          {
+            "korean": "고맙습니다.",
+            "pronunciation": "コマプスムニダ",
+            "japanese": "ありがとうございます。",
+            "reply": [
+              {
+                "speaker": "taxi_driver",
+                "korean": "네, 안녕히 가세요.",
+                "pronunciation": "ネ アンニョンヒ ガセヨ",
+                "japanese": "はい、お気をつけて。"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "scene",
+        "background": "home"
+      },
+      {
+        "type": "bgm",
+        "id": "home"
+      },
+      {
+        "type": "narration",
+        "textJa": "ここが、今日からの家。小さいけれど、日当たりのいい部屋だ。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：ChatGPT（2026-11-23）。採用しなかった指摘：여권 の読みをヨグォンに（標準発音は[여꿘]のため、ヨックォンのまま）、택시 타는 곳 の 곳 を濃音に（連体形 -는 の後は濃音にならないため、ゴッのまま）、출발할게요 をチュルバルハルッケヨに（ㄹの後の ㅎ の弱化を反映する表記ルールのため、チュルバラルッケヨのまま）、잘 부탁 の ㅂ を濃音に（単語の境目で濃音化しないため、ブタクのまま）"
+  },
+  {
+    "id": "story_003",
+    "chapter": 1,
+    "titleJa": "先生と初めての授業",
+    "bgm": "home",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "home"
+      },
+      {
+        "type": "narration",
+        "textJa": "荷物を片付けていると、ノートパソコンから呼び出し音が鳴った。今日は、オンラインの韓国語の授業の日だ。"
+      },
+      {
+        "type": "sfx",
+        "id": "call"
+      },
+      {
+        "type": "scene",
+        "call": "teacher"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "안녕하세요! 저는 정민호예요.",
+        "pronunciation": "アンニョンハセヨ チョヌン ジョンミノエヨ",
+        "japanese": "こんにちは！私はチョン・ミノです。",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "저는",
+            "pronunciation": "チョヌン",
+            "japanese": "私は",
+            "noteJa": "저（私）＋는（〜は）"
+          },
+          {
+            "text": "정민호예요",
+            "pronunciation": "チョンミノエヨ",
+            "japanese": "チョン・ミノです",
+            "noteJa": "정민호（名前）＋예요（〜です）"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう返事する？",
+        "choices": [
+          {
+            "korean": "안녕하세요.",
+            "pronunciation": "アンニョンハセヨ",
+            "japanese": "こんにちは。",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "네, 안녕하세요! 발음 좋아요!",
+                "pronunciation": "ネ アンニョンハセヨ パルム ジョアヨ",
+                "japanese": "はい、こんにちは！発音、いいですね！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "안녕하세요! 반가워요.",
+            "pronunciation": "アンニョンハセヨ パンガウォヨ",
+            "japanese": "こんにちは！会えてうれしいです。",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "저도 반가워요!",
+                "pronunciation": "チョド バンガウォヨ",
+                "japanese": "私も、会えてうれしいです！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "先生は、にこにこしながら日本語に切り替えた。「改めまして、チョン・ミノです。大阪に住んでいたことがあるので、日本語は任せてください。分からないことは、何でも聞いてくださいね」"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "저는 한국어 선생님이에요.",
+        "pronunciation": "チョヌン ハングゴ ソンセンニミエヨ",
+        "japanese": "私は韓国語の先生です。",
+        "glosses": [
+          {
+            "text": "저는",
+            "pronunciation": "チョヌン",
+            "japanese": "私は",
+            "noteJa": "저（私）＋는（〜は）"
+          },
+          {
+            "text": "한국어",
+            "pronunciation": "ハングゴ",
+            "japanese": "韓国語",
+            "noteJa": "한국（韓国）＋어（語）"
+          },
+          {
+            "text": "선생님이에요",
+            "vocab": "vocab_030",
+            "noteJa": "선생님（先生）＋이에요（〜です）"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう返事する？",
+        "choices": [
+          {
+            "korean": "네, 선생님!",
+            "pronunciation": "ネ ソンセンニム",
+            "japanese": "はい、先生！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "하하, 좋아요!",
+                "pronunciation": "ハハ チョアヨ",
+                "japanese": "ははは、いいですね！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "잘 부탁드립니다.",
+            "pronunciation": "チャル ブタクトゥリムニダ",
+            "japanese": "よろしくお願いします。",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "저도 잘 부탁해요!",
+                "pronunciation": "チョド ジャル ブタケヨ",
+                "japanese": "こちらこそ、よろしくお願いしますね！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "「今日は、空港やタクシーで韓国語を聞きましたか？……ほう、タクシーの案内表示に気づいた？いい目をしていますね」"
+      },
+      {
+        "type": "narration",
+        "textJa": "「この授業では、街で使う韓国語を、一緒に少しずつ練習していきます。その前に、一つ聞かせてください」"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "한글 읽을 수 있어요?",
+        "pronunciation": "ハングル イルグル ッス イッソヨ",
+        "japanese": "ハングルは読めますか？",
+        "glosses": [
+          {
+            "text": "한글",
+            "pronunciation": "ハングル",
+            "japanese": "ハングル（韓国語の文字）"
+          },
+          {
+            "text": "읽을 수 있어요",
+            "pronunciation": "イルグル ッス イッソヨ",
+            "japanese": "読めますか",
+            "noteJa": "읽다（読む）＋을 수 있어요（〜できます）"
+          }
+        ]
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：ChatGPT（2026-11-23）。採用しなかった指摘：여권 の読みをヨグォンに（標準発音は[여꿘]のため、ヨックォンのまま）、택시 타는 곳 の 곳 を濃音に（連体形 -는 の後は濃音にならないため、ゴッのまま）、출발할게요 をチュルバルハルッケヨに（ㄹの後の ㅎ の弱化を反映する表記ルールのため、チュルバラルッケヨのまま）、잘 부탁 の ㅂ を濃音に（単語の境目で濃音化しないため、ブタクのまま）"
+  },
+  {
+    "id": "story_004",
+    "chapter": 1,
+    "titleJa": "先生とふり返り",
+    "bgm": "home",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "home"
+      },
+      {
+        "type": "narration",
+        "textJa": "数日後。2回目の授業の時間になった。"
+      },
+      {
+        "type": "sfx",
+        "id": "call"
+      },
+      {
+        "type": "scene",
+        "call": "teacher"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "요즘 어때요?",
+        "pronunciation": "ヨジュム オッテヨ",
+        "japanese": "最近、どうですか？",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "요즘",
+            "pronunciation": "ヨジュム",
+            "japanese": "最近"
+          },
+          {
+            "text": "어때요",
+            "pronunciation": "オッテヨ",
+            "japanese": "どうですか",
+            "noteJa": "어떻다（どうだ）の 해요 の形"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう答える？",
+        "choices": [
+          {
+            "korean": "잘 지내요!",
+            "pronunciation": "チャル ジネヨ",
+            "japanese": "元気に過ごしています！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "와, 다행이에요!",
+                "pronunciation": "ワ タヘンイエヨ",
+                "japanese": "わあ、それはよかったです！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "조금 어려웠어요.",
+            "pronunciation": "チョグム オリョウォッソヨ",
+            "japanese": "少し難しかったです。",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "괜찮아요. 처음엔 다 그래요.",
+                "pronunciation": "ケンチャナヨ チョウメン ダ グレヨ",
+                "japanese": "大丈夫。最初はみんなそうですよ。"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "空港の案内表示、タクシーの運転手さん、それにお隣さんの手作りのお餅。この数日にあったことを、先生に話した。"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "떡이요? 와, 좋겠다!",
+        "pronunciation": "ットギヨ ワ チョケッタ",
+        "japanese": "お餅ですか？わあ、いいなあ！",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "떡이요",
+            "vocab": "vocab_024",
+            "noteJa": "떡（お餅）＋이요（〜ですか？と聞き返す言い方）"
+          },
+          {
+            "text": "좋겠다",
+            "pronunciation": "チョケッタ",
+            "japanese": "いいなあ"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "「あいさつとお礼、それに『はい・いいえ』。どれも毎日使う、大事な言葉です。もう、ちゃんと使えていますね」"
+      },
+      {
+        "type": "narration",
+        "textJa": "「お礼の言葉は2つありました。カムサハムニダと、コマプスムニダ。覚え方は……『噛むさ、ハム煮だ』。……あれ、笑うところですよ？」"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "다음에는 자기소개를 배워요.",
+        "pronunciation": "タウメヌン ジャギソゲルル ベウォヨ",
+        "japanese": "次は、自己紹介を学びましょう。",
+        "glosses": [
+          {
+            "text": "다음에는",
+            "pronunciation": "タウメヌン",
+            "japanese": "次は",
+            "noteJa": "다음（次）＋에는（〜には）"
+          },
+          {
+            "text": "자기소개를",
+            "pronunciation": "チャギソゲルル",
+            "japanese": "自己紹介を",
+            "noteJa": "자기소개（自己紹介）＋를（〜を）"
+          },
+          {
+            "text": "배워요",
+            "pronunciation": "ペウォヨ",
+            "japanese": "学びます",
+            "noteJa": "배우다（学ぶ）＋어요"
+          }
+        ]
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "오늘 수고했어요!",
+        "pronunciation": "オヌル スゴヘッソヨ",
+        "japanese": "今日はおつかれさまでした！",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "오늘",
+            "pronunciation": "オヌル",
+            "japanese": "今日"
+          },
+          {
+            "text": "수고했어요",
+            "pronunciation": "スゴヘッソヨ",
+            "japanese": "おつかれさまでした",
+            "noteJa": "수고하다（苦労する・頑張る）の過去の形"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう返事する？",
+        "choices": [
+          {
+            "korean": "감사합니다!",
+            "pronunciation": "カムサハムニダ",
+            "japanese": "ありがとうございます！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "네, 또 만나요!",
+                "pronunciation": "ネ ット マンナヨ",
+                "japanese": "はい、また会いましょう！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "네, 선생님!",
+            "pronunciation": "ネ ソンセンニム",
+            "japanese": "はい、先生！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "네, 또 만나요!",
+                "pronunciation": "ネ ット マンナヨ",
+                "japanese": "はい、また会いましょう！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "scene",
+        "call": null
+      },
+      {
+        "type": "narration",
+        "textJa": "通話が終わった。窓の外は、もう夕方だ。韓国での生活が、少しずつ始まっている。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：ChatGPT（2026-11-23）。採用しなかった指摘：여권 の読みをヨグォンに（標準発音は[여꿘]のため、ヨックォンのまま）、택시 타는 곳 の 곳 を濃音に（連体形 -는 の後は濃音にならないため、ゴッのまま）、출발할게요 をチュルバルハルッケヨに（ㄹの後の ㅎ の弱化を反映する表記ルールのため、チュルバラルッケヨのまま）、잘 부탁 の ㅂ を濃音に（単語の境目で濃音化しないため、ブタクのまま）"
+  }
+]

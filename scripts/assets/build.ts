@@ -72,7 +72,7 @@ function inputPath(file: string): string | null {
   return null
 }
 
-const manifest: AssetManifest = { characters: {}, backgrounds: {}, map: null }
+const manifest: AssetManifest = { characters: {}, backgrounds: {}, map: null, cg: {} }
 
 for (const c of config.characters) {
   console.log(`立ち絵：${c.id}（${c.sheet}）`)
@@ -100,6 +100,13 @@ for (const b of config.backgrounds) {
   const file = inputPath(b.file)
   if (file === null) continue
   manifest.backgrounds[b.id] = await writeWebp(sharp(file).resize({ width: config.backgroundWidth }), `bg/${b.id}.webp`)
+}
+
+for (const c of config.cg) {
+  console.log(`一枚絵：${c.id}（${c.file}）`)
+  const file = inputPath(c.file)
+  if (file === null) continue
+  manifest.cg[c.id] = await writeWebp(sharp(file).resize({ width: config.backgroundWidth, withoutEnlargement: true }), `cg/${c.id}.webp`)
 }
 
 if (config.map !== null) {

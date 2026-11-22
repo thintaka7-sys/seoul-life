@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { content } from '../data'
 import type { GameEvent } from '../data/types'
+import { nextEvent } from '../game/events/events'
 import { CURRENT_SAVE_VERSION, createNewSave } from '../storage/saveData'
 import { SAVE_KEY, loadSave } from '../storage/saveStore'
 import { DEFAULT_SETTINGS } from '../storage/settings'
@@ -16,6 +17,7 @@ const reducer = createGameReducer({
   conversations: content.conversations,
   balance: content.balance,
   locationIds: new Set(content.locations.map((l) => l.id)),
+  storyIds: new Set(content.stories.map((s) => s.id)),
 })
 
 function run(state: GameState, ...actions: GameAction[]): GameState {
@@ -31,6 +33,20 @@ function eventById(id: string): GameEvent {
   if (e === undefined) throw new Error(id)
   return e
 }
+
+const ALL_EVENTS = content.events.map((e) => e.id)
+
+/** eventId のイベントの直前の状態：それより前のイベント（ファイルの順）を終え、そのイベントの施設にいる */
+function stateBefore(eventId: string): GameState {
+  const event = eventById(eventId)
+  const fresh = createNewSave(T0)
+  const save = { ...fresh, progress: { ...fresh.progress, completedEvents: ALL_EVENTS.slice(0, ALL_EVENTS.indexOf(eventId)), currentLocationId: event.location } }
+  return { ...titleWithoutSave(), save, scene: { name: 'location', locationId: event.location } }
+}
+
+/** 第1章のはじめ（空港・先生の授業）を終えて、自宅にいる状態（お隣さんのイベントの前） */
+const atHome = () => stateBefore('event_001')
+const home = { name: 'location', locationId: content.balance.startLocation } as const
 
 /** 進めているイベントの段階を、種類に合った操作で1つ終える */
 function completeCurrentStep(state: GameState, method: 'choice' | 'write' = 'choice'): GameState {
@@ -49,68 +65,147 @@ function completeCurrentStep(state: GameState, method: 'choice' | 'write' = 'cho
       })
       return reducer(s, { type: 'conversationDone', now: T1 })
     }
+    case 'story':
+      return reducer(state, { type: 'storyDone', now: T1 })
+    case 'hangulIntro':
+      return reducer(state, { type: 'answerHangulIntro', learnHangul: false, now: T1 })
     default:
       return reducer(state, { type: 'stepDone', now: T1 })
   }
 }
 
-function playWholeEvent(state: GameState, eventId: string): GameState {
-  let s = reducer(state, { type: 'startEvent', eventId, now: T1 })
-  expect(s.scene.name).toBe('event')
-  for (let i = 0; i < 50 && s.run !== null; i++) s = completeCurrentStep(s)
+/** 進めているイベントを最後まで進める */
+function finishRun(state: GameState): GameState {
+  let s = state
+  for (let i = 0; i < 60 && s.run !== null; i++) s = completeCurrentStep(s)
   expect(s.run).toBeNull()
   return s
 }
 
-describe('最初の1日を通して遊ぶ', () => {
-  it('はじめから → 自宅のイベント → マップ → カフェのイベント → 自宅で図鑑 → 1日の終わり', () => {
+function playWholeEvent(state: GameState, eventId: string): GameState {
+  const s = reducer(state, { type: 'startEvent', eventId, now: T1 })
+  expect(s.scene.name).toBe('event')
+  expect(s.run?.eventId).toBe(eventId)
+  return finishRun(s)
+}
+
+describe('第1章〜第3章を通して遊ぶ', () => {
+  it('はじめから：空港のイベントが自動で始まり、最後まで章の順に進められる', () => {
     let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
-    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
+    expect(s.scene).toEqual({ name: 'event', locationId: 'home' })
+    expect(s.run).toEqual({ eventId: ALL_EVENTS[0], step: 0, replay: false })
 
-    s = playWholeEvent(s, 'event_001')
-    expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
-    expect(s.save?.progress.completedEvents).toEqual(['event_001'])
+    for (let i = 0; i < 40; i++) {
+      if (s.run !== null) {
+        s = finishRun(s)
+        continue
+      }
+      const save = s.save
+      if (save === null) throw new Error('セーブがない')
+      const next = nextEvent(content.events, save.progress)
+      if (next === undefined) break
+      if (s.scene.name !== 'location' || s.scene.locationId !== next.location) s = run(s, { type: 'backToMap', now: T1 }, { type: 'goToLocation', locationId: next.location, now: T1 })
+      expect(s.scene).toEqual({ name: 'location', locationId: next.location })
+      s = reducer(s, { type: 'startEvent', eventId: next.id, now: T1 })
+    }
 
-    // カフェのイベントは、マップからカフェへ行って始める
-    s = run(s, { type: 'backToMap', now: T1 }, { type: 'goToLocation', locationId: 'cafe', now: T1 })
-    s = playWholeEvent(s, 'event_002')
-    s = run(s, { type: 'backToMap', now: T1 }, { type: 'goToLocation', locationId: 'home', now: T1 })
-    s = playWholeEvent(s, 'event_003')
-
-    expect(s.save?.progress.completedEvents).toEqual(['event_001', 'event_002', 'event_003'])
+    expect(s.save?.progress.completedEvents).toEqual(ALL_EVENTS)
     expect(s.save?.progress.activeEvent).toBeNull()
+    // 見たおはなしがアルバムに入る
+    const stories = content.events.flatMap((e) => e.steps.flatMap((st) => (st.type === 'story' ? [st.id] : [])))
+    expect(Object.keys(s.save?.progress.storiesSeen ?? {}).sort()).toEqual([...stories].sort())
     // すべての単語・文法が図鑑に入っている
     expect(Object.keys(s.save?.learning.words ?? {}).sort()).toEqual(content.vocabulary.map((v) => v.id).sort())
     expect(Object.keys(s.save?.learning.grammar ?? {}).sort()).toEqual(content.grammar.map((g) => g.id).sort())
     // 経験値：単語 × learnWord ＋ 会話の往復（選ぶ）× conversationChoice ＋ イベント × eventComplete
     const { xp } = content.balance
     const answeredTurns = content.conversations.reduce((n, c) => n + c.turns.filter((t) => t.choices !== undefined && t.kind !== 'decision').length, 0)
-    expect(s.save?.stats.xp).toBe(content.vocabulary.length * xp.learnWord + answeredTurns * xp.conversationChoice + 3 * xp.eventComplete)
+    expect(s.save?.stats.xp).toBe(content.vocabulary.length * xp.learnWord + answeredTurns * xp.conversationChoice + ALL_EVENTS.length * xp.eventComplete)
+  })
+
+  it('カフェは、開くイベント（unlocks）を終えるまで行けない。開いたら知らせる', () => {
+    const opener = content.events.find((e) => e.unlocks?.includes('cafe'))
+    if (opener === undefined) throw new Error('カフェを開くイベントがない')
+    const before = stateBefore(opener.id)
+    expect(run(before, { type: 'backToMap', now: T1 }, { type: 'goToLocation', locationId: 'cafe', now: T1 }).scene).toEqual({ name: 'main' })
+    const opened = playWholeEvent(before, opener.id)
+    expect(opened.reward?.unlocked).toEqual(['cafe'])
+    expect(run(opened, { type: 'backToMap', now: T1 }, { type: 'goToLocation', locationId: 'cafe', now: T1 }).scene).toEqual({ name: 'location', locationId: 'cafe' })
+    // 遊び直しでは、もう知らせない
+    expect(playWholeEvent(run(opened, { type: 'dismissReward' }), opener.id).reward?.unlocked).toBeUndefined()
   })
 
   it('まだ行けない施設には移動しない', () => {
-    const s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    const s = atHome()
     expect(reducer(s, { type: 'goToLocation', locationId: 'park', now: T1 })).toBe(s)
     expect(reducer(s, { type: 'goToLocation', locationId: 'school', now: T1 })).toBe(s)
   })
 
   it('前提を終えていないイベントは始められない', () => {
-    const s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    const s = atHome()
     expect(reducer(s, { type: 'startEvent', eventId: 'event_002', now: T1 })).toBe(s)
   })
 
   it('段階の種類と違う操作は無視する', () => {
-    const s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    const s = run(atHome(), { type: 'startEvent', eventId: 'event_001', now: T1 })
     // event_001 の最初は message
     expect(reducer(s, { type: 'learnDone', now: T1 })).toBe(s)
     expect(reducer(s, { type: 'conversationDone', now: T1 })).toBe(s)
+    expect(reducer(s, { type: 'storyDone', now: T1 })).toBe(s)
+    expect(reducer(s, { type: 'answerHangulIntro', learnHangul: true, now: T1 })).toBe(s)
     expect(reducer(s, { type: 'conversationAnswered', turn: 0, method: 'choice', now: T1 })).toBe(s)
+  })
+})
+
+describe('おはなし・アルバム・見かけた単語（Phase 3）', () => {
+  it('おはなしの段階は storyDone で進み、見た記録を付ける。ほかの操作では進まない', () => {
+    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    const first = eventById(ALL_EVENTS[0] ?? '').steps[0]
+    expect(first?.type).toBe('story')
+    expect(reducer(s, { type: 'stepDone', now: T1 })).toBe(s)
+    s = reducer(s, { type: 'storyDone', now: T1 })
+    expect(s.run?.step).toBe(1)
+    if (first?.type === 'story') expect(s.save?.progress.storiesSeen[first.id]).toEqual({ seenAt: T1 })
+  })
+
+  it('アルバムは見たおはなしだけを開ける。閉じると開いた画面に戻る', () => {
+    const watched = finishRun(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }))
+    const seen = Object.keys(watched.save?.progress.storiesSeen ?? {})
+    expect(seen.length).toBeGreaterThan(0)
+    const album = run(watched, { type: 'openAlbum' })
+    expect(album.scene).toEqual({ name: 'album', back: home })
+    const replay = run(album, { type: 'openStoryReplay', storyId: seen[0] ?? '' })
+    expect(replay.scene).toMatchObject({ name: 'storyReplay', storyId: seen[0] })
+    expect(run(replay, { type: 'back', now: T1 }).scene.name).toBe('album')
+    const unseen = content.stories.find((st) => !seen.includes(st.id))
+    if (unseen !== undefined) expect(run(album, { type: 'openStoryReplay', storyId: unseen.id })).toBe(album)
+  })
+
+  it('「覚える」で見かけた単語に入れ、翌日から復習に出す。覚えた単語・2回目は変えない', () => {
+    const s = atHome()
+    const remembered = run(s, { type: 'rememberWord', vocabId: 'vocab_010', chapter: 1, now: T1 })
+    expect(remembered.save?.learning.seen['vocab_010']).toEqual({ seenAt: T1, chapter: 1 })
+    expect(remembered.save?.learning.review['word:vocab_010']).toMatchObject({ stage: 0, due: '2026-11-19' })
+    expect(remembered.save?.stats.xp).toBe(0)
+    expect(run(remembered, { type: 'rememberWord', vocabId: 'vocab_010', chapter: 1, now: T1 })).toBe(remembered)
+    const learned = playWholeEvent(s, 'event_001')
+    const id = Object.keys(learned.save?.learning.words ?? {})[0] ?? ''
+    expect(run(learned, { type: 'rememberWord', vocabId: id, chapter: 1, now: T1 })).toBe(learned)
+  })
+
+  it('一度だけのお知らせを閉じる', () => {
+    const s = atHome()
+    if (s.save === null) throw new Error('セーブがない')
+    const noticed: GameState = { ...s, save: { ...s.save, progress: { ...s.save.progress, notices: ['storyRestructured'] } } }
+    const closed = run(noticed, { type: 'dismissNotice', notice: 'storyRestructured', now: T1 })
+    expect(closed.save?.progress.notices).toEqual([])
+    expect(run(closed, { type: 'dismissNotice', notice: 'storyRestructured', now: T1 })).toBe(closed)
   })
 })
 
 describe('途中で閉じて再開する', () => {
   it('イベントの途中で再読み込みしても、つづきから同じ段階で再開する', () => {
-    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    let s = run(atHome(), { type: 'startEvent', eventId: 'event_001', now: T1 })
     s = completeCurrentStep(completeCurrentStep(s)) // message、（background は飛ばす）、learn
     expect(s.run).toEqual({ eventId: 'event_001', step: 3, replay: false })
 
@@ -124,7 +219,7 @@ describe('途中で閉じて再開する', () => {
   })
 
   it('イベントを途中でやめても、施設で同じイベントの続きから始まる', () => {
-    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    let s = run(atHome(), { type: 'startEvent', eventId: 'event_001', now: T1 })
     s = completeCurrentStep(s)
     s = reducer(s, { type: 'leaveEvent' })
     expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
@@ -135,7 +230,7 @@ describe('途中で閉じて再開する', () => {
   it('教材が差し替わる前のセーブデータ（古い会話の記録・ずれた段階の番号）でも、読み込んで続きから最後まで遊べる', () => {
     const old = {
       ...createNewSave(T0),
-      progress: { currentLocationId: 'cafe', completedEvents: ['event_001'], activeEvent: { id: 'event_002', step: 99 } },
+      progress: { ...createNewSave(T0).progress, currentLocationId: 'cafe', completedEvents: ALL_EVENTS.slice(0, ALL_EVENTS.indexOf('event_002')), activeEvent: { id: 'event_002', step: 99 } },
       learning: {
         ...createNewSave(T0).learning,
         words: { vocab_001: { learnedAt: T0, chapter: 1 } },
@@ -152,18 +247,28 @@ describe('途中で閉じて再開する', () => {
     expect(s.run).toEqual({ eventId: 'event_002', step: last, replay: false })
     expect(s.save?.progress.activeEvent).toEqual({ id: 'event_002', step: last })
     s = completeCurrentStep(s)
-    expect(s.save?.progress.completedEvents).toEqual(['event_001', 'event_002'])
+    expect(s.save?.progress.completedEvents).toEqual(ALL_EVENTS.slice(0, ALL_EVENTS.indexOf('event_002') + 1))
     // 古い会話の記録は消さずに残す（今の教材からは参照されない）
     expect(s.save?.learning.conversations['home_001#0']).toEqual({ choice: true, write: false })
     expect(loadSave(storage).kind).toBe('ok')
   })
 
-  it('施設やマップで終えていたら、その場所から再開する', () => {
-    const atCafe = { ...createNewSave(T0), progress: { ...createNewSave(T0).progress, currentLocationId: 'cafe' } }
-    const s = createInitialState({ kind: 'ok', data: atCafe, raw: '', migratedFrom: null }, null, DEFAULT_SETTINGS)
-    expect(reducer(s, { type: 'continue', now: T1 }).scene).toEqual({ name: 'location', locationId: 'cafe' })
-    const onMap = createInitialState({ kind: 'ok', data: createNewSave(T0), raw: '', migratedFrom: null }, null, DEFAULT_SETTINGS)
-    expect(reducer(onMap, { type: 'continue', now: T1 }).scene).toEqual({ name: 'main' })
+  it('施設やマップで終えていたら、その場所から再開する。まだ行けない施設なら自宅から', () => {
+    const load = (save: ReturnType<typeof createNewSave>) => createInitialState({ kind: 'ok', data: save, raw: '', migratedFrom: null }, null, DEFAULT_SETTINGS)
+    const cafeOpen = stateBefore('event_002').save
+    if (cafeOpen === null) throw new Error('セーブがない')
+    expect(reducer(load(cafeOpen), { type: 'continue', now: T1 }).scene).toEqual({ name: 'location', locationId: 'cafe' })
+    expect(reducer(load({ ...cafeOpen, progress: { ...cafeOpen.progress, currentLocationId: null } }), { type: 'continue', now: T1 }).scene).toEqual({ name: 'main' })
+    const locked = stateBefore('event_001').save
+    if (locked === null) throw new Error('セーブがない')
+    expect(reducer(load({ ...locked, progress: { ...locked.progress, currentLocationId: 'cafe' } }), { type: 'continue', now: T1 }).scene).toEqual(home)
+  })
+
+  it('自動で始まるイベントが残っていれば、つづきからでそこから始まる（物語が新しくなったセーブデータなど）', () => {
+    const s = createInitialState({ kind: 'ok', data: createNewSave(T0), raw: '', migratedFrom: null }, null, DEFAULT_SETTINGS)
+    const resumed = reducer(s, { type: 'continue', now: T1 })
+    expect(resumed.scene).toEqual({ name: 'event', locationId: 'home' })
+    expect(resumed.run?.eventId).toBe(ALL_EVENTS[0])
   })
 
   it('セーブデータがなければ、つづきからは何もしない', () => {
@@ -174,14 +279,14 @@ describe('途中で閉じて再開する', () => {
 
 describe('遊び直しと経験値', () => {
   it('終えたイベントは遊び直せるが、経験値も記録も増えない', () => {
-    let s = playWholeEvent(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), 'event_001')
+    let s = playWholeEvent(atHome(), 'event_001')
     const before = s.save
     s = playWholeEvent(s, 'event_001')
     expect(s.save).toBe(before)
   })
 
   it('書いて正解すると、選ぶより多い経験値が付き、知らせが出る', () => {
-    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    let s = run(atHome(), { type: 'startEvent', eventId: 'event_001', now: T1 })
     s = completeCurrentStep(completeCurrentStep(s)) // message, learn
     const xpBefore = s.save?.stats.xp ?? 0
     s = completeCurrentStep(s, 'write') // 最初の会話の往復を、すべて書いて正解
@@ -193,7 +298,7 @@ describe('遊び直しと経験値', () => {
   })
 
   it('「答えを見る」で進んでも、先へは進めるが経験値は付かない', () => {
-    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: 'event_001', now: T1 })
+    let s = run(atHome(), { type: 'startEvent', eventId: 'event_001', now: T1 })
     s = completeCurrentStep(completeCurrentStep(s))
     const xpBefore = s.save?.stats.xp
     const stepBefore = s.run?.step ?? 0
@@ -207,7 +312,7 @@ describe('遊び直しと経験値', () => {
 
 describe('設定・図鑑・戻る', () => {
   it('設定と図鑑は、開いた画面に戻る', () => {
-    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    let s = atHome()
     s = reducer(s, { type: 'openSettings' })
     expect(s.scene).toMatchObject({ name: 'settings', back: { name: 'location', locationId: 'home' } })
     s = reducer(s, { type: 'closeSettings' })
@@ -222,8 +327,7 @@ describe('設定・図鑑・戻る', () => {
   })
 
   it('ブラウザの「戻る」は画面内の戻るボタンと同じ動きをする', () => {
-    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
-    s = reducer(s, { type: 'startEvent', eventId: 'event_001', now: T1 })
+    let s = reducer(atHome(), { type: 'startEvent', eventId: 'event_001', now: T1 })
     s = reducer(s, { type: 'back', now: T1 }) // イベント → 施設
     expect(s.scene).toEqual({ name: 'location', locationId: 'home' })
     s = reducer(s, { type: 'back', now: T1 }) // 施設 → マップ
@@ -278,7 +382,8 @@ describe('起動（boot と createInitialState）', () => {
     const b = boot(storage, new Date(T1))
     expect(b.backupKey).toMatch(/pre-migration$/)
     expect(storage.getItem(b.backupKey ?? '')).toBe(v1)
-    expect(createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS).save?.progress.currentLocationId).toBe('cafe')
+    // v6 で物語の進み具合を最初からにするので、いた場所は残らない（物語を始めていなかったのでお知らせもない）
+    expect(createInitialState(b.load, b.backupKey, DEFAULT_SETTINGS).save?.progress).toMatchObject({ currentLocationId: null, notices: [] })
   })
 
   it('正常なデータは読み込まれ、退避はしない', () => {
@@ -291,7 +396,7 @@ describe('起動（boot と createInitialState）', () => {
   })
 })
 
-describe('はじめからの案内と学習画面', () => {
+describe('ハングルは読めますか？（hangulIntro）と学習画面', () => {
   const withHangul = createGameReducer({
     events: content.events,
     balance: content.balance,
@@ -299,58 +404,74 @@ describe('はじめからの案内と学習画面', () => {
     firstHangulLessonId: 'hangul_001',
   })
   const go = (state: GameState, ...actions: GameAction[]) => actions.reduce(withHangul, state)
-  const home = { name: 'location', locationId: content.balance.startLocation } as const
+  const introEvent = content.events.find((e) => e.steps.some((st) => st.type === 'hangulIntro'))
+  if (introEvent === undefined) throw new Error('hangulIntro のイベントがない')
+  /** hangulIntro の段階まで進めた状態 */
+  const atIntro = () => {
+    let s = go(stateBefore(introEvent.id), { type: 'startEvent', eventId: introEvent.id, now: T1 })
+    for (let i = 0; i < 20 && s.run !== null && introEvent.steps[s.run.step]?.type !== 'hangulIntro'; i++) {
+      const step = introEvent.steps[s.run.step]
+      s = go(s, step?.type === 'story' ? { type: 'storyDone', now: T1 } : step?.type === 'learn' ? { type: 'learnDone', now: T1 } : { type: 'stepDone', now: T1 })
+    }
+    return s
+  }
 
-  it('ハングルのレッスンがなければ、はじめからで最初の施設に行く', () => {
-    expect(run(titleWithoutSave(), { type: 'startNew', now: T0 }).scene).toEqual(home)
+  it('はじめからでは、もう最初に聞かない（物語が自動で始まる）', () => {
+    expect(go(titleWithoutSave(), { type: 'startNew', now: T0 }).scene).toEqual({ name: 'event', locationId: 'home' })
   })
 
-  it('レッスンがあれば、はじめからの直後にハングルから学ぶかを聞く。「このまま始める」で最初の施設へ', () => {
-    const s = go(titleWithoutSave(), { type: 'startNew', now: T0 })
-    expect(s.scene).toEqual({ name: 'onboarding' })
-    expect(s.save).not.toBeNull()
-    expect(go(s, { type: 'chooseOnboarding', learnHangul: false }).scene).toEqual(home)
+  it('「このまま進める」で、物語の次の段階へ', () => {
+    const s = atIntro()
+    expect(s.run === null ? undefined : introEvent.steps[s.run.step]?.type).toBe('hangulIntro')
+    expect(go(s, { type: 'stepDone', now: T1 })).toBe(s)
+    const next = go(s, { type: 'answerHangulIntro', learnHangul: false, now: T1 })
+    expect(next.scene.name).not.toBe('hangulLesson')
+    expect(next.run === null || next.run.step > (s.run?.step ?? 0)).toBe(true)
   })
 
-  it('「ハングルから学ぶ」でレッスン1を始め、閉じると最初の施設（物語の始まり）に戻る', () => {
-    const s = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: true })
-    expect(s.scene).toEqual({ name: 'hangulLesson', lessonId: 'hangul_001', back: home, onboarding: true })
-    expect(go(s, { type: 'closeStudyScene' }).scene).toEqual(home)
-    expect(go(s, { type: 'back', now: T1 }).scene).toEqual(home)
+  it('「ハングルから学ぶ」でレッスン1を始め、閉じると物語（その後の画面）に戻る', () => {
+    const s = go(atIntro(), { type: 'answerHangulIntro', learnHangul: true, now: T1 })
+    expect(s.scene).toMatchObject({ name: 'hangulLesson', lessonId: 'hangul_001', onboarding: true })
+    const back = go(s, { type: 'closeStudyScene' })
+    expect(back.scene.name === 'event' || back.scene.name === 'location').toBe(true)
+    expect(go(s, { type: 'back', now: T1 }).scene).toEqual(back.scene)
+  })
+
+  it('ハングルのレッスンがなければ、「学ぶ」でも物語を進める', () => {
+    let s = run(stateBefore(introEvent.id), { type: 'startEvent', eventId: introEvent.id, now: T1 })
+    for (let i = 0; i < 20 && s.run !== null && introEvent.steps[s.run.step]?.type !== 'hangulIntro'; i++) s = completeCurrentStep(s)
+    expect(run(s, { type: 'answerHangulIntro', learnHangul: true, now: T1 }).scene.name).not.toBe('hangulLesson')
   })
 
   it('自宅から学習画面 → ハングル → レッスンと開き、戻るで1つずつ戻る', () => {
-    const atHome = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: false })
-    const lesson = go(atHome, { type: 'openStudy' }, { type: 'openHangul' }, { type: 'openHangulLesson', lessonId: 'hangul_002' })
+    const lesson = go(atHome(), { type: 'openStudy' }, { type: 'openHangul' }, { type: 'openHangulLesson', lessonId: 'hangul_002' })
     expect(lesson.scene).toMatchObject({ name: 'hangulLesson', lessonId: 'hangul_002', onboarding: false, back: { name: 'hangul', back: { name: 'study', back: home } } })
     const back1 = go(lesson, { type: 'back', now: T1 })
     expect(back1.scene.name).toBe('hangul')
     expect(go(back1, { type: 'closeStudyScene' }, { type: 'closeStudyScene' }).scene).toEqual(home)
-    expect(go(atHome, { type: 'openStudy' }, { type: 'openListening' }).scene).toMatchObject({ name: 'listening', back: { name: 'study' } })
+    expect(go(atHome(), { type: 'openStudy' }, { type: 'openListening' }).scene).toMatchObject({ name: 'listening', back: { name: 'study' } })
   })
 
   it('決まった順でしか開けない（学習画面を経ずにレッスンは開けない）', () => {
-    const atHome = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: false })
-    expect(go(atHome, { type: 'openHangulLesson', lessonId: 'hangul_001' })).toBe(atHome)
-    expect(go(atHome, { type: 'openListening' })).toBe(atHome)
+    const s = atHome()
+    expect(go(s, { type: 'openHangulLesson', lessonId: 'hangul_001' })).toBe(s)
+    expect(go(s, { type: 'openListening' })).toBe(s)
     expect(go(titleWithoutSave(), { type: 'openStudy' }).scene).toEqual({ name: 'title' })
   })
 
   it('小テストの合格とリスニングの正解で経験値が付き、知らせを出す', () => {
-    const atHome = go(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'chooseOnboarding', learnHangul: false })
-    const passed = go(atHome, { type: 'hangulLessonPassed', lessonId: 'hangul_001', score: 88, now: T1 })
+    const s = atHome()
+    const passed = go(s, { type: 'hangulLessonPassed', lessonId: 'hangul_001', score: 88, now: T1 })
     expect(passed.save?.learning.hangul['hangul_001']).toEqual({ passedAt: T1, bestScore: 88 })
     expect(passed.reward).toMatchObject({ xp: content.balance.xp.hangulLesson })
     expect(go(passed, { type: 'hangulLessonPassed', lessonId: 'hangul_001', score: 50, now: T1 })).toBe(passed)
-    const heard = go(atHome, { type: 'listeningCorrect', key: 'word:vocab_001', now: T1 })
+    const heard = go(s, { type: 'listeningCorrect', key: 'word:vocab_001', now: T1 })
     expect(heard.save?.stats.xp).toBe(content.balance.xp.listening)
     expect(go(heard, { type: 'listeningCorrect', key: 'word:vocab_001', now: T1 })).toBe(heard)
   })
 })
 
 describe('復習・練習・ドリル・テスト・スタンプ（Phase 2.5）', () => {
-  const home = { name: 'location', locationId: content.balance.startLocation } as const
-  const atHome = () => run(titleWithoutSave(), { type: 'startNew', now: T0 })
 
   it('学習画面から復習・練習・ドリルの一覧を開き、ドリル・テストは一覧から開く。戻るで1つずつ戻る', () => {
     const study = run(atHome(), { type: 'openStudy' })
@@ -381,9 +502,8 @@ describe('復習・練習・ドリル・テスト・スタンプ（Phase 2.5）'
     const tested = run(atHome(), { type: 'testFinished', testId: 'test_001', score: 40, passed: false, now: T1 })
     expect(tested.save?.daily.stamps).toHaveLength(1)
     expect(tested.save?.learning.tests['test_001']).toEqual({ passedAt: null, bestScore: 40 })
-    const first = content.events[0]
-    if (first === undefined) throw new Error('イベントがない')
-    const played = playWholeEvent(atHome(), first.id)
+    // はじめから自動で始まるイベントを終える
+    const played = finishRun(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }))
     expect(played.save?.daily.stamps).toHaveLength(1)
     expect(played.reward).toMatchObject({ stamp: true })
   })
@@ -400,12 +520,12 @@ describe('選択の往復（Phase 2.5）', () => {
   it('選択の往復への答えは、経験値・記録・復習を付けない', () => {
     const event = content.events.find((e) => e.steps.some((st) => st.type === 'conversation' && content.conversations.find((c) => c.id === st.id)?.turns.some((t) => t.kind === 'decision')))
     if (event === undefined) throw new Error('選択の往復のある会話がない')
-    let s = run(reducer(titleWithoutSave(), { type: 'startNew', now: T0 }), { type: 'startEvent', eventId: event.id, now: T1 })
+    let s = run(stateBefore(event.id), { type: 'startEvent', eventId: event.id, now: T1 })
     for (let i = 0; i < 20 && s.run !== null && event.steps[s.run.step]?.type !== 'conversation'; i++) s = completeCurrentStep(s)
     const step = s.run === null ? undefined : event.steps[s.run.step]
     if (step?.type !== 'conversation') throw new Error('会話の段階がない')
     const conversation = content.conversations.find((c) => c.id === step.id)
-    // 1日目の教材では、そのイベントの最初の会話に選択の往復がある
+    // 今の教材では、そのイベントの最初の会話に選択の往復がある
     const decisionTurn = conversation?.turns.findIndex((t) => t.kind === 'decision') ?? -1
     expect(decisionTurn).toBeGreaterThanOrEqual(0)
     expect(reducer(s, { type: 'conversationAnswered', turn: decisionTurn, method: 'choice', now: T1 })).toBe(s)
@@ -419,11 +539,11 @@ describe('会話をもう一度（BUG-007）', () => {
   const conversation = content.conversations.find((c) => c.id === conversationId)
   const questionTurn = conversation?.turns.findIndex((t) => t.choices !== undefined && t.kind !== 'decision') ?? -1
   const decisionTurn = conversation?.turns.findIndex((t) => t.kind === 'decision') ?? -1
-  /** Phase 2 で1日目を終えた形（作り直した会話の記録はない） */
-  const finished = () => {
-    const s = run(titleWithoutSave(), { type: 'startNew', now: T0 })
+  /** すべてのイベントを終えた形（会話の記録はない） */
+  const finished = (): GameState => {
+    const s = atHome()
     if (s.save === null) throw new Error('セーブがない')
-    return { ...s, save: { ...s.save, progress: { ...s.save.progress, completedEvents: ['event_001', 'event_002', 'event_003'] } } }
+    return { ...s, save: { ...s.save, progress: { ...s.save.progress, completedEvents: ALL_EVENTS } } }
   }
 
   it('学習画面の一覧から、終えたイベントの会話を遊べる。終えていないイベントの会話は遊べない', () => {
@@ -431,7 +551,7 @@ describe('会話をもう一度（BUG-007）', () => {
     expect(list.scene).toMatchObject({ name: 'conversations', back: { name: 'study' } })
     const replay = run(list, { type: 'openConversationReplay', conversationId })
     expect(replay.scene).toMatchObject({ name: 'conversationReplay', conversationId, locationId: conversation?.location })
-    const notYet = run(titleWithoutSave(), { type: 'startNew', now: T0 }, { type: 'openStudy' }, { type: 'openConversations' })
+    const notYet = run(atHome(), { type: 'openStudy' }, { type: 'openConversations' })
     expect(run(notYet, { type: 'openConversationReplay', conversationId })).toBe(notYet)
     expect(run(replay, { type: 'back', now: T1 }).scene.name).toBe('conversations')
   })
@@ -454,6 +574,6 @@ describe('会話をもう一度（BUG-007）', () => {
     for (let i = 0; i < 20 && s.run !== null && home?.steps[s.run.step]?.type !== 'conversation'; i++) s = completeCurrentStep(s)
     s = run(s, { type: 'conversationAnswered', turn: questionTurn, method: 'write', now: T1 })
     expect(s.save?.learning.conversations[`${conversationId}#${questionTurn}`]).toEqual({ choice: false, write: true })
-    expect(s.save?.progress.completedEvents).toEqual(['event_001', 'event_002', 'event_003'])
+    expect(s.save?.progress.completedEvents).toEqual(ALL_EVENTS)
   })
 })

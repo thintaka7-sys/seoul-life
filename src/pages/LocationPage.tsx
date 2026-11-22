@@ -1,6 +1,7 @@
 import { useGame, nowIso } from '../app/GameContext'
 import { Button } from '../components/Button'
 import { Hud } from '../components/Hud'
+import { Notice } from '../components/Notice'
 import { Stage } from '../components/scene/Stage'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { backgroundImage, content, findConversation, findLocation } from '../data'
@@ -35,6 +36,12 @@ export function LocationPage({ locationId }: { locationId: string }) {
       }
     >
       <Hud />
+      {save?.progress.notices.includes('storyRestructured') === true && (
+        <Notice tone="info">
+          <p>物語が新しくなりました（第1章「韓国に到着」から始まります）。覚えた単語・復習・スタンプ・経験値は、そのまま残っています。</p>
+          <Button onClick={() => dispatch({ type: 'dismissNotice', notice: 'storyRestructured', now: nowIso() })}>わかりました</Button>
+        </Notice>
+      )}
       <Stage locationId={locationId} characterId={characterIn(next)} hasBackground={backgroundImage(locationId) !== undefined} />
 
       <div className="panel actions">
@@ -52,6 +59,7 @@ export function LocationPage({ locationId }: { locationId: string }) {
             <Button onClick={() => dispatch({ type: 'openStudy' })}>勉強する（復習・練習・ハングル）</Button>
             <Button onClick={() => dispatch({ type: 'openDictionary' })}>図鑑を見る</Button>
             <Button onClick={() => dispatch({ type: 'openStamps' })}>スタンプカード</Button>
+            <Button onClick={() => dispatch({ type: 'openAlbum' })}>おはなしのアルバム</Button>
           </>
         )}
 

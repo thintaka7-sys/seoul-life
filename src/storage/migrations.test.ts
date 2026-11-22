@@ -120,14 +120,16 @@ describe('v2 → v3', () => {
     expect(latest.ok && isSaveData(latest.data)).toBe(true)
   })
 
-  it('保存されている v2 のデータを読み込むと v3 になり、経験値と進行が残る', () => {
+  it('保存されている v2 のデータを読み込むと最新の版になり、経験値が残る（物語の進み具合は v6 で最初からになる）', () => {
     const storage = new MemoryStorage()
     storage.setItem(SAVE_KEY, JSON.stringify(v2))
     const result = loadSave(storage)
     expect(result).toMatchObject({ kind: 'ok', migratedFrom: 2 })
     if (result.kind !== 'ok') return
     expect(result.data.stats.xp).toBe(123)
-    expect(result.data.progress.activeEvent).toEqual({ id: 'event_002', step: 4 })
+    expect(result.data.learning.words['vocab_001']).toBeDefined()
+    expect(result.data.progress.activeEvent).toBeNull()
+    expect(result.data.progress.notices).toEqual(['storyRestructured'])
   })
 
   it('learning が壊れた v2 は、移行後の検証で壊れたデータとして扱う', () => {
@@ -213,11 +215,12 @@ describe('v4 → v5', () => {
       },
       daily: { stamps: [] },
     })
-    expect(isSaveData(result.data)).toBe(true)
+    const latest = migrate(result.data, MIGRATIONS, CURRENT_SAVE_VERSION)
+    expect(latest.ok && isSaveData(latest.data)).toBe(true)
   })
 
   it('v5 の記録の値が正しくなければ、壊れたデータとして扱う', () => {
-    const migrated = migrate(structuredClone(v4) as unknown as Record<string, unknown>, MIGRATIONS, 5)
+    const migrated = migrate(structuredClone(v4) as unknown as Record<string, unknown>, MIGRATIONS, CURRENT_SAVE_VERSION)
     if (!migrated.ok) throw new Error(migrated.detail)
     const v5 = migrated.data as unknown as SaveData
     const withReview = (r: unknown) => ({ ...v5, learning: { ...v5.learning, review: { 'word:vocab_001': r } } })
@@ -227,5 +230,57 @@ describe('v4 → v5', () => {
     expect(isSaveData({ ...v5, daily: { stamps: ['2026-11-19', 'x'] } })).toBe(false)
     expect(isSaveData({ ...v5, learning: { ...v5.learning, tests: { test_001: { passedAt: null, bestScore: 60 } } } })).toBe(true)
     expect(isSaveData({ ...v5, learning: { ...v5.learning, tests: { test_001: { passedAt: null, bestScore: 160 } } } })).toBe(false)
+  })
+})
+
+describe('v5 → v6', () => {
+  const v5 = {
+    version: 5,
+    createdAt: '2026-11-18T10:00:00.000Z',
+    updatedAt: '2026-11-22T03:00:00.000Z',
+    progress: { currentLocationId: 'cafe', completedEvents: ['event_001'], activeEvent: { id: 'event_002', step: 3 } },
+    learning: {
+      words: { vocab_001: { learnedAt: '2026-11-18T03:00:00.000Z', chapter: 1 } },
+      grammar: {},
+      conversations: { 'home_005#0': { choice: true, write: false } },
+      hangul: { hangul_001: { passedAt: '2026-11-18T05:00:00.000Z', bestScore: 100 } },
+      listening: {},
+      review: { 'word:vocab_001': { stage: 1, due: '2026-11-25', correct: 1, wrong: 0, lastAt: '2026-11-22T03:00:00.000Z' } },
+      drills: {},
+      tests: {},
+    },
+    stats: { xp: 200 },
+    daily: { stamps: ['2026-11-22'] },
+  }
+
+  it('物語の進み具合だけを最初からにし、学習の記録・経験値・スタンプは残す。一度だけのお知らせを足す', () => {
+    const result = migrate(structuredClone(v5), MIGRATIONS, 6)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.data).toEqual({
+      ...v5,
+      version: 6,
+      progress: { currentLocationId: null, completedEvents: [], activeEvent: null, storiesSeen: {}, notices: ['storyRestructured'] },
+      learning: { ...v5.learning, seen: {}, readings: {}, orders: {}, forms: {} },
+    })
+    expect(isSaveData(result.data)).toBe(true)
+  })
+
+  it('物語を始めていなければ、お知らせは出さない', () => {
+    const fresh = { ...v5, progress: { currentLocationId: 'home', completedEvents: [], activeEvent: null } }
+    const result = migrate(structuredClone(fresh), MIGRATIONS, 6)
+    expect(result.ok && (result.data['progress'] as { notices: unknown }).notices).toEqual([])
+  })
+
+  it('v6 の新しい記録の値が正しくなければ、壊れたデータとして扱う', () => {
+    const result = migrate(structuredClone(v5), MIGRATIONS, 6)
+    if (!result.ok) throw new Error(result.detail)
+    const v6 = result.data as unknown as SaveData
+    expect(isSaveData({ ...v6, learning: { ...v6.learning, seen: { vocab_001: { seenAt: v5.createdAt, chapter: 1 } } } })).toBe(true)
+    expect(isSaveData({ ...v6, learning: { ...v6.learning, seen: { vocab_001: { seenAt: 'x', chapter: 1 } } } })).toBe(false)
+    expect(isSaveData({ ...v6, learning: { ...v6.learning, orders: { order_001: { firstAt: v5.createdAt, items: ['americano'] } } } })).toBe(true)
+    expect(isSaveData({ ...v6, learning: { ...v6.learning, orders: { order_001: { firstAt: v5.createdAt, items: [1] } } } })).toBe(false)
+    expect(isSaveData({ ...v6, progress: { ...v6.progress, storiesSeen: { story_001: { seenAt: v5.createdAt } } } })).toBe(true)
+    expect(isSaveData({ ...v6, progress: { ...v6.progress, notices: ['unknown'] } })).toBe(false)
   })
 })

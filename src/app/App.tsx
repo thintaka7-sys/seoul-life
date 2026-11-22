@@ -6,7 +6,6 @@ import { DictionaryPage } from '../pages/DictionaryPage'
 import { EventPage } from '../pages/event/EventPage'
 import { LocationPage } from '../pages/LocationPage'
 import { MainPage } from '../pages/MainPage'
-import { OnboardingPage } from '../pages/OnboardingPage'
 import { SaveErrorPage } from '../pages/SaveErrorPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { HangulLessonPage } from '../pages/study/HangulLessonPage'
@@ -23,6 +22,12 @@ import { ConversationListPage } from '../pages/study/ConversationListPage'
 import { ConversationReplayPage } from '../pages/study/ConversationReplayPage'
 import { ReviewPage } from '../pages/study/ReviewPage'
 import { StudyPage } from '../pages/study/StudyPage'
+import { AlbumPage } from '../pages/AlbumPage'
+import { StoryReplayPage } from '../pages/StoryReplayPage'
+import { setBgm } from '../audio/bgm'
+import { backgroundImage } from '../data'
+import { bgmFor } from './bgmScene'
+import { useBackdropOverride, useBgmOverride } from './overrides'
 import { TitlePage } from '../pages/TitlePage'
 import { OVERLAY_ROOT_ID } from '../components/Overlay'
 import { backdropFor } from './backdrop'
@@ -43,8 +48,6 @@ function SceneView({ scene }: { scene: Scene }) {
       return <EventPage />
     case 'dictionary':
       return <DictionaryPage />
-    case 'onboarding':
-      return <OnboardingPage />
     case 'study':
       return <StudyPage />
     case 'hangul':
@@ -73,6 +76,10 @@ function SceneView({ scene }: { scene: Scene }) {
       return <ConversationListPage />
     case 'conversationReplay':
       return <ConversationReplayPage conversationId={scene.conversationId} />
+    case 'album':
+      return <AlbumPage />
+    case 'storyReplay':
+      return <StoryReplayPage storyId={scene.storyId} />
     case 'saveError':
       return <SaveErrorPage reason={scene.reason} detail={scene.detail} backupKey={scene.backupKey} />
   }
@@ -86,6 +93,7 @@ function sceneKey(scene: Scene): string {
   if (scene.name === 'chapterTest') return `${scene.name}:${scene.testId}`
   if (scene.name === 'conversationReplay') return `${scene.name}:${scene.conversationId}`
   if (scene.name === 'earSet') return `${scene.name}:${scene.setId ?? 'mix'}`
+  if (scene.name === 'storyReplay') return `${scene.name}:${scene.storyId}`
   return scene.name
 }
 
@@ -131,7 +139,16 @@ export function App() {
     window.scrollTo(0, 0)
   }, [state.scene, state.run?.step])
 
-  const backdrop = backdropFor(state.scene, state.run)
+  // おはなしの場面で変えた背景があれば、それを敷く（画像がなければ、ふだんの背景）
+  const override = useBackdropOverride()
+  const backdrop = (override === null ? undefined : backgroundImage(override)) ?? backdropFor(state.scene, state.run)
+
+  // 場面に合わせて BGM を流す（おはなしで指定した曲があれば、それ）
+  const bgmOverride = useBgmOverride()
+  const bgm = bgmFor(state.scene, bgmOverride)
+  useEffect(() => {
+    setBgm(bgm.track, bgm.level)
+  }, [bgm.track, bgm.level])
 
   return (
     <div className={`app${backdrop === undefined ? '' : ' app--backdrop'}`} data-effects={state.settings.effects}>

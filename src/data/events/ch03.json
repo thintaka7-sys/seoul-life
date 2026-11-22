@@ -1,0 +1,30 @@
+[
+  {
+    "id": "event_009",
+    "chapter": 3,
+    "location": "home",
+    "requires": [
+      "event_008"
+    ],
+    "objectiveJa": "友だちの話を聞こう",
+    "actionJa": "外に出てみる",
+    "unlocks": [
+      "cafe"
+    ],
+    "steps": [
+      {
+        "type": "background",
+        "id": "street"
+      },
+      {
+        "type": "story",
+        "id": "story_907"
+      },
+      {
+        "type": "message",
+        "textJa": "近所のカフェに行けるようになりました。マップから行ってみましょう。"
+      }
+    ],
+    "notes": "仮のおはなし（story_907）。カフェを開く（unlocks）。その後は day1.json の event_002・003（第3章の教材が届くまで今のまま）"
+  }
+]

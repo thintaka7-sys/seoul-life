@@ -1,0 +1,14 @@
+{
+  "inputDir": "assets-inbox/audio",
+  "outputDir": "public/audio",
+  "manifest": "src/data/assets/audio.json",
+  "bgm": [
+    { "id": "title", "file": "bgm_title.mp3" },
+    { "id": "home", "file": "bgm_home.mp3" },
+    { "id": "map", "file": "bgm_map.mp3" },
+    { "id": "cafe", "file": "bgm_cafe.mp3" },
+    { "id": "study", "file": "bgm_study.mp3" },
+    { "id": "story", "file": "bgm_story.mp3" }
+  ],
+  "sfx": []
+}

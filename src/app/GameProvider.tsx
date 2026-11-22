@@ -1,4 +1,6 @@
 import { useEffect, useReducer, useRef, type ReactNode } from 'react'
+import { setBgmEnabled } from '../audio/bgm'
+import { setBgmMasterVolume, setSfxVolume } from '../audio/engine'
 import { setSfxEnabled } from '../audio/sfx'
 import { applySavedSlowRate } from '../audio/speech'
 import { content } from '../data'
@@ -15,6 +17,7 @@ const gameReducer = createGameReducer({
   conversations: content.conversations,
   locationIds: new Set(content.locations.map((l) => l.id)),
   firstHangulLessonId: content.hangulLessons[0]?.id ?? null,
+  storyIds: new Set(content.stories.map((s) => s.id)),
 })
 
 function initState(boot: BootResult) {
@@ -37,10 +40,19 @@ export function GameProvider({ boot, children }: { boot: BootResult; children: R
     else dispatch({ type: 'saveFailed', message: result.detail })
   }, [state.save, boot.storage])
 
-  // 効果音のオン・オフを反映する
+  // 効果音・BGM のオン・オフと音量を反映する
   useEffect(() => {
     setSfxEnabled(state.settings.soundEffects)
   }, [state.settings.soundEffects])
+  useEffect(() => {
+    setSfxVolume(state.settings.sfxVolume / 100)
+  }, [state.settings.sfxVolume])
+  useEffect(() => {
+    setBgmEnabled(state.settings.bgm)
+  }, [state.settings.bgm])
+  useEffect(() => {
+    setBgmMasterVolume(state.settings.bgmVolume / 100)
+  }, [state.settings.bgmVolume])
 
   // この端末の「ゆっくり」の速さ（読み上げの確認で保存したもの）を読み上げに反映する（BUG-010）
   const slowRate = state.settings.slowSpeech === null ? undefined : state.settings.slowSpeech.rate

@@ -4,7 +4,7 @@
 import type { Balance, Conversation, GameEvent, StampActivity } from '../data/types'
 import type { AnswerMode } from '../learning/conversation/session'
 import { isReplayable } from '../game/conversations/replayList'
-import { findEvent, nextEvent, playableStep, resumeStep } from '../game/events/events'
+import { autoStartEvent, findEvent, newlyUnlocked, nextEvent, playableStep, resumeStep, unlockedLocations } from '../game/events/events'
 import {
   advanceEvent,
   answerDrillItem,
@@ -14,13 +14,15 @@ import {
   learnItems,
   passHangulLesson,
   recordListeningCorrect,
+  rememberWord,
+  seeStory,
   stampToday,
   startEvent,
   type ClearMethod,
   type ReviewSource,
   type Reward,
 } from '../game/progression/progression'
-import { createNewSave, type SaveData } from '../storage/saveData'
+import { createNewSave, type SaveData, type SaveNotice } from '../storage/saveData'
 import type { CorruptReason, LoadResult } from '../storage/saveStore'
 import type { Settings } from '../storage/settings'
 
@@ -32,13 +34,11 @@ export type Scene =
   /** イベントの段階を進めている画面（中身は run で決まる） */
   | { name: 'event'; locationId: string }
   | { name: 'dictionary'; back: Scene }
-  /** 「はじめから」の直後に1度だけ聞く：ハングルから学ぶか、このまま始めるか */
-  | { name: 'onboarding' }
   /** 学習画面（GAME_SPEC 3-1 E）。自宅の「勉強する」から開く */
   | { name: 'study'; back: Scene }
   /** ハングルのレッスンの一覧 */
   | { name: 'hangul'; back: Scene }
-  /** ハングルのレッスン。onboarding は「はじめから」の直後の案内から来たか（終わったら物語を始める） */
+  /** ハングルのレッスン。onboarding は物語の中の「ハングルは読めますか？」から来たか（閉じると物語に戻る） */
   | { name: 'hangulLesson'; lessonId: string; back: Scene; onboarding: boolean }
   /** リスニング */
   | { name: 'listening'; back: Scene }
@@ -62,6 +62,10 @@ export type Scene =
   | { name: 'conversations'; back: Scene }
   /** 会話をもう一度：1つの会話を遊ぶ（locationId は背景のため） */
   | { name: 'conversationReplay'; conversationId: string; locationId: string; back: Scene }
+  /** おはなしのアルバム（GAME_SPEC 3-2）。自宅から開く */
+  | { name: 'album'; back: Scene }
+  /** アルバムから、見たおはなしをもう一度見る（記録しない） */
+  | { name: 'storyReplay'; storyId: string; back: Scene }
   | { name: 'saveError'; reason: CorruptReason; detail: string; backupKey: string | null }
 
 /**
@@ -118,8 +122,16 @@ export type GameAction =
   | { type: 'leaveEvent' }
   /** ブラウザの「戻る」。画面内の「戻る」ボタンと同じ動きにする */
   | { type: 'back'; now: string }
-  /** 「はじめから」の直後の案内に答える */
-  | { type: 'chooseOnboarding'; learnHangul: boolean }
+  /** 物語の「ハングルは読めますか？」（hangulIntro の段階）に答える */
+  | { type: 'answerHangulIntro'; learnHangul: boolean; now: string }
+  /** おはなしを最後まで見た（飛ばした場合も） */
+  | { type: 'storyDone'; now: string }
+  /** タップした単語の「覚える」を押した（見かけた単語に入れ、復習に加える） */
+  | { type: 'rememberWord'; vocabId: string; chapter: number; now: string }
+  /** 一度だけのお知らせを閉じる */
+  | { type: 'dismissNotice'; notice: SaveNotice; now: string }
+  | { type: 'openAlbum' }
+  | { type: 'openStoryReplay'; storyId: string }
   | { type: 'openStudy' }
   | { type: 'openHangul' }
   | { type: 'openHangulLesson'; lessonId: string }
@@ -162,8 +174,10 @@ export interface GameDeps {
   events: readonly GameEvent[]
   balance: Balance
   locationIds: ReadonlySet<string>
-  /** 最初のハングルのレッスンのID。あれば「はじめから」の直後に、ハングルから学ぶかを聞く */
+  /** 最初のハングルのレッスンのID。物語の「ハングルは読めますか？」で「学ぶ」を選んだら開く */
   firstHangulLessonId?: string | null
+  /** おはなしのID（アルバムから開けるかの確認。省略したら確かめない） */
+  storyIds?: ReadonlySet<string>
   /** 会話（選択の往復への答えを記録しないために使う。省略したら確かめない） */
   conversations?: readonly Conversation[]
 }
@@ -187,7 +201,7 @@ function withLocation(save: SaveData, locationId: string | null, now: string): S
 }
 
 function addReward(state: GameState, reward: Reward): RewardNotice | null {
-  if (reward.xp === 0 && reward.newWords === 0 && reward.stamp !== true) return state.reward
+  if (reward.xp === 0 && reward.newWords === 0 && reward.stamp !== true && (reward.unlocked?.length ?? 0) === 0) return state.reward
   return { ...reward, seq: (state.reward?.seq ?? 0) + 1 }
 }
 
@@ -224,12 +238,13 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'conversationReplay':
     case 'ear':
     case 'earSet':
+    case 'album':
+    case 'storyReplay':
       return 'closeStudyScene'
     case 'location':
     case 'main':
       return state.scene.name === 'main' ? 'backToTitle' : 'backToMap'
     case 'title':
-    case 'onboarding':
     case 'saveError':
       return null
   }
@@ -239,7 +254,23 @@ export function backTarget(state: GameState): GameAction['type'] | null {
 type StudyScene = Extract<
   Scene,
   {
-    name: 'study' | 'hangul' | 'hangulLesson' | 'listening' | 'review' | 'practice' | 'drills' | 'drill' | 'chapterTest' | 'stamps' | 'conversations' | 'conversationReplay' | 'ear' | 'earSet'
+    name:
+      | 'study'
+      | 'hangul'
+      | 'hangulLesson'
+      | 'listening'
+      | 'review'
+      | 'practice'
+      | 'drills'
+      | 'drill'
+      | 'chapterTest'
+      | 'stamps'
+      | 'conversations'
+      | 'conversationReplay'
+      | 'ear'
+      | 'earSet'
+      | 'album'
+      | 'storyReplay'
   }
 >
 
@@ -258,6 +289,8 @@ const STUDY_SCENES: readonly Scene['name'][] = [
   'conversationReplay',
   'ear',
   'earSet',
+  'album',
+  'storyReplay',
 ]
 
 function isStudyScene(scene: Scene): scene is StudyScene {
@@ -267,7 +300,25 @@ function isStudyScene(scene: Scene): scene is StudyScene {
 export function createGameReducer(deps: GameDeps) {
   const { events, balance, locationIds } = deps
   const firstHangulLessonId = deps.firstHangulLessonId ?? null
-  const unlocked = new Set(balance.initialLocations)
+
+  /** いま行ける施設 */
+  function unlockedFor(save: SaveData): Set<string> {
+    return unlockedLocations(events, balance.initialLocations, save.progress.completedEvents)
+  }
+
+  /** イベントを始める（途中なら続きから）。scene はイベントの画面 */
+  function beginEvent(state: GameState, save: SaveData, event: GameEvent, now: string): GameState {
+    const started = startEvent(save, event, now)
+    const step = started.progress.activeEvent?.step ?? 0
+    return { ...state, save: started, run: { eventId: event.id, step, replay: false }, scene: { name: 'event', locationId: event.location } }
+  }
+
+  /** 自動で始まるイベント（start: "auto"）があれば始める。なければ state のまま */
+  function withAutoStart(state: GameState, now: string): GameState {
+    if (state.save === null || state.run !== null) return state
+    const auto = autoStartEvent(events, state.save.progress)
+    return auto === undefined ? state : beginEvent(state, state.save, auto, now)
+  }
 
   /** 段階を1つ進める。イベントの最後なら、その施設の画面に戻る */
   function finishStep(state: GameState, extra: Reward, now: string): GameState {
@@ -284,9 +335,12 @@ export function createGameReducer(deps: GameDeps) {
 
     const advanced = advanceEvent(state.save, event, balance, now)
     if (advanced.finished) {
-      // イベントを1つ完了したら、今日のスタンプ
+      // イベントを1つ完了したら、今日のスタンプ。新しく開いた施設を知らせ、次が自動で始まるイベントなら続けて始める
+      const unlocked = newlyUnlocked(event, events, balance.initialLocations, state.save.progress.completedEvents)
       const stamped = withStampFor(advanced.save, sumRewards(extra, advanced.reward), 'event', balance, now)
-      return { ...state, save: stamped.save, run: null, reward: addReward(state, stamped.reward), scene: { name: 'location', locationId: event.location } }
+      const reward = unlocked.length > 0 ? { ...stamped.reward, unlocked } : stamped.reward
+      const done: GameState = { ...state, save: stamped.save, run: null, reward: addReward(state, reward), scene: { name: 'location', locationId: event.location } }
+      return withAutoStart(done, now)
     }
     const reward = addReward(state, sumRewards(extra, advanced.reward))
     const step = advanced.save.progress.activeEvent?.step ?? run.step + 1
@@ -310,16 +364,46 @@ export function createGameReducer(deps: GameDeps) {
   return function gameReducer(state: GameState, action: GameAction): GameState {
     switch (action.type) {
       case 'startNew': {
+        // 「ハングルは読めますか？」は、第1章の先生の授業の中で聞く（hangulIntro の段階。計画 Q3）
         const save = withLocation(createNewSave(action.now), balance.startLocation, action.now)
-        const scene: Scene = firstHangulLessonId === null ? { name: 'location', locationId: balance.startLocation } : { name: 'onboarding' }
-        return { ...state, save, run: null, reward: null, scene }
+        return withAutoStart({ ...state, save, run: null, reward: null, scene: { name: 'location', locationId: balance.startLocation } }, action.now)
       }
 
-      case 'chooseOnboarding': {
-        if (state.scene.name !== 'onboarding') return state
-        const start: Scene = { name: 'location', locationId: balance.startLocation }
-        if (!action.learnHangul || firstHangulLessonId === null) return { ...state, scene: start }
-        return { ...state, scene: { name: 'hangulLesson', lessonId: firstHangulLessonId, back: start, onboarding: true } }
+      case 'answerHangulIntro': {
+        if (currentStep(state)?.type !== 'hangulIntro') return state
+        const next = finishStep(state, { xp: 0, newWords: 0 }, action.now)
+        if (!action.learnHangul || firstHangulLessonId === null) return next
+        // レッスンを閉じると、物語（イベントの続き、またはイベントを終えた後の画面）に戻る
+        return { ...next, scene: { name: 'hangulLesson', lessonId: firstHangulLessonId, back: next.scene, onboarding: true } }
+      }
+
+      case 'storyDone': {
+        const step = currentStep(state)
+        if (step?.type !== 'story' || state.save === null) return state
+        return finishStep({ ...state, save: seeStory(state.save, step.id, action.now) }, { xp: 0, newWords: 0 }, action.now)
+      }
+
+      case 'rememberWord': {
+        if (state.save === null) return state
+        const remembered = rememberWord(state.save, action.vocabId, action.chapter, balance, action.now)
+        return remembered === state.save ? state : { ...state, save: remembered }
+      }
+
+      case 'dismissNotice': {
+        const save = state.save
+        if (save === null || !save.progress.notices.includes(action.notice)) return state
+        return { ...state, save: { ...save, updatedAt: action.now, progress: { ...save.progress, notices: save.progress.notices.filter((n) => n !== action.notice) } } }
+      }
+
+      case 'openAlbum':
+        if (state.save === null || isStudyScene(state.scene)) return state
+        return { ...state, scene: { name: 'album', back: state.scene } }
+
+      case 'openStoryReplay': {
+        const save = state.save
+        if (save === null || state.scene.name !== 'album' || save.progress.storiesSeen[action.storyId] === undefined) return state
+        if (deps.storyIds !== undefined && !deps.storyIds.has(action.storyId)) return state
+        return { ...state, scene: { name: 'storyReplay', storyId: action.storyId, back: state.scene } }
       }
 
       case 'openStudy':
@@ -442,18 +526,17 @@ export function createGameReducer(deps: GameDeps) {
         // 途中のイベントがあれば、その続きから再開する
         const active = save.progress.activeEvent
         const event = active === null ? undefined : findEvent(events, active.id)
-        if (active !== null && event !== undefined) {
-          const started = startEvent(save, event, action.now)
-          const step = started.progress.activeEvent?.step ?? 0
-          return { ...state, save: started, run: { eventId: event.id, step, replay: false }, scene: { name: 'event', locationId: event.location } }
-        }
+        if (active !== null && event !== undefined) return beginEvent(state, save, event, action.now)
+        // 自動で始まるイベント（物語が新しくなったセーブデータの第1章の最初など）があれば、そこから
+        const auto = withAutoStart(state, action.now)
+        if (auto !== state) return auto
         const loc = save.progress.currentLocationId
-        if (loc !== null && locationIds.has(loc)) return { ...state, scene: { name: 'location', locationId: loc } }
-        return { ...state, scene: { name: 'main' } }
+        if (loc !== null && locationIds.has(loc) && unlockedFor(save).has(loc)) return { ...state, scene: { name: 'location', locationId: loc } }
+        return { ...state, scene: loc === null ? { name: 'main' } : { name: 'location', locationId: balance.startLocation } }
       }
 
       case 'goToLocation':
-        if (state.save === null || !locationIds.has(action.locationId) || !unlocked.has(action.locationId)) return state
+        if (state.save === null || !locationIds.has(action.locationId) || !unlockedFor(state.save).has(action.locationId)) return state
         return { ...state, save: withLocation(state.save, action.locationId, action.now), scene: { name: 'location', locationId: action.locationId } }
 
       case 'backToMap':
@@ -491,15 +574,13 @@ export function createGameReducer(deps: GameDeps) {
           return { ...state, run: { eventId: event.id, step: resumeStep(event, 0), replay: true }, scene: { name: 'event', locationId: event.location } }
         }
         if (nextEvent(events, save.progress)?.id !== event.id) return state
-        const started = startEvent(save, event, action.now)
-        const step = started.progress.activeEvent?.step ?? 0
-        return { ...state, save: started, run: { eventId: event.id, step, replay: false }, scene: { name: 'event', locationId: event.location } }
+        return beginEvent(state, save, event, action.now)
       }
 
       case 'stepDone': {
         const step = currentStep(state)
-        if (step === undefined || step.type === 'learn' || step.type === 'conversation') return state
-        // message・column・dictionary・dayEnd は見終えたら次へ（経験値なし）
+        if (step === undefined || step.type === 'learn' || step.type === 'conversation' || step.type === 'story' || step.type === 'hangulIntro') return state
+        // message・column・dictionary・dayEnd・chapterEnd などは見終えたら次へ（経験値なし）
         return finishStep(state, { xp: 0, newWords: 0 }, action.now)
       }
 

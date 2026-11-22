@@ -1,0 +1,149 @@
+[
+  {
+    "id": "event_004",
+    "chapter": 1,
+    "location": "home",
+    "requires": [],
+    "start": "auto",
+    "objectiveJa": "ソウルに到着しよう",
+    "actionJa": "空港から新しい家へ向かう",
+    "steps": [
+      {
+        "type": "story",
+        "id": "story_001"
+      },
+      {
+        "type": "story",
+        "id": "story_002"
+      },
+      {
+        "type": "message",
+        "textJa": "新しい家に着きました。空港とタクシーで見かけた言葉を覚えておきましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_027",
+          "vocab_028",
+          "vocab_029"
+        ]
+      }
+    ],
+    "notes": "教材側で作成（2026-11-23）。第1章の最初。はじめからの直後に自動で始まる"
+  },
+  {
+    "id": "event_005",
+    "chapter": 1,
+    "location": "home",
+    "requires": [
+      "event_004"
+    ],
+    "objectiveJa": "先生の授業を受けよう",
+    "actionJa": "ノートパソコンを開く",
+    "steps": [
+      {
+        "type": "story",
+        "id": "story_003"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_030"
+        ]
+      },
+      {
+        "type": "hangulIntro"
+      }
+    ],
+    "notes": "教材側で作成（2026-11-23）。先生の最初の授業。おはなしの最後の先生の質問（ハングルは読めますか？）を hangulIntro で受ける"
+  },
+  {
+    "id": "event_001",
+    "chapter": 1,
+    "location": "home",
+    "requires": [
+      "event_005"
+    ],
+    "objectiveJa": "近所の人にあいさつしよう",
+    "actionJa": "玄関に出る",
+    "steps": [
+      {
+        "type": "message",
+        "textJa": "韓国で迎える、最初の朝。玄関のチャイムが鳴りました。隣に住んでいる人のようです。"
+      },
+      {
+        "type": "background",
+        "id": "entrance"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_001",
+          "vocab_004",
+          "vocab_005",
+          "vocab_006",
+          "vocab_009"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "home_005"
+      },
+      {
+        "type": "message",
+        "textJa": "お隣さんが、包みを差し出してくれました。お礼とお別れのあいさつを覚えましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_002",
+          "vocab_003",
+          "vocab_007",
+          "vocab_008",
+          "vocab_024"
+        ],
+        "grammar": [
+          "grammar_001"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "home_006"
+      },
+      {
+        "type": "background",
+        "id": "home"
+      },
+      {
+        "type": "column",
+        "id": "column_001"
+      },
+      {
+        "type": "message",
+        "textJa": "近所の人にあいさつできました。次の授業で、先生に話してみましょう。"
+      }
+    ],
+    "notes": "教材側で作成（2026-11-19）。会話を home_003・home_004 に差し替え、コラムを追加。2026-11-20：会話を新しい形（正解1つ）に作り直したIDに差し替え。2026-11-23：Phase 3 の章立てで第1章の3つ目に移した（前提を event_005 に、最初と最後の案内文を変更）"
+  },
+  {
+    "id": "event_006",
+    "chapter": 1,
+    "location": "home",
+    "requires": [
+      "event_001"
+    ],
+    "objectiveJa": "先生と、この数日をふり返ろう",
+    "actionJa": "ノートパソコンを開く",
+    "steps": [
+      {
+        "type": "story",
+        "id": "story_004"
+      },
+      {
+        "type": "chapterEnd",
+        "textJa": "第1章「韓国に到着」、クリアです！あいさつとお礼、はい・いいえが言えるようになりました。"
+      }
+    ],
+    "notes": "教材側で作成（2026-11-23）。第1章の終わり"
+  }
+]

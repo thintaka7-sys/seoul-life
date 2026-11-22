@@ -1,0 +1,83 @@
+[
+  {
+    "id": "story_905",
+    "chapter": 2,
+    "titleJa": "近所の友人と出会う（仮）",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "street",
+        "character": "friend"
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "안녕하세요!",
+        "pronunciation": "アンニョンハセヨ",
+        "japanese": "こんにちは！",
+        "expression": "smile"
+      },
+      {
+        "type": "narration",
+        "textJa": "家の前で、明るい人に声をかけられた。近所に住んでいるらしい。"
+      }
+    ],
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code が作成）。自己紹介の会話は、第2章の教材が届いたら入れる"
+  },
+  {
+    "id": "story_906",
+    "chapter": 2,
+    "titleJa": "先生とふり返り：第2章（仮）",
+    "beats": [
+      {
+        "type": "scene",
+        "call": "teacher"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "안녕하세요!",
+        "pronunciation": "アンニョンハセヨ",
+        "japanese": "こんにちは！",
+        "expression": "smile"
+      },
+      {
+        "type": "narration",
+        "textJa": "新しい友だちができたことを話した。"
+      },
+      {
+        "type": "scene",
+        "call": null
+      }
+    ],
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code が作成）"
+  },
+  {
+    "id": "story_907",
+    "chapter": 3,
+    "titleJa": "カフェに行ってみよう（仮）",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "street",
+        "character": "friend"
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "카페!",
+        "pronunciation": "カペ",
+        "japanese": "カフェ！",
+        "expression": "smile"
+      },
+      {
+        "type": "narration",
+        "textJa": "近所においしいカフェがある、と教えてもらった。"
+      }
+    ],
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code が作成）"
+  }
+]

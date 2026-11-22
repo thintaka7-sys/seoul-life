@@ -94,3 +94,38 @@ export function stepProgress(event: GameEvent, step: number): { done: number; to
   const playable = event.steps.map((s, i) => ({ s, i })).filter(({ s }) => s.type !== 'background')
   return { done: playable.filter(({ i }) => i < step).length, total: playable.length }
 }
+
+// ---------- 施設の解放と、自動で始まるイベント（Phase 3） ----------
+
+/** 行ける施設：最初から行ける施設と、終えたイベントの unlocks で開いた施設 */
+export function unlockedLocations(events: readonly GameEvent[], initial: readonly string[], completed: readonly string[]): Set<string> {
+  const open = new Set(initial)
+  for (const e of events) {
+    if (completed.includes(e.id)) for (const id of e.unlocks ?? []) open.add(id)
+  }
+  return open
+}
+
+/** 自動で始めるイベント（途中のイベントがなく、次に進めるイベントが start: "auto" のとき）。なければ undefined */
+export function autoStartEvent(events: readonly GameEvent[], progress: Progress): GameEvent | undefined {
+  if (progress.activeEvent !== null) return undefined
+  const next = nextEvent(events, progress)
+  return next?.start === 'auto' ? next : undefined
+}
+
+/** そのイベントで新しく開く施設（まだ開いていないもの） */
+export function newlyUnlocked(event: GameEvent, events: readonly GameEvent[], initial: readonly string[], completedBefore: readonly string[]): string[] {
+  const open = unlockedLocations(events, initial, completedBefore)
+  return (event.unlocks ?? []).filter((id) => !open.has(id))
+}
+
+/** その章のイベントで覚える単語・文法と、その章のイベントで行う会話（章の終わりのまとめに使う） */
+export function chapterSummary(events: readonly GameEvent[], chapter: number): { vocabulary: string[]; grammar: string[]; conversations: string[] } {
+  const inChapter = events.filter((e) => e.chapter === chapter)
+  const learn = inChapter.flatMap((e) => e.steps.flatMap((s) => (s.type === 'learn' ? [s] : [])))
+  return {
+    vocabulary: [...new Set(learn.flatMap((s) => s.vocabulary))],
+    grammar: [...new Set(learn.flatMap((s) => s.grammar))],
+    conversations: conversationsOf(inChapter),
+  }
+}

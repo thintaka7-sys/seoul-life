@@ -2,32 +2,57 @@
   {
     "id": "friend",
     "roleJa": "近所の友人",
-    "name": { "korean": "윤하나", "pronunciation": "ユンハナ", "reviewed": false },
+    "name": {
+      "korean": "윤하나",
+      "pronunciation": "ユンハナ",
+      "reviewed": true
+    },
     "profileJa": "20代半ばの会社員で、近所に住んでいる。明るくておしゃべり、好奇心旺盛。日本のアニメやコンビニのお菓子が好き。",
     "themeColor": "#7CC4E8"
   },
   {
     "id": "cafe_staff",
     "roleJa": "カフェの店員",
-    "name": { "korean": "한지훈", "pronunciation": "ハンジフン", "reviewed": true },
+    "name": {
+      "korean": "한지훈",
+      "pronunciation": "ハンジフン",
+      "reviewed": true
+    },
     "profileJa": "20代半ば。落ち着いていて、接客は丁寧。実は甘いものに目がない。",
     "themeColor": "#D69C5E"
   },
   {
     "id": "neighbor",
     "roleJa": "近所の住人",
-    "name": { "korean": "이수진", "pronunciation": "イスジン", "reviewed": true },
+    "name": {
+      "korean": "이수진",
+      "pronunciation": "イスジン",
+      "reviewed": true
+    },
     "profileJa": "30代後半。主人公の家の隣に住んでいる。穏やかで面倒見がよく、料理が得意。",
     "themeColor": "#F6AD94"
   },
   {
     "id": "teacher",
     "roleJa": "韓国語の先生",
-    "name": { "korean": "정민호", "pronunciation": "チョンミノ", "reviewed": false },
+    "name": {
+      "korean": "정민호",
+      "pronunciation": "チョンミノ",
+      "reviewed": true
+    },
     "profileJa": "40代前半。オンラインの家庭教師。大阪に住んでいたことがあり、日本語が話せる。穏やかでほめ上手。親父ギャグが好き。",
     "themeColor": "#2E4A7D"
   },
-  { "id": "taxi_driver", "roleJa": "タクシーの運転手" },
-  { "id": "airport_staff", "roleJa": "空港の係員" },
-  { "id": "announcement", "roleJa": "館内放送" }
+  {
+    "id": "taxi_driver",
+    "roleJa": "タクシーの運転手"
+  },
+  {
+    "id": "airport_staff",
+    "roleJa": "空港の係員"
+  },
+  {
+    "id": "announcement",
+    "roleJa": "館内放送"
+  }
 ]

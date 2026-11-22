@@ -9,6 +9,7 @@ import { Translation } from '../../components/Translation'
 import { findGrammar, findVocab } from '../../data'
 import type { Grammar, Vocab } from '../../data/types'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
+import { TeacherSays } from '../../components/TeacherCall'
 
 type Card = { kind: 'vocab'; vocab: Vocab } | { kind: 'grammar'; grammar: Grammar }
 
@@ -42,13 +43,14 @@ function GrammarCard({ grammar, display }: { grammar: Grammar; display: Furigana
       <h2 className="learn-card__title" lang="ko">
         {grammar.title}
       </h2>
-      <p>{grammar.explanation}</p>
-      {grammar.connectionJa !== undefined && (
-        <div className="learn-card__connection">
-          <p className="muted small">つなげ方</p>
-          <p>{grammar.connectionJa}</p>
-        </div>
-      )}
+      <TeacherSays paragraphs={[grammar.explanation]}>
+        {grammar.connectionJa !== undefined && (
+          <div className="learn-card__connection teacher-says__bubble">
+            <p className="muted small">つなげ方</p>
+            <p>{grammar.connectionJa}</p>
+          </div>
+        )}
+      </TeacherSays>
       <ul className="learn-card__examples">
         {grammar.examples.map((ex) => (
           <li key={ex.korean}>

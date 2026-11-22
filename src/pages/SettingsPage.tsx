@@ -23,6 +23,7 @@ import {
   type SpeechRate,
   type TextSpeed,
   type TranslationMode,
+  VOLUME_MAX,
 } from '../storage/settings'
 
 /**
@@ -251,10 +252,31 @@ export function SettingsPage() {
             <span>{on ? 'オン' : 'オフ'}</span>
           </label>
         ))}
+        <label className="volume">
+          <span>音量</span>
+          <input type="range" min={0} max={VOLUME_MAX} step={5} value={settings.sfxVolume} disabled={!settings.soundEffects} onChange={(e) => change({ sfxVolume: Number(e.target.value) })} aria-label="効果音の音量" />
+          <span className="volume__value">{settings.sfxVolume}</span>
+        </label>
         <Button sound={null} disabled={!settings.soundEffects} onClick={() => playSfx('correct')}>
           試しに鳴らす
         </Button>
         <p className="muted small">iPhone では、マナーモード（消音）のときは効果音が鳴りません。読み上げの音とは別です。</p>
+      </fieldset>
+
+      <fieldset className="field">
+        <legend>BGM（音楽）</legend>
+        {([true, false] as const).map((on) => (
+          <label key={String(on)} className="radio">
+            <input type="radio" name="bgm" checked={settings.bgm === on} onChange={() => change({ bgm: on })} />
+            <span>{on ? 'オン' : 'オフ'}</span>
+          </label>
+        ))}
+        <label className="volume">
+          <span>音量</span>
+          <input type="range" min={0} max={VOLUME_MAX} step={5} value={settings.bgmVolume} disabled={!settings.bgm} onChange={(e) => change({ bgmVolume: Number(e.target.value) })} aria-label="BGM の音量" />
+          <span className="volume__value">{settings.bgmVolume}</span>
+        </label>
+        <p className="muted small">学習画面では、読み上げが聞き取りやすいよう小さめに流します。読み上げの間は、さらに小さくなります。</p>
       </fieldset>
 
       <fieldset className="field">

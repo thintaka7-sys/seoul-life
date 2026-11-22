@@ -1,0 +1,29 @@
+{
+  "bgm": {
+    "title": {
+      "src": "audio/bgm_title.mp3?v=19ff1ce907",
+      "duration": 137
+    },
+    "home": {
+      "src": "audio/bgm_home.mp3?v=c5f20f9ace",
+      "duration": 160
+    },
+    "map": {
+      "src": "audio/bgm_map.mp3?v=98b591612a",
+      "duration": 170
+    },
+    "cafe": {
+      "src": "audio/bgm_cafe.mp3?v=ed0e3de8a8",
+      "duration": 145
+    },
+    "study": {
+      "src": "audio/bgm_study.mp3?v=71f2420f62",
+      "duration": 153
+    },
+    "story": {
+      "src": "audio/bgm_story.mp3?v=becd352331",
+      "duration": 153
+    }
+  },
+  "sfx": {}
+}

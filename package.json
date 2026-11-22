@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "assets": "node scripts/assets/build.ts"
+    "assets": "node scripts/assets/build.ts",
+    "audio": "node scripts/audio/build.ts"
   },
   "dependencies": {
     "es-hangul": "^2.4.0",

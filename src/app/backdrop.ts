@@ -19,7 +19,6 @@ export function eventBackdrop(locationId: string, run: EventRun | null): ImageAs
  * - マップ画面：敷かない（画面の中にマップの絵があり、二重に見えるため。GAME_SPEC 6-1）
  * - 施設：その施設の背景。イベント：上の eventBackdrop
  * - 設定・図鑑・学習画面（ハングル・リスニング）：開く前の画面と同じ
- * - 「はじめから」の直後の案内：タイトルと同じ街のマップ
  */
 export function backdropFor(scene: Scene, run: EventRun | null = null): ImageAsset | undefined {
   switch (scene.name) {
@@ -39,9 +38,9 @@ export function backdropFor(scene: Scene, run: EventRun | null = null): ImageAss
     case 'hangul':
     case 'hangulLesson':
     case 'listening':
+    case 'album':
+    case 'storyReplay':
       return backdropFor(scene.back, run)
-    case 'onboarding':
-      return assets.map ?? undefined
     case 'saveError':
       return undefined
   }

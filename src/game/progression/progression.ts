@@ -14,6 +14,8 @@ export interface Reward {
   newWords: number
   /** 今日のスタンプを押した */
   stamp?: boolean
+  /** 新しく行けるようになった施設のID */
+  unlocked?: string[]
 }
 
 export interface Updated {
@@ -185,4 +187,21 @@ export function stampToday(save: SaveData, activity: StampActivity, balance: Bal
   const today = localDate(now)
   if (!balance.stampActivities.includes(activity) || save.daily.stamps.includes(today)) return { save, stamped: false }
   return { save: { ...save, updatedAt: now, daily: { ...save.daily, stamps: withStamp(save.daily.stamps, today) } }, stamped: true }
+}
+
+/** おはなしを見た記録を付ける（アルバムに入る）。2回目以降は変えない */
+export function seeStory(save: SaveData, storyId: string, now: string): SaveData {
+  if (save.progress.storiesSeen[storyId] !== undefined) return save
+  return { ...save, updatedAt: now, progress: { ...save.progress, storiesSeen: { ...save.progress.storiesSeen, [storyId]: { seenAt: now } } } }
+}
+
+/**
+ * タップした単語を「見かけた単語」に入れ、翌日から復習に出す（GAME_SPEC 4-8）。経験値は付けない。
+ * すでに図鑑で覚えた単語・見かけた単語なら何もしない
+ */
+export function rememberWord(save: SaveData, vocabId: string, chapter: number, balance: Balance, now: string): SaveData {
+  if (save.learning.words[vocabId] !== undefined || save.learning.seen[vocabId] !== undefined) return save
+  const key = reviewKey('word', vocabId)
+  const review = save.learning.review[key] === undefined ? { ...save.learning.review, [key]: freshRecord(localDate(now), balance.review) } : save.learning.review
+  return { ...save, updatedAt: now, learning: { ...save.learning, seen: { ...save.learning.seen, [vocabId]: { seenAt: now, chapter } }, review } }
 }

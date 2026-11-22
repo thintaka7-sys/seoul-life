@@ -12,6 +12,7 @@ import { content } from '../../data'
 import type { EarSet } from '../../data/types'
 import { earRound } from '../../learning/ear/round'
 import type { PracticeQuestion } from '../../learning/practice/questions'
+import { TeacherSays } from '../../components/TeacherCall'
 
 /**
  * 組の音を試しに聞く（実機で聞き分けにくい組を見つけるため。計画 Q7）。
@@ -46,7 +47,7 @@ function EarPreview({ set }: { set: EarSet }) {
         ))}
       </ul>
       <SlowRepeatNotice />
-      <p className="answer-note small">{set.tipJa}</p>
+      <TeacherSays paragraphs={[set.tipJa]} />
     </section>
   )
 }
