@@ -8,6 +8,8 @@
   "mapWidth": 1080,
   "characters": [
     { "id": "cafe_staff", "sheet": "char_cafe_staff_sheet.png", "expressions": ["normal", "smile", "troubled"] },
+    { "id": "friend", "sheet": "char_friend_sheet.png", "expressions": ["normal", "smile", "troubled"] },
+    { "id": "teacher", "sheet": "char_teacher_sheet.png", "expressions": ["normal", "smile", "troubled"] },
     {
       "id": "neighbor",
       "sheet": "char_neighbor_sheet.png",
@@ -22,7 +24,10 @@
   "backgrounds": [
     { "id": "home", "file": "bg_home.png" },
     { "id": "cafe", "file": "bg_cafe.png" },
-    { "id": "entrance", "file": "bg_entrance.png" }
+    { "id": "entrance", "file": "bg_entrance.png" },
+    { "id": "airport", "file": "bg_airport" },
+    { "id": "taxi", "file": "bg_taxi" },
+    { "id": "street", "file": "bg_street" }
   ],
   "map": { "file": "map_town.png" }
 }

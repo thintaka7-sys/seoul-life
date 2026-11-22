@@ -13,6 +13,9 @@ Thumbs.db
 
 # 元の画像（Geminiで作ったPNG）は公開リポジトリに入れない（加工したWebPだけをコミットする。Phase 1.5 計画 Q7）
 assets-inbox/*.png
+assets-inbox/*.jpg
+assets-inbox/*.jpeg
+assets-inbox/*.jpe
 
 # ブラウザでの確認スクリプトの出力（scripts/e2e）
 e2e-output/

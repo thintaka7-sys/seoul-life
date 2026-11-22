@@ -17,6 +17,40 @@
         "height": 1200
       }
     },
+    "friend": {
+      "normal": {
+        "src": "assets/char/friend/normal.webp?v=fb927acce3",
+        "width": 798,
+        "height": 1200
+      },
+      "smile": {
+        "src": "assets/char/friend/smile.webp?v=4df726b2ef",
+        "width": 798,
+        "height": 1200
+      },
+      "troubled": {
+        "src": "assets/char/friend/troubled.webp?v=b254fddd48",
+        "width": 798,
+        "height": 1200
+      }
+    },
+    "teacher": {
+      "normal": {
+        "src": "assets/char/teacher/normal.webp?v=e8d9392e0e",
+        "width": 652,
+        "height": 1200
+      },
+      "smile": {
+        "src": "assets/char/teacher/smile.webp?v=fc3170d473",
+        "width": 652,
+        "height": 1200
+      },
+      "troubled": {
+        "src": "assets/char/teacher/troubled.webp?v=8682ab2a57",
+        "width": 652,
+        "height": 1200
+      }
+    },
     "neighbor": {
       "normal": {
         "src": "assets/char/neighbor/normal.webp?v=8db3dd5973",
@@ -48,6 +82,21 @@
     },
     "entrance": {
       "src": "assets/bg/entrance.webp?v=810b7db841",
+      "width": 1080,
+      "height": 1935
+    },
+    "airport": {
+      "src": "assets/bg/airport.webp?v=ac74920909",
+      "width": 1080,
+      "height": 1935
+    },
+    "taxi": {
+      "src": "assets/bg/taxi.webp?v=99f3528b74",
+      "width": 1080,
+      "height": 1935
+    },
+    "street": {
+      "src": "assets/bg/street.webp?v=f417fda4ef",
       "width": 1080,
       "height": 1935
     }

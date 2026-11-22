@@ -4,13 +4,14 @@
 //   元の画像がないものは飛ばす（ゲームでは仮の絵を出す）。
 
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import sharp, { type Sharp } from 'sharp'
 import type { AssetManifest, ImageAsset } from '../../src/data/types.ts'
 import { parseAssetConfig, type AssetConfig } from './config.ts'
+import { findInput } from './inputFiles.ts'
 import { DEFAULT_KEY_OPTIONS, alignFigures, estimateKeyColor, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -60,9 +61,13 @@ async function writePreview(img: RGBAImage, name: string): Promise<void> {
   }
 }
 
+/** 元の画像を探す（.png・.jpg・.jpeg・.jpe のどれでもよい。同じ名前が複数あれば新しいほう） */
 function inputPath(file: string): string | null {
-  const p = join(root, config.inputDir, file)
-  if (existsSync(p)) return p
+  const p = findInput(join(root, config.inputDir), file)
+  if (p !== null) {
+    console.log(`  元の画像：${relative(root, p).split(sep).join('/')}`)
+    return p
+  }
   console.warn(`  ！ ${config.inputDir}/${file} がないため飛ばします（ゲームでは仮の絵を出します）`)
   return null
 }
