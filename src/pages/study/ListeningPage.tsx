@@ -68,7 +68,7 @@ export function ListeningQuestionView({
               正解！
             </p>
           ) : (
-            <Notice tone="warn">ざんねん。✗ があなたの答え、✓ が正解です。</Notice>
+            <Notice tone="warn">おしい！✗ があなたの答え、✓ が正解です。</Notice>
           )}
           <ListenCompare given={selected} answer={q.answers[0] ?? q.audio.korean} />
           {q.kind === 'reply' && (

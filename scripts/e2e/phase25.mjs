@@ -69,7 +69,7 @@ async function answer(correct, label) {
   }
   await sleep(100)
   const text = await mainText()
-  const ok = correct ? text.includes('正解') && !text.includes('ざんねん') : text.includes('ざんねん')
+  const ok = correct ? text.includes('正解') && !text.includes('おしい！') : text.includes('おしい！')
   if (!ok) check(`${label ?? ''} 答えの判定（${correct ? '正解' : '間違い'}にする）`, false, `${JSON.stringify(q)} → ${right}`)
   if (firstOfForm) await shot(`form-${form}${q.audio ? '-listen' : ''}-${correct ? 'correct' : 'wrong'}-375`)
   const next = (await evaluate(`[...document.querySelectorAll('.practice button')].map((b) => b.textContent.trim()).find((t) => t === '次へ' || t === '結果を見る') ?? ''`)) || '次へ'

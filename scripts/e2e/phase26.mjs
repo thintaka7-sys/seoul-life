@@ -129,7 +129,7 @@ async function answerWrong(P, record) {
   }
   await sleep(120)
   const text = await mainText()
-  if (!text.includes('ざんねん')) {
+  if (!text.includes('おしい！')) {
     // 並べ替えの札がたまたま正しい順だったなど。見せ方の確認はせずに進む
     await click((await nextLabel('.practice')) || '次へ')
     return { form, given, wrong: false, retry }
@@ -204,7 +204,7 @@ for (let i = 0; i < 10 && !(await evaluate(`!!document.querySelector('.result')`
   const given = options.find((o) => o !== spoken) ?? options[0]
   await clickOption(given)
   await sleep(100)
-  if ((await mainText()).includes('ざんねん')) {
+  if ((await mainText()).includes('おしい！')) {
     listeningWrong++
     if (listeningWrong === 1) {
       const m = await marks()
@@ -255,13 +255,13 @@ for (let i = 0; i < 20 && !(await evaluate(`!!document.querySelector('.result')`
     await sleep(80)
     const m = await marks()
     if (m.some((t) => t.startsWith('✓'))) hangulMarked++
-    if (answer !== null && !hangulListenChecked && (await mainText()).includes('ざんねん')) {
+    if (answer !== null && !hangulListenChecked && (await mainText()).includes('おしい！')) {
       hangulListenChecked = true
       await checkListenCompare('375 ハングルの小テスト（音を聞く）', given, answer)
     }
   }
   await sleep(80)
-  if ((await mainText()).includes('ざんねん')) hangulWrong++
+  if ((await mainText()).includes('おしい！')) hangulWrong++
   await click((await nextLabel('main')) || '次へ')
 }
 check('375 ハングルの小テスト：答えた選ぶ問題すべてに ✓ の印（正解の場所）が出る', hangulMarked > 0)

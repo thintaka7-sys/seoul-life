@@ -252,7 +252,7 @@ function AnswerArea({
           <AnswerInput key={s.turn} onSubmit={(text) => send({ type: 'submitWrite', text })} />
           {s.lastJudge?.kind === 'incorrect' && (
             <Notice tone="warn">
-              ちがうようです。もう一度書いてみましょう。
+              あと少し！もう一度書いてみましょう。
               {lastWrittenMistake(s) !== undefined && (
                 <>
                   <br />
@@ -270,7 +270,7 @@ function AnswerArea({
           <p className="step-heading">「{turn.freeAnswer.prompt}」を韓国語で言ってみましょう</p>
           {s.lastHeard !== null && (
             <Notice tone="warn">
-              聞き取った言葉：「<span lang="ko">{s.lastHeard}</span>」。ちがうようです。もう一度話してみましょう。
+              聞き取った言葉：「<span lang="ko">{s.lastHeard}</span>」。あと少し！もう一度話してみましょう。
               <br />
               {SPEAK_TIP}
             </Notice>

@@ -117,7 +117,7 @@ for (const [W, H, mobile] of [
   if (W === 375) await shot('quiz-375')
   // わざと全問間違えて、不合格 → もう一度
   const total = await takeQuiz(99)
-  check(`${P} 全問まちがえると不合格`, (await mainText()).includes('もう少し！') && (await mainText()).includes(`${total}問中 0問正解`))
+  check(`${P} 全問まちがえると不合格`, (await mainText()).includes('あと少し！') && (await mainText()).includes(`${total}問中 0問正解`))
   check(`${P} 不合格では記録しない`, (await saved()).learning.hangul[firstLesson.id] === undefined)
   await click('もう一度小テスト')
   const xp0 = (await saved()).stats.xp

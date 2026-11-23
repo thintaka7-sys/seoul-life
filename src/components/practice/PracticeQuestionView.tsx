@@ -295,7 +295,7 @@ function PracticeFeedback({
           <p className="correct">正解！</p>
         )
       ) : (
-        <Notice tone="warn">{written ? 'ざんねん。自分の答えと正解をくらべてみましょう。' : 'ざんねん。✗ があなたの答え、✓ が正解です。'}</Notice>
+        <Notice tone="warn">{written ? 'おしい！自分の答えと正解をくらべてみましょう。' : 'おしい！✗ があなたの答え、✓ が正解です。'}</Notice>
       )}
       {written && (!result.correct || result.spacing) && <AnswerCompare given={given} answers={result.correct ? [result.matched] : answers} digits={body.type === 'number'} />}
       <div className="practice-model">

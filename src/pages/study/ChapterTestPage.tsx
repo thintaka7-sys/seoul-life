@@ -117,7 +117,7 @@ export function ChapterTestPage({ testId }: { testId: string }) {
             <p className="correct">合格！（{score}点）</p>
           ) : (
             <Notice tone="warn">
-              {score}点。{passPercent}点以上で合格です。復習してから、もう一度挑戦してみましょう。
+              あと少し！{score}点でした。{passPercent}点以上で合格です。復習してから、もう一度挑戦してみましょう。
             </Notice>
           )
         }}

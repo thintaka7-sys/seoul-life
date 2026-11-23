@@ -72,7 +72,7 @@ function FindQuestion({ questionJa, position, result, explanationJa, answer, onN
         <p className="muted small">上の本文（メニュー）の中から、答えの言葉を押してください。</p>
       ) : (
         <div className="practice-feedback" aria-live="polite">
-          {result === 'correct' ? <p className="correct">正解！</p> : <Notice tone="warn">ざんねん。正解は「<span lang="ko">{answer}</span>」です。</Notice>}
+          {result === 'correct' ? <p className="correct">正解！</p> : <Notice tone="warn">おしい！正解は「<span lang="ko">{answer}</span>」です。</Notice>}
           {explanationJa !== undefined && <p className="answer-note small">{explanationJa}</p>}
           <Button variant="primary" onClick={onNext}>
             {nextLabel}

@@ -247,11 +247,11 @@ function QuizRunner({ questions, onFinish }: { questions: readonly HangulQuestio
             </p>
           ) : q.kind === 'build' ? (
             <>
-              <Notice tone="warn">ざんねん。自分の答えと正解をくらべてみましょう。</Notice>
+              <Notice tone="warn">おしい！自分の答えと正解をくらべてみましょう。</Notice>
               <AnswerCompare given={given} answers={[answer]} />
             </>
           ) : (
-            <Notice tone="warn">ざんねん。✗ があなたの答え、✓ が正解です。</Notice>
+            <Notice tone="warn">おしい！✗ があなたの答え、✓ が正解です。</Notice>
           )}
           {(q.kind === 'listen' || q.kind === 'listenSpelling') && <ListenCompare given={given} answer={answer} />}
           <Button variant="primary" onClick={next}>
@@ -372,7 +372,7 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
       const { score, passed } = quizScore(phase.correct, phase.total, balance.hangulPassPercent)
       body = (
         <section className="panel result" aria-live="polite">
-          <p className="correct">{passed ? '合格！' : 'もう少し！'}</p>
+          <p className="correct">{passed ? '合格！' : 'あと少し！'}</p>
           <p>
             {phase.total}問中 {phase.correct}問正解（{score}点）
           </p>
