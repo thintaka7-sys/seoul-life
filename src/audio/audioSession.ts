@@ -12,6 +12,8 @@ export interface AudioSessionLike {
 
 /** 読み上げが終わった知らせが来ないときに、ふだんの扱いに戻すまでの時間（読み上げが止まってから） */
 export const SPEECH_HOLD_TIMEOUT_MS = 5000
+/** 「読み上げ中」のまま知らせが変わらない端末（iPhone で speaking が true のまま残ることがある）でも、ここまで経ったら戻す */
+export const SPEECH_HOLD_MAX_MS = 60000
 
 /** 音の扱いを切り替える部品（テストできるように、audioSession と時計を外から渡す） */
 export function createAudioSessionController(session: AudioSessionLike | undefined, now: () => number) {
@@ -59,9 +61,10 @@ export function createAudioSessionController(session: AudioSessionLike | undefin
     },
     /** 読み上げのための扱いにしている間 */
     held: () => holds > 0,
-    /** 定期的に：読み上げが止まって長く経つのに戻っていなければ（終わりの知らせが来なかった）、戻す */
+    /** 定期的に：読み上げが止まって長く経つのに戻っていなければ（終わりの知らせが来なかった）、戻す。「読み上げ中」が長く続きすぎても戻す */
     check(speaking: boolean) {
-      if (holds > 0 && !speaking && now() - lastHold > SPEECH_HOLD_TIMEOUT_MS) releaseAll()
+      const since = now() - lastHold
+      if (holds > 0 && ((!speaking && since > SPEECH_HOLD_TIMEOUT_MS) || since > SPEECH_HOLD_MAX_MS)) releaseAll()
     },
     subscribe(listener: () => void): () => void {
       listeners.add(listener)

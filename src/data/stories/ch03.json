@@ -1,0 +1,606 @@
+[
+  {
+    "id": "story_007",
+    "chapter": 3,
+    "titleJa": "ハナさんのおすすめ",
+    "bgm": "home",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "street",
+        "character": "friend"
+      },
+      {
+        "type": "narration",
+        "textJa": "数日後。家の前で、またハナさんに会った。手には、カフェの紙カップを持っている。"
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "안녕하세요! 커피 좋아해요?",
+        "pronunciation": "アンニョンハセヨ コピ ジョアヘヨ",
+        "japanese": "こんにちは！コーヒー、好きですか？",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "좋아해요",
+            "pronunciation": "チョアヘヨ",
+            "japanese": "好きです（か）",
+            "noteJa": "좋아하다（好きだ）の 해요 の形"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう答える？",
+        "choices": [
+          {
+            "korean": "네, 좋아해요!",
+            "pronunciation": "ネ チョアヘヨ",
+            "japanese": "はい、好きです！",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "그럼 이 카페 꼭 가 보세요!",
+                "pronunciation": "クロム イ カペ ッコク カ ボセヨ",
+                "japanese": "じゃあ、このカフェにぜひ行ってみてください！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "그럼",
+                    "pronunciation": "クロム",
+                    "japanese": "じゃあ・それなら"
+                  },
+                  {
+                    "text": "이",
+                    "pronunciation": "イ",
+                    "japanese": "この"
+                  },
+                  {
+                    "text": "꼭",
+                    "pronunciation": "ッコク",
+                    "japanese": "ぜひ・必ず"
+                  },
+                  {
+                    "text": "가 보세요",
+                    "pronunciation": "カ ボセヨ",
+                    "japanese": "行ってみてください",
+                    "noteJa": "가다（行く）＋아 보세요（〜してみてください）"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "아니요, 차를 좋아해요.",
+            "pronunciation": "アニヨ チャルル ジョアヘヨ",
+            "japanese": "いいえ、お茶が好きです。",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "그럼 유자차 마셔 보세요! 이 카페 유자차 맛있어요.",
+                "pronunciation": "クロム ユジャチャ マショ ボセヨ イ カペ ユジャチャ マシッソヨ",
+                "japanese": "じゃあ、ゆず茶を飲んでみてください！このカフェのゆず茶、おいしいですよ。",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "그럼",
+                    "pronunciation": "クロム",
+                    "japanese": "じゃあ・それなら"
+                  },
+                  {
+                    "text": "마셔 보세요",
+                    "pronunciation": "マショ ボセヨ",
+                    "japanese": "飲んでみてください",
+                    "noteJa": "마시다（飲む）＋어 보세요（〜してみてください）"
+                  },
+                  {
+                    "text": "이",
+                    "pronunciation": "イ",
+                    "japanese": "この"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "집 앞 카페예요. 크로플이 정말 맛있어요!",
+        "pronunciation": "チ バプ カペエヨ クロプリ ジョンマル マシッソヨ",
+        "japanese": "家の前のカフェです。クロッフルが本当においしいんです！",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "앞",
+            "pronunciation": "アプ",
+            "japanese": "前"
+          },
+          {
+            "text": "카페예요",
+            "vocab": "vocab_023",
+            "noteJa": "카페（カフェ）＋예요（〜です）"
+          },
+          {
+            "text": "크로플이",
+            "vocab": "vocab_057",
+            "noteJa": "크로플（クロッフル）＋이（〜が）"
+          },
+          {
+            "text": "정말",
+            "pronunciation": "チョンマル",
+            "japanese": "本当に"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "クロッフル……？クロワッサンの生地で焼いたワッフルのことらしい。"
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "저는 회사 가요. 다음에 같이 가요!",
+        "pronunciation": "チョヌン フェサ ガヨ タウメ ガチ ガヨ",
+        "japanese": "私は会社に行きます。今度、一緒に行きましょう！",
+        "glosses": [
+          {
+            "text": "저는",
+            "vocab": "vocab_031",
+            "noteJa": "저（私）＋는（〜は）"
+          },
+          {
+            "text": "회사",
+            "pronunciation": "フェサ",
+            "japanese": "会社"
+          },
+          {
+            "text": "가요",
+            "pronunciation": "カヨ",
+            "japanese": "行きます・行きましょう",
+            "noteJa": "가다（行く）＋아요。가＋아요 の 아 が1つになる"
+          },
+          {
+            "text": "다음에",
+            "pronunciation": "タウメ",
+            "japanese": "今度・次に"
+          },
+          {
+            "text": "같이",
+            "pronunciation": "カチ",
+            "japanese": "一緒に"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう返事する？",
+        "choices": [
+          {
+            "korean": "네, 다음에 같이 가요!",
+            "pronunciation": "ネ タウメ ガチ ガヨ",
+            "japanese": "はい、今度一緒に行きましょう！",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "좋아요! 또 봐요!",
+                "pronunciation": "チョアヨ ット ボァヨ",
+                "japanese": "いいですね！またね！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "네, 안녕히 가세요!",
+            "pronunciation": "ネ アンニョンヒ ガセヨ",
+            "japanese": "はい、いってらっしゃい（さようなら）！",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네, 또 봐요!",
+                "pronunciation": "ネ ット ボァヨ",
+                "japanese": "はい、またね！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "会社へ向かうハナさんを見送った。教えてもらったカフェに、行ってみよう。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）"
+  },
+  {
+    "id": "story_008",
+    "chapter": 3,
+    "titleJa": "名物のクロッフル",
+    "bgm": "cafe",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "cafe",
+        "character": "cafe_staff"
+      },
+      {
+        "type": "narration",
+        "textJa": "メニューを眺めていると、店員さんがにこにこしながら声をかけてきた。"
+      },
+      {
+        "type": "line",
+        "speaker": "cafe_staff",
+        "korean": "혹시 크로플 드셔 보셨어요?",
+        "pronunciation": "ホクシ クロプル ドゥショ ボショッソヨ",
+        "japanese": "もしかして、クロッフルは召し上がったことありますか？",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "혹시",
+            "pronunciation": "ホクシ",
+            "japanese": "もしかして"
+          },
+          {
+            "text": "드셔 보셨어요",
+            "pronunciation": "トゥショ ボショッソヨ",
+            "japanese": "召し上がってみましたか",
+            "noteJa": "드시다（召し上がる）＋어 보다（〜してみる）の過去の形"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう答える？",
+        "choices": [
+          {
+            "korean": "아니요.",
+            "pronunciation": "アニヨ",
+            "japanese": "いいえ。",
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "정말요? 그럼 꼭 드셔 보세요!",
+                "pronunciation": "チョンマルリョ クロム ッコク トゥショ ボセヨ",
+                "japanese": "本当ですか？じゃあ、ぜひ食べてみてください！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "정말요",
+                    "pronunciation": "チョンマルリョ",
+                    "japanese": "本当ですか"
+                  },
+                  {
+                    "text": "그럼",
+                    "pronunciation": "クロム",
+                    "japanese": "じゃあ・それなら"
+                  },
+                  {
+                    "text": "꼭",
+                    "pronunciation": "ッコク",
+                    "japanese": "ぜひ・必ず"
+                  },
+                  {
+                    "text": "드셔 보세요",
+                    "pronunciation": "トゥショ ボセヨ",
+                    "japanese": "召し上がってみてください"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "네, 맛있어요!",
+            "pronunciation": "ネ マシッソヨ",
+            "japanese": "はい、おいしいです！",
+            "reply": [
+              {
+                "speaker": "cafe_staff",
+                "korean": "그쵸? 역시 아시는군요!",
+                "pronunciation": "クチョ ヨクシ アシヌングンニョ",
+                "japanese": "ですよね？さすが、分かってますね！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "그쵸",
+                    "pronunciation": "クチョ",
+                    "japanese": "ですよね",
+                    "noteJa": "그렇죠 のくだけた言い方"
+                  },
+                  {
+                    "text": "역시",
+                    "pronunciation": "ヨクシ",
+                    "japanese": "さすが・やっぱり"
+                  },
+                  {
+                    "text": "아시는군요",
+                    "pronunciation": "アシヌングンニョ",
+                    "japanese": "ご存じなんですね",
+                    "noteJa": "알다（知る）の敬語の形＋는군요（〜なんですね）"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "line",
+        "speaker": "cafe_staff",
+        "korean": "겉은 바삭, 속은 촉촉!",
+        "pronunciation": "コトゥン バサク ソグン チョクチョク",
+        "japanese": "外はサクッ、中はしっとり！",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "겉은",
+            "pronunciation": "コトゥン",
+            "japanese": "外は",
+            "noteJa": "겉（外側）＋은（〜は）"
+          },
+          {
+            "text": "바삭",
+            "pronunciation": "パサク",
+            "japanese": "サクッと"
+          },
+          {
+            "text": "속은",
+            "pronunciation": "ソグン",
+            "japanese": "中は",
+            "noteJa": "속（中）＋은（〜は）"
+          },
+          {
+            "text": "촉촉",
+            "pronunciation": "チョクチョク",
+            "japanese": "しっとり"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "店員さんは、クロッフルについて熱く語り始めた。生地のこと、バターの香りのこと、焼き加減のこと……。"
+      },
+      {
+        "type": "narration",
+        "textJa": "（……注文、まだかな）"
+      },
+      {
+        "type": "line",
+        "speaker": "cafe_staff",
+        "korean": "아, 죄송해요. 제가 단 걸 정말 좋아해서요.",
+        "pronunciation": "ア チェソンヘヨ チェガ ダン ゴル ジョンマル ジョアヘソヨ",
+        "japanese": "あ、すみません。僕、甘いものが本当に好きで。",
+        "expression": "troubled",
+        "glosses": [
+          {
+            "text": "죄송해요",
+            "pronunciation": "チェソンヘヨ",
+            "japanese": "すみません",
+            "noteJa": "죄송하다（申し訳ない）の 해요 の形。죄송합니다 より少しやわらかい"
+          },
+          {
+            "text": "제가",
+            "pronunciation": "チェガ",
+            "japanese": "私が",
+            "noteJa": "저（私）＋가（〜が）。저가 ではなく 제가 になる"
+          },
+          {
+            "text": "단 걸",
+            "pronunciation": "タン ゴル",
+            "japanese": "甘いものを",
+            "noteJa": "달다（甘い）＋것을（ものを）が縮んだ形"
+          },
+          {
+            "text": "정말",
+            "pronunciation": "チョンマル",
+            "japanese": "本当に"
+          },
+          {
+            "text": "좋아해서요",
+            "pronunciation": "チョアヘソヨ",
+            "japanese": "好きなので",
+            "noteJa": "좋아하다（好きだ）＋서요（〜なので）"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "思わず苦笑いした。でも、そこまで言われると、食べてみたくなる。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。店員 한지훈 は甘いものに目がない（GAME_SPEC 2-3）"
+  },
+  {
+    "id": "story_009",
+    "chapter": 3,
+    "titleJa": "先生とふり返り：初めてのカフェ",
+    "bgm": "home",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "home"
+      },
+      {
+        "type": "narration",
+        "textJa": "家に帰ると、ちょうど授業の時間だった。"
+      },
+      {
+        "type": "sfx",
+        "id": "call"
+      },
+      {
+        "type": "scene",
+        "call": "teacher"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "카페 어땠어요?",
+        "pronunciation": "カペ オッテッソヨ",
+        "japanese": "カフェ、どうでしたか？",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "어땠어요",
+            "pronunciation": "オッテッソヨ",
+            "japanese": "どうでしたか",
+            "noteJa": "어떻다（どうだ）の過去の形"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう答える？",
+        "choices": [
+          {
+            "korean": "크로플이 맛있었어요!",
+            "pronunciation": "クロプリ マシッソッソヨ",
+            "japanese": "クロッフルがおいしかったです！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "와, 좋겠다! 저도 먹고 싶어요!",
+                "pronunciation": "ワ チョケッタ チョド モッコ シポヨ",
+                "japanese": "わあ、いいなあ！私も食べたいです！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "주문할 수 있었어요!",
+            "pronunciation": "チュムナル ッス イッソッソヨ",
+            "japanese": "注文できました！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "대단해요! 최고예요!",
+                "pronunciation": "テダネヨ チェゴエヨ",
+                "japanese": "すごい！最高です！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "店員さんが、クロッフルについて熱く語っていた話をした。"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "하하, 한국 사람들은 디저트를 정말 좋아해요.",
+        "pronunciation": "ハハ ハングク サラムドゥルン ディジョトゥルル ジョンマル ジョアヘヨ",
+        "japanese": "ははは、韓国の人たちはデザートが本当に好きなんですよ。",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "사람들은",
+            "vocab": "vocab_033",
+            "noteJa": "사람（人）＋들（〜たち）＋은（〜は）"
+          },
+          {
+            "text": "디저트를",
+            "pronunciation": "ディジョトゥルル",
+            "japanese": "デザートを",
+            "noteJa": "디저트（デザート）＋를"
+          },
+          {
+            "text": "정말",
+            "pronunciation": "チョンマル",
+            "japanese": "本当に"
+          },
+          {
+            "text": "좋아해요",
+            "pronunciation": "チョアヘヨ",
+            "japanese": "好きです",
+            "noteJa": "좋아하다（好きだ）の 해요 の形"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "「飲み物は『杯』、食べ物は『個』。数え方も、ばっちりでしたね」"
+      },
+      {
+        "type": "narration",
+        "textJa": "「クロッフルは、外はサクッ、中はしっとり。私の授業も、外は厳しく、中はやさしく……。あれ、どっちもやさしいですか？」"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "다음에는 편의점에 가 봐요!",
+        "pronunciation": "タウメヌン ピョニジョメ ガ ボァヨ",
+        "japanese": "次は、コンビニに行ってみましょう！",
+        "glosses": [
+          {
+            "text": "다음에는",
+            "pronunciation": "タウメヌン",
+            "japanese": "次は",
+            "noteJa": "다음（次）＋에는（〜には）"
+          },
+          {
+            "text": "편의점에",
+            "pronunciation": "ピョニジョメ",
+            "japanese": "コンビニに",
+            "noteJa": "편의점（コンビニ）＋에（〜に）"
+          },
+          {
+            "text": "가 봐요",
+            "pronunciation": "カ ボァヨ",
+            "japanese": "行ってみましょう",
+            "noteJa": "가다（行く）＋아 보다（〜してみる）"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう返事する？",
+        "choices": [
+          {
+            "korean": "네, 좋아요!",
+            "pronunciation": "ネ チョアヨ",
+            "japanese": "はい、いいですね！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "그럼 또 만나요!",
+                "pronunciation": "クロム ット マンナヨ",
+                "japanese": "では、また会いましょう！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "편의점에 단 거 있어요?",
+            "pronunciation": "ピョニジョメ ダン ゴ イッソヨ",
+            "japanese": "コンビニに甘いもの、ありますか？",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "하하, 많아요!",
+                "pronunciation": "ハハ マナヨ",
+                "japanese": "ははは、たくさんありますよ！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "scene",
+        "call": null
+      },
+      {
+        "type": "narration",
+        "textJa": "通話を切った。……甘いもの、ちょっと気になってきた。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）"
+  }
+]

@@ -39,10 +39,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "네? 벌써 가요?",
-                "pronunciation": "ネ ポルッソ ガヨ",
-                "japanese": "え？もう帰っちゃうんですか？",
-                "expression": "troubled"
+                "korean": "하하, 그건 헤어질 때 하는 말이에요!",
+                "pronunciation": "ハハ クゴン ヘオジル ッテ ハヌン マリエヨ",
+                "japanese": "ははは、それはお別れするときの言葉ですよ！",
+                "expression": "smile"
               }
             ]
           },
@@ -54,10 +54,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "네? 뭐가 괜찮아요?",
-                "pronunciation": "ネ ムォガ ケンチャナヨ",
-                "japanese": "え？何が大丈夫なんですか？",
-                "expression": "troubled"
+                "korean": "하하, 저도 괜찮아요!",
+                "pronunciation": "ハハ チョド ケンチャナヨ",
+                "japanese": "ははは、私も大丈夫ですよ！",
+                "expression": "smile"
               }
             ]
           }
@@ -153,10 +153,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "네…? 한국 사람이에요? 일본 사람이에요?",
-                "pronunciation": "ネ ハングク サラミエヨ イルボン サラミエヨ",
-                "japanese": "え…？韓国人ですか？日本人ですか？",
-                "expression": "troubled"
+                "korean": "어? 하하, 헷갈리셨죠? 제가 한국 사람이에요!",
+                "pronunciation": "オ ハハ ヘッカルリショッチョ チェガ ハングク サラミエヨ",
+                "japanese": "あれ？ははは、こんがらがっちゃいました？韓国人なのは私ですよ！",
+                "expression": "smile"
               }
             ]
           },
@@ -168,10 +168,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "네? 그럼… 한국 사람이에요?",
-                "pronunciation": "ネ クロム ハングク サラミエヨ",
-                "japanese": "え？じゃあ…韓国人なんですか？",
-                "expression": "troubled"
+                "korean": "하하, 농담이죠?",
+                "pronunciation": "ハハ ノンダミジョ",
+                "japanese": "ははは、冗談でしょう？",
+                "expression": "smile"
               }
             ]
           }
@@ -190,7 +190,7 @@
       }
     ],
     "reviewed": true,
-    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章。問題の往復2つ（GAME_SPEC 4-4）"
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章。問題の往復2つ（GAME_SPEC 4-4）。2026-11-24：開発者の要望で、間違えたときのハナさんの反応を、引かずに明るく笑って伝える言い方に直した（表情も smile）。確認：ChatGPT（2026-11-24。「하는 말」「제가 한국 사람이에요」「그 인사는」を採用、笑い方を少し変えた。正しい答えをそのまま言わせる案は、もう一度選ぶ問題の答えになってしまうため採用しなかった）"
   },
   {
     "id": "home_008",
@@ -416,10 +416,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "네? 강아지예요…",
-                "pronunciation": "ネ カンアジエヨ",
-                "japanese": "え？犬ですけど…",
-                "expression": "troubled"
+                "korean": "아하하, 강아지예요! 우리 강아지!",
+                "pronunciation": "アハハ カンアジエヨ ウリ ガンアジ",
+                "japanese": "あははは、犬ですよ！うちの犬！",
+                "expression": "smile"
               }
             ]
           },
@@ -431,10 +431,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "네? 강아지가요? 하하.",
-                "pronunciation": "ネ カンアジガヨ ハハ",
-                "japanese": "え？犬がですか？ははは。",
-                "expression": "troubled"
+                "korean": "하하하, 강아지가요? 아니에요!",
+                "pronunciation": "ハハハ カンアジガヨ アニエヨ",
+                "japanese": "あはは、犬がですか？違いますよ！",
+                "expression": "smile"
               }
             ]
           }
@@ -453,7 +453,7 @@
           {
             "speaker": "friend",
             "korean": "아, 저 이제 가야 돼요. 다음에 같이 커피 마셔요!",
-            "pronunciation": "ア チョ イジェ ガヤ ドェヨ タウメ カチ コピ マショヨ",
+            "pronunciation": "ア チョ イジェ ガヤ ドェヨ タウメ ガチ コピ マショヨ",
             "japanese": "あ、私そろそろ行かなきゃ。今度、一緒にコーヒー飲みましょう！",
             "glosses": [
               {
@@ -515,10 +515,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "네? 가는 사람은 저인데요…",
-                "pronunciation": "ネ カヌン サラムン チョインデヨ",
-                "japanese": "え？帰るのは私のほうですけど…",
-                "expression": "troubled"
+                "korean": "하하, 가는 사람은 저예요! 반대예요, 반대!",
+                "pronunciation": "ハハ カヌン サラムン チョエヨ パンデエヨ パンデ",
+                "japanese": "ははは、帰るのは私のほうですよ！逆、逆！",
+                "expression": "smile"
               }
             ]
           },
@@ -530,10 +530,10 @@
             "reply": [
               {
                 "speaker": "friend",
-                "korean": "하하, 아까 말했잖아요!",
-                "pronunciation": "ハハ アッカ マレッチャナヨ",
-                "japanese": "ははは、さっき言いましたよ！",
-                "expression": "troubled"
+                "korean": "하하, 그 인사는 아까 했잖아요!",
+                "pronunciation": "ハハ ク インサヌン アッカ ヘッチャナヨ",
+                "japanese": "ははは、そのあいさつはさっきしましたよ！",
+                "expression": "smile"
               }
             ]
           }
@@ -548,6 +548,6 @@
       }
     ],
     "reviewed": true,
-    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章。職業は選択の往復（GAME_SPEC 2-2）。最後の往復で第1章の 가세요・계세요 を復習。Gemini の指摘のうち「カタカナにハングルが残っている」はデータに無く対応不要（確認用の文の表示の問題）。最後の往復の別解「잘 가요」は、初対面の相手には不自然との指摘で 조심히 가세요 に替えた"
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章。職業は選択の往復（GAME_SPEC 2-2）。最後の往復で第1章の 가세요・계세요 を復習。Gemini の指摘で、最後の往復の別解「잘 가요」は 조심히 가세요 に替えた（初対面の相手には不自然なため）。最後の往復の台詞の読み（같이）を ガチ に直した。2026-11-24：開発者の要望で、間違えたときのハナさんの反応を、引かずに明るく笑って伝える言い方に直した（表情も smile）。確認：ChatGPT（2026-11-24。「하는 말」「제가 한국 사람이에요」「그 인사는」を採用、笑い方を少し変えた。正しい答えをそのまま言わせる案は、もう一度選ぶ問題の答えになってしまうため採用しなかった）"
   }
 ]

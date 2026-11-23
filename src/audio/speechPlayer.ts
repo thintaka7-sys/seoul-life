@@ -137,6 +137,18 @@ export function createSpeechPlayer(deps: SpeechPlayerDeps) {
   /** 新しく読み始めたら、前の読み上げの続き（くり返し）はやめる */
   let token = 0
   let lastMethod: MeasureMethod = 'clock'
+  /**
+   * 読んでいる途中の1回を、終わったことにする。止めた読み上げの終わりの知らせが来ない端末があるため、止めるときに呼ぶ
+   * （終わりを待ち続けると、読み上げの間 BGM を消す扱い（audioSession.ts）が戻らなくなる）
+   */
+  let settleCurrent: (() => void) | null = null
+
+  /** 読み上げ中のものを止める */
+  function cancel() {
+    settleCurrent?.()
+    settleCurrent = null
+    deps.cancel()
+  }
 
   function setState(next: SlowState) {
     state = next
@@ -151,6 +163,11 @@ export function createSpeechPlayer(deps: SpeechPlayerDeps) {
         return
       }
       let start = deps.now()
+      const settle = () => resolve(null)
+      settleCurrent = settle
+      const done = () => {
+        if (settleCurrent === settle) settleCurrent = null
+      }
       const u: UtteranceLike = {
         text,
         rate,
@@ -158,12 +175,16 @@ export function createSpeechPlayer(deps: SpeechPlayerDeps) {
           start = deps.now()
         },
         onend: (ev) => {
+          done()
           const clock = deps.now() - start
           const engine = engineMs(ev.elapsedTime, clock)
           lastMethod = engine === null ? 'clock' : 'engine'
           resolve(engine ?? clock)
         },
-        onerror: () => resolve(null),
+        onerror: () => {
+          done()
+          resolve(null)
+        },
       }
       deps.speak(u)
     })
@@ -188,7 +209,7 @@ export function createSpeechPlayer(deps: SpeechPlayerDeps) {
   /** 読み上げる。読み上げ中のものは止め、少し間を置いてから読む */
   async function speak(text: string, speed: Speed, options: SpeakOptions = {}): Promise<void> {
     const mine = ++token
-    deps.cancel()
+    cancel()
     await wait(CANCEL_GAP_MS)
     if (mine !== token) return
     if (speed === 'normal') {
@@ -223,7 +244,7 @@ export function createSpeechPlayer(deps: SpeechPlayerDeps) {
    */
   async function check(text: string): Promise<SpeechCheckResult> {
     const mine = ++token
-    deps.cancel()
+    cancel()
     await wait(CANCEL_GAP_MS)
     const normal = await playOnce(text, 1, mine)
     const method = lastMethod
@@ -259,7 +280,7 @@ export function createSpeechPlayer(deps: SpeechPlayerDeps) {
   /** 読み上げ中のものと、その続き（くり返し・確認の残り）をやめる（画面が見えなくなったとき） */
   function stop() {
     token++
-    deps.cancel()
+    cancel()
   }
 
   return {

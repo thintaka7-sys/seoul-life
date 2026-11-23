@@ -1,10 +1,10 @@
 [
   {
-    "id": "order_901",
+    "id": "order_001",
     "chapter": 3,
     "location": "cafe",
     "character": "cafe_staff",
-    "menu": "menu_901",
+    "menu": "menu_001",
     "task": "メニューから好きなものを1つ注文しよう",
     "lines": [
       {
@@ -19,43 +19,57 @@
         "korean": "한 잔",
         "pronunciation": "ハン ジャン",
         "number": 1,
-        "counter": "잔",
         "confirm": [
           {
             "speaker": "cafe_staff",
-            "korean": "한 잔이요.",
-            "pronunciation": "ハン ジャニヨ",
-            "japanese": "1杯ですね。"
+            "korean": "네, 한 잔이요.",
+            "pronunciation": "ネ ハン ジャニヨ",
+            "japanese": "はい、1杯ですね。"
           }
-        ]
+        ],
+        "counter": "잔"
       },
       {
         "korean": "두 잔",
-        "pronunciation": "トゥ ジャン",
+        "pronunciation": "ドゥ ジャン",
         "number": 2,
-        "counter": "잔",
         "confirm": [
           {
             "speaker": "cafe_staff",
-            "korean": "두 잔이요.",
-            "pronunciation": "トゥ ジャニヨ",
-            "japanese": "2杯ですね。"
+            "korean": "네, 두 잔이요.",
+            "pronunciation": "ネ トゥ ジャニヨ",
+            "japanese": "はい、2杯ですね。"
           }
-        ]
+        ],
+        "counter": "잔"
       },
       {
         "korean": "한 개",
         "pronunciation": "ハン ゲ",
         "number": 1,
-        "counter": "개",
         "confirm": [
           {
             "speaker": "cafe_staff",
-            "korean": "한 개요.",
-            "pronunciation": "ハン ゲヨ",
-            "japanese": "1つですね。"
+            "korean": "네, 한 개요.",
+            "pronunciation": "ネ ハン ゲヨ",
+            "japanese": "はい、1つですね。"
           }
-        ]
+        ],
+        "counter": "개"
+      },
+      {
+        "korean": "두 개",
+        "pronunciation": "ドゥ ゲ",
+        "number": 2,
+        "confirm": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "네, 두 개요.",
+            "pronunciation": "ネ トゥ ゲヨ",
+            "japanese": "はい、2つですね。"
+          }
+        ],
+        "counter": "개"
       },
       {
         "korean": "하나",
@@ -64,9 +78,22 @@
         "confirm": [
           {
             "speaker": "cafe_staff",
-            "korean": "하나요.",
-            "pronunciation": "ハナヨ",
-            "japanese": "1つですね。"
+            "korean": "네, 하나 맞으시죠?",
+            "pronunciation": "ネ ハナ マジュシジョ",
+            "japanese": "はい、1つでよろしいですね？"
+          }
+        ]
+      },
+      {
+        "korean": "둘",
+        "pronunciation": "ドゥル",
+        "number": 2,
+        "confirm": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "네, 둘 맞으시죠?",
+            "pronunciation": "ネ トゥル マジュシジョ",
+            "japanese": "はい、2つでよろしいですね？"
           }
         ]
       }
@@ -93,7 +120,7 @@
       },
       {
         "korean": "따뜻한",
-        "pronunciation": "タットゥタン",
+        "pronunciation": "ッタットゥタン",
         "counter": "잔"
       }
     ],
@@ -108,9 +135,9 @@
     "notOnMenu": [
       {
         "speaker": "cafe_staff",
-        "korean": "죄송합니다. 그건 없어요.",
-        "pronunciation": "チェソンハムニダ クゴン オプソヨ",
-        "japanese": "申し訳ありません。それはございません。",
+        "korean": "죄송해요. 그건 없어요.",
+        "pronunciation": "チェソンヘヨ クゴン オプソヨ",
+        "japanese": "すみません。それはないんです。",
         "expression": "troubled"
       }
     ],
@@ -118,13 +145,13 @@
       {
         "speaker": "cafe_staff",
         "korean": "네? 다시 한번 말씀해 주시겠어요?",
-        "pronunciation": "ネ タシ ハンボン マルスメ ジュシゲッソヨ",
+        "pronunciation": "ネ タシ ハンボン マルッスメ ジュシゲッソヨ",
         "japanese": "はい？もう一度おっしゃっていただけますか？",
         "expression": "troubled"
       }
     ],
-    "counterNoteJa": "飲み物は 잔 で数えるのが自然です。",
-    "reviewed": false,
-    "notes": "動作確認用の仮データ（Claude Code が作成）。第2・3章の教材が届いたら差し替える"
+    "counterNoteJa": "飲み物は 잔、食べ物は 개 で数えるのが自然です。",
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）"
   }
 ]

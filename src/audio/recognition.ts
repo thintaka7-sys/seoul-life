@@ -226,6 +226,49 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
   }
 }
 
+/**
+ * 聞き取り中のマイク（スマホ確認：話して答えるとき BGM が鳴ったままで話しにくい）。
+ * 聞いている間は BGM を消し（bgm.ts）、画面が見えなくなったら聞き取りをやめる（pageVisibility.ts）。
+ */
+export function createListeningTracker() {
+  const active = new Set<RecognitionSession>()
+  const listeners = new Set<() => void>()
+  const changed = () => {
+    for (const l of listeners) l()
+  }
+  return {
+    /** 聞き取りを始めた。結果が出たら（止めた・やめたを含む）自動で外す */
+    track(session: RecognitionSession): RecognitionSession {
+      active.add(session)
+      if (active.size === 1) changed()
+      void session.result.finally(() => {
+        if (active.delete(session) && active.size === 0) changed()
+      })
+      return session
+    },
+    listening: () => active.size > 0,
+    /** 聞き取り中のものを、すべてやめる */
+    abortAll() {
+      for (const s of [...active]) s.abort()
+    },
+    subscribe(listener: () => void): () => void {
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+  }
+}
+
+const tracker = createListeningTracker()
+
+/** マイクで聞いている途中か */
+export const isListening = tracker.listening
+/** 聞いている途中かどうかが変わったら知らせる */
+export const subscribeListening = tracker.subscribe
+/** 聞き取りをやめる（画面が見えなくなったとき） */
+export const abortListening = tracker.abortAll
+
 /** 韓国語を1回聞き取る。使えない環境では、すぐに error を返す */
 export function recognizeKorean(callbacks: RecognitionCallbacks = {}): RecognitionSession {
   const Ctor = recognitionConstructor()
@@ -233,5 +276,5 @@ export function recognizeKorean(callbacks: RecognitionCallbacks = {}): Recogniti
     const error = describeRecognitionError('language-not-supported')
     return { result: Promise.resolve({ kind: 'error', error }), stop: () => {}, abort: () => {} }
   }
-  return runRecognition(new Ctor(), callbacks)
+  return tracker.track(runRecognition(new Ctor(), callbacks))
 }

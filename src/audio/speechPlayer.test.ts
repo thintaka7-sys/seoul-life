@@ -110,6 +110,20 @@ describe('createSpeechPlayer（読み上げの再生）', () => {
     expect(log).toHaveLength(1)
   })
 
+  it('止めた読み上げの終わりの知らせが来ない端末でも、前の読み上げは終わったことにする（BGM を戻すため）', async () => {
+    // 読み始めるが、終わりの知らせ（onend）を出さない端末
+    const player = createSpeechPlayer({ cancel: () => {}, speak: (u) => u.onstart?.(), now: () => Date.now(), later: (fn, ms) => setTimeout(fn, ms) })
+    let firstDone = false
+    const first = player.speak(LONG, 'normal').then(() => (firstDone = true))
+    await vi.advanceTimersByTimeAsync(CANCEL_GAP_MS + 50)
+    expect(firstDone).toBe(false)
+    void player.speak('불', 'normal')
+    await vi.advanceTimersByTimeAsync(0)
+    await first
+    expect(firstDone).toBe(true)
+    player.stop()
+  })
+
   it('設定の「ゆっくり」（ボタンでない読み上げ）は、短い単語でもくり返さない', async () => {
     const { player, log } = fakeDevice()
     await run(player.speak('불', 'slow'))

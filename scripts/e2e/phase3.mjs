@@ -1,6 +1,6 @@
 // Phase 3 区切り3の確認：図と絵（GAME_SPEC 4-11）、形が変わる言葉（4-3。単語カード・図鑑・復習の問題）、
 // 注文（4-4。分からない言い方・答えの例・偽の音声認識で話して注文）、
-// 教材の図（ハングルのレッスンの説明・文字・パッチム・音の変化のカード、聞き分けの組）を、スマホ幅（320px）とPC幅で確かめる。
+// 教材の図（基礎ドリル、ハングルのレッスンの説明・文字・パッチム・音の変化のカード、聞き分けの組）を、スマホ幅（320px）とPC幅で確かめる。
 // 第1〜3章を通した流れ（読み物・注文・聞き取りの段階）は chapters.mjs で確かめる。
 // 使い方: node scripts/e2e/phase3.mjs <URL>
 
@@ -20,8 +20,8 @@ const events = readDir('events')
 const vocab = readDir('vocabulary')
 const drills = readDir('drills')
 const withForms = vocab.filter((v) => (v.forms ?? []).length > 0)
-// 図の種類をすべて使った見本のドリル（仮データ）
-const figureDrill = drills.find((d) => d.id === 'drill_901')
+// 図のある基礎ドリル（教材）
+const figureDrills = drills.filter((d) => (d.figures ?? []).length > 0)
 const lessons = readDir('hangul').sort((a, b) => a.order - b.order)
 const earSets = readDir('ear')
 /** 図の配列から、画面に出るはずの図の数・絵（画像）の数・断面図（SVG）の数を数える */
@@ -83,25 +83,23 @@ for (const [W, H, mobile] of [
   await click('つづきから')
   await sleep(200)
 
-  // --- 図と絵（図の見本のドリル） ---
+  // --- 教材の図：基礎ドリル（説明の下の図。先生の説明の中に出る） ---
   await click('勉強する（復習・練習・ハングル）')
   await click('ドリル・テスト')
-  await click(figureDrill.titleJa, { exact: false })
-  await sleep(400)
-  await waitImages()
-  const figures = await evaluate(`({
-    all: document.querySelectorAll('.figure').length,
-    svg: document.querySelectorAll('.figure__svg').length,
-    img: [...document.querySelectorAll('.figure__img')].filter(i => i.complete && i.naturalWidth > 0).length,
-    labels: document.querySelectorAll('.figure__label').length,
-    cells: document.querySelectorAll('.syllable-grid__cell').length,
-    formation: document.querySelectorAll('.formation__result').length,
-  })`)
-  check(`${P} 図：比べる図・絵と札・パッチムの断面図（SVG）・音節のマス・部品とくっついた形を、説明の下に出す`, figures.all === figureDrill.figures.length && figures.svg === 3 && figures.img === 3 && figures.labels === 1 && figures.cells === 3 && figures.formation === 1, JSON.stringify(figures))
-  check(`${P} 図は先生の説明の中に出す`, await evaluate(`!!document.querySelector('.teacher-says .figures')`))
-  await layoutCheck(`${P} 図の見本`)
-  await shot(`figures-${W}`)
-  await click('戻る')
+  const drillProblems = []
+  for (const drill of figureDrills) {
+    await click(drill.titleJa, { exact: false })
+    await sleep(300)
+    await waitImages()
+    const want = expectFigures(drill.figures)
+    const got = await countFigures()
+    if (JSON.stringify(got) !== JSON.stringify(want)) drillProblems.push({ drill: drill.id, want, got })
+    await layoutCheck(`${P} ${drill.id} の図`)
+    await shot(`drill-figures-${drill.id}-${W}`)
+    await click('戻る')
+    await sleep(120)
+  }
+  check(`${P} 基礎ドリル：教材の図（${figureDrills.map((d) => `${d.id}：${d.figures.length}個`).join('・')}）を、先生の説明の中に出す`, figureDrills.length > 0 && drillProblems.length === 0, JSON.stringify(drillProblems))
   await click('戻る')
 
   // --- 教材の図：ハングルのレッスン（説明・カード）。教材のとおりの数の図が、先生の説明の中に出る ---
@@ -222,7 +220,7 @@ for (const [W, H, mobile] of [
 
   await click('注文する（メニューを見る）')
   await click('話す')
-  await evaluate(`window.__fakeSpeech = [{ final: '케이크 1개 주세요' }]`)
+  await evaluate(`window.__fakeSpeech = [{ final: '치즈케이크 1개 주세요' }]`)
   await evaluate(`document.querySelector('.mic__button').click()`)
   await sleep(1200)
   const spoken = (await saved()).learning.orders[orderId]

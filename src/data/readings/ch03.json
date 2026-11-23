@@ -1,0 +1,79 @@
+[
+  {
+    "id": "reading_001",
+    "chapter": 3,
+    "titleJa": "カフェのメニュー",
+    "style": "menu",
+    "menu": "menu_001",
+    "lines": [
+      {
+        "korean": "오늘의 추천 메뉴: 크로플",
+        "pronunciation": "オヌレ チュチョン メニュ クロプル",
+        "japanese": "今日のおすすめメニュー：クロッフル",
+        "glosses": [
+          {
+            "text": "오늘의",
+            "vocab": "vocab_045",
+            "noteJa": "오늘（今日）＋의（〜の）。의 は「エ」と発音する"
+          },
+          {
+            "text": "추천",
+            "pronunciation": "チュチョン",
+            "japanese": "おすすめ"
+          },
+          {
+            "text": "메뉴",
+            "vocab": "vocab_050"
+          }
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "type": "find",
+        "questionJa": "ゆず茶はどれ？メニューから探して押そう",
+        "answer": "유자차",
+        "explanationJa": "유자차 は、유자（ゆず）＋차（お茶）です。"
+      },
+      {
+        "type": "number",
+        "questionJa": "크로플（クロッフル）はいくらですか？",
+        "digits": "4500",
+        "explanationJa": "4,500원 は 사천오백 원 と読みます。"
+      },
+      {
+        "type": "choice",
+        "questionJa": "いちばん高い飲み物はどれ？",
+        "choices": [
+          {
+            "korean": "딸기 라테",
+            "pronunciation": "ッタルギ ラテ",
+            "japanese": "いちごラテ",
+            "correct": true
+          },
+          {
+            "korean": "아메리카노",
+            "pronunciation": "アメリカノ",
+            "japanese": "アメリカーノ",
+            "correct": false
+          },
+          {
+            "korean": "유자차",
+            "pronunciation": "ユジャチャ",
+            "japanese": "ゆず茶",
+            "correct": false
+          }
+        ],
+        "explanationJa": "딸기 라테 は 6,000원（육천 원）で、飲み物の中でいちばん高いです。"
+      },
+      {
+        "type": "find",
+        "questionJa": "今日のおすすめは？本文から探して押そう",
+        "answer": "크로플",
+        "explanationJa": "오늘의 추천 메뉴 は「今日のおすすめメニュー」です。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）"
+  }
+]

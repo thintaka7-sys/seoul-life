@@ -1,0 +1,217 @@
+[
+  {
+    "id": "menu_001",
+    "location": "cafe",
+    "titleJa": "カフェのメニュー",
+    "currency": {
+      "korean": "원",
+      "pronunciation": "ウォン"
+    },
+    "items": [
+      {
+        "key": "americano",
+        "vocab": "vocab_013",
+        "price": 4500,
+        "pricePronunciation": "サチョノベグォン",
+        "image": "americano",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "역시 아메리카노죠!",
+            "pronunciation": "ヨクシ アメリカノジョ",
+            "japanese": "やっぱりアメリカーノですよね！",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "cafe_latte",
+        "vocab": "vocab_014",
+        "price": 5000,
+        "pricePronunciation": "オチョヌォン",
+        "image": "cafe_latte",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "라테 아트, 예쁘게 해 드릴게요.",
+            "pronunciation": "ラテ アトゥ イェップゲ ヘ ドゥリルッケヨ",
+            "japanese": "ラテアート、きれいに描きますね。",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "vanilla_latte",
+        "vocab": "vocab_051",
+        "price": 5500,
+        "pricePronunciation": "オチョノベグォン",
+        "image": "vanilla_latte",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "달콤해서 인기 많아요.",
+            "pronunciation": "タルコメソ インッキ マナヨ",
+            "japanese": "甘くて人気なんですよ。",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "green_tea_latte",
+        "vocab": "vocab_052",
+        "price": 5500,
+        "pricePronunciation": "オチョノベグォン",
+        "image": "green_tea_latte",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "녹차 라테, 제가 제일 좋아하는 거예요!",
+            "pronunciation": "ノクチャ ラテ チェガ ジェイル ジョアハヌン ゴエヨ",
+            "japanese": "抹茶ラテ、僕がいちばん好きなやつです！",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "strawberry_latte",
+        "vocab": "vocab_053",
+        "price": 6000,
+        "pricePronunciation": "ユクチョヌォン",
+        "image": "strawberry_latte",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "딸기가 듬뿍 들어가요!",
+            "pronunciation": "ッタルギガ ドゥムップク トゥロガヨ",
+            "japanese": "いちごがたっぷり入ってますよ！",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "yuzu_tea",
+        "vocab": "vocab_054",
+        "price": 5000,
+        "pricePronunciation": "オチョヌォン",
+        "image": "yuzu_tea",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "유자차는 몸이 따뜻해져요.",
+            "pronunciation": "ユジャチャヌン モミ ッタットゥテジョヨ",
+            "japanese": "ゆず茶は体が温まりますよ。"
+          }
+        ]
+      },
+      {
+        "key": "lemonade",
+        "vocab": "vocab_055",
+        "price": 5500,
+        "pricePronunciation": "オチョノベグォン",
+        "image": "lemonade",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "상큼해서 기분이 좋아져요.",
+            "pronunciation": "サンクメソ ギブニ ジョアジョヨ",
+            "japanese": "さわやかで、気分がよくなりますよ。",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "cheesecake",
+        "vocab": "vocab_056",
+        "price": 6500,
+        "pricePronunciation": "ユクチョノベグォン",
+        "image": "cheesecake",
+        "counter": "개",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "치즈케이크, 정말 진해요!",
+            "pronunciation": "チジュケイク チョンマル ジネヨ",
+            "japanese": "チーズケーキ、本当に濃厚ですよ！",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "croffle",
+        "vocab": "vocab_057",
+        "price": 4500,
+        "pricePronunciation": "サチョノベグォン",
+        "image": "croffle",
+        "counter": "개",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "크로플은 저희 가게 자랑이에요!",
+            "pronunciation": "クロプルン ジョイ ガゲ ジャランイエヨ",
+            "japanese": "クロッフルは、うちの店の自慢なんです！",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "macaron",
+        "vocab": "vocab_058",
+        "price": 2500,
+        "pricePronunciation": "イチョノベグォン",
+        "image": "macaron",
+        "counter": "개",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "마카롱, 귀엽죠?",
+            "pronunciation": "マカロン クィヨプチョ",
+            "japanese": "マカロン、かわいいでしょう？",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "croissant",
+        "vocab": "vocab_059",
+        "price": 4000,
+        "pricePronunciation": "サチョヌォン",
+        "image": "croissant",
+        "counter": "개",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "방금 구웠어요!",
+            "pronunciation": "パングム グウォッソヨ",
+            "japanese": "焼きたてですよ！",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "cookie",
+        "vocab": "vocab_060",
+        "price": 3000,
+        "pricePronunciation": "サムチョヌォン",
+        "image": "cookie",
+        "counter": "개",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "초코칩이 많이 들어 있어요.",
+            "pronunciation": "チョコチビ マニ ドゥロ イッソヨ",
+            "japanese": "チョコチップがたくさん入ってますよ。"
+          }
+        ]
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。値段は2026年ごろのソウルのカフェの目安。マカロンは1個の値段"
+  }
+]

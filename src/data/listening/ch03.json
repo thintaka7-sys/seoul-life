@@ -1,0 +1,65 @@
+[
+  {
+    "id": "listen_011",
+    "afterEvent": "event_010",
+    "korean": "아이스 아메리카노 한 잔이요.",
+    "pronunciation": "アイス アメリカノ ハン ジャニヨ",
+    "japanese": "アイスアメリカーノ1杯ですね。",
+    "distractors": [
+      {
+        "korean": "아이스 아메리카노 두 잔이요.",
+        "pronunciation": "アイス アメリカノ ドゥ ジャニヨ",
+        "japanese": "アイスアメリカーノ2杯ですね。"
+      },
+      {
+        "korean": "따뜻한 아메리카노 한 잔이요.",
+        "pronunciation": "ッタットゥタン アメリカノ ハン ジャニヨ",
+        "japanese": "ホットのアメリカーノ1杯ですね。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。注文の確かめを聞き取る"
+  },
+  {
+    "id": "listen_012",
+    "afterEvent": "event_010",
+    "korean": "크로플 하나요.",
+    "pronunciation": "クロプル ハナヨ",
+    "japanese": "クロッフル1つですね。",
+    "distractors": [
+      {
+        "korean": "크루아상 하나요.",
+        "pronunciation": "クルアサン ハナヨ",
+        "japanese": "クロワッサン1つですね。"
+      },
+      {
+        "korean": "크로플 두 개요.",
+        "pronunciation": "クロプル ドゥ ゲヨ",
+        "japanese": "クロッフル2つですね。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。注文の確かめを聞き取る"
+  },
+  {
+    "id": "listen_013",
+    "afterEvent": "event_010",
+    "korean": "모두 구천 원입니다.",
+    "pronunciation": "モドゥ グチョ ヌォニムニダ",
+    "japanese": "全部で9千ウォンです。",
+    "distractors": [
+      {
+        "korean": "모두 만 원입니다.",
+        "pronunciation": "モドゥ マ ヌォニムニダ",
+        "japanese": "全部で1万ウォンです。"
+      },
+      {
+        "korean": "모두 팔천 원입니다.",
+        "pronunciation": "モドゥ パルチョ ヌォニムニダ",
+        "japanese": "全部で8千ウォンです。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。注文の確かめを聞き取る"
+  }
+]

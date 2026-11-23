@@ -1,11 +1,12 @@
 // 画面が見えなくなったら音を止め、戻ったら BGM を続きから流す。
-// 別のタブに切り替えた・ホーム画面に戻った・アプリを切り替えたときに、BGM・効果音・読み上げが鳴り続けないようにする。
+// 別のタブに切り替えた・ホーム画面に戻った・アプリを切り替えたときに、BGM・効果音・読み上げが鳴り続けないようにし、マイクの聞き取りもやめる。
 // - 見えなくなった：visibilitychange（hidden）・pagehide。どちらか先に来たほうで1回だけ止める
 // - 戻った：visibilitychange（visible）・pageshow（戻るボタンでページを復元したときなど）。1回だけ再開する
 // iPhone の Safari と、ホーム画面に追加したとき（standalone）のどちらも、この2組のイベントが届く。
 
 import { resumeBgm, suspendBgm } from './bgm'
 import { resumeAudioEngine, suspendAudioEngine } from './engine'
+import { abortListening } from './recognition'
 import { stopSpeaking } from './speech'
 
 export interface VisibilityHandlers {
@@ -35,8 +36,9 @@ export function createVisibilityController(handlers: VisibilityHandlers, initial
   }
 }
 
-/** 止める順：読み上げ → BGM（いまの位置で止める）→ 音の出口（効果音） */
+/** 止める順：マイク（聞き取りをやめる）→ 読み上げ → BGM（いまの位置で止める）→ 音の出口（効果音） */
 export function hideAudio(): void {
+  abortListening()
   stopSpeaking()
   suspendBgm()
   suspendAudioEngine()

@@ -1,7 +1,7 @@
 // 第1章〜第3章（Phase 3）を、スマホ幅とPC幅で最初から最後まで遊んで確かめる（first-day.mjs を作り直したもの）。
 // はじめから自動で始まるおはなし（ふりがな・訳の切り替え、ログ、単語のタップと「覚える」、看板、飛ばす）、
 // 先生のビデオ通話の枠と「ハングルは読めますか？」、お隣さんの会話（背景の切り替え・反応と表情・書いて答える）、
-// 章の終わりの画面、カフェが開く知らせ、カフェの会話（分かち書きの注意・再読み込みしての再開）、図鑑、1日の終わり、
+// 章の終わりの画面、カフェが開く知らせ、カフェの会話（分かち書きの注意・再読み込みしての再開）、図鑑、
 // 読み物（選ぶ・探す・書く・数字。訳は答え終わるまで隠す）、形が変わる言葉の単語カード、注文（書いて注文・店員の反応・施設から注文し直す）、
 // イベントの聞き取り、経験値の合計、BGM の読み込み。
 // 教材を変えたら、下の「教材に合わせた部分」を直す。
@@ -324,12 +324,23 @@ for (const [W, H, mobile] of [
   }
   const cards1 = await flipCards('自己紹介')
   check(`${P} 第2章の1つ目の単語カード（単語8・文法2）に、形が変わる言葉の図がある`, cards1.total === 10 && cards1.forms > 0, JSON.stringify(cards1))
-  await playConversation('home_007', { 1: { wrong: '네, 저는 일본 사람이에요.' } })
+  /** 書いて答えるタブがあるか（第2章の会話でも、書く問題の往復では出る） */
+  const writeTab = async (label) => {
+    const tabs = await evaluate(`[...document.querySelectorAll('.mode-tab')].map((b) => b.getAttribute('aria-label')).join(',')`)
+    check(`${P} ${label}：書いて答えるタブがある`, tabs.includes('書いて答える'), tabs)
+    if (W === 375) await shot(`375-04a-answer-${label.replace(/\s/g, '-')}`)
+  }
+  await playConversation('home_007', {
+    0: { before: () => writeTab('home_007 往復0'), write: 'ㅂㅏㄴㄱㅏㅇㅜㅓㅇㅛ' },
+    1: { before: () => writeTab('home_007 往復1'), wrong: '네, 저는 일본 사람이에요.' },
+  })
   await advanceEvent(`!!document.querySelector('.learn-card')`, '第2章の2つ目の単語カード')
   const cards2 = await flipCards('仕事')
   check(`${P} 第2章の2つ目の単語カード（単語6・文法1）に、文法の図（이름이 뭐예요?）がある`, cards2.total === 7 && cards2.grammarFigures > 0, JSON.stringify(cards2))
   await playConversation('home_008', {
     0: { before: async () => check(`${P} home_008：仕事は選ぶだけ（選択の往復）`, (await mainText()).includes('どうしますか')), choice: '저는 학생이에요.' },
+    1: { before: () => writeTab('home_008 往復1') },
+    2: { before: () => writeTab('home_008 往復2') },
   })
   await sleep(200)
   check(`${P} 第2章のコラム「年齢と呼び方」（部屋の背景）`, (await mainText()).includes('年齢と呼び方') && (await backdrop()).includes('bg/home'), (await mainText()).slice(0, 200))
@@ -343,13 +354,18 @@ for (const [W, H, mobile] of [
   await click('次へ')
   await advanceEvent(atLocation('自宅'), '第2章の後')
 
-  // ---------- 第3章：カフェが開く ----------
+  // ---------- 第3章：初めてのカフェ（event_009 → event_002 → event_010 → event_011） ----------
+  // --- event_009（ハナさんのおすすめ。カフェが開く） ---
   await click('外に出てみる')
+  await advanceEvent(`!!document.querySelector('.story')`, '第3章のおはなし')
+  check(`${P} 第3章のおはなし（教材）には「仮データ」の印を出さない`, !(await evaluate(`!!document.querySelector('.story .draft-badge')`)))
+  await advanceEvent(`(document.querySelector('main')?.textContent ?? '').includes('マップから行ってみましょう')`, 'カフェの案内文')
+  check(`${P} おはなしの後は部屋の背景に戻して案内する`, (await backdrop()).includes('bg/home'), await backdrop())
   await advanceEvent(atLocation('自宅'), 'カフェをすすめられた後')
   check(`${P} カフェに行けるようになったと知らせる`, (await toast()).includes('カフェに行けるようになりました'), await toast())
   if (W === 375) await shot('375-05-unlocked')
 
-  // --- event_002（カフェ） ---
+  // --- event_002（初めてのカフェ） ---
   await click('外に出る（マップへ）')
   await layoutCheck(`${P} マップ`)
   await click('カフェ目標')
@@ -404,34 +420,25 @@ for (const [W, H, mobile] of [
   await click('次へ')
   await nextCards(1)
   await playConversation('cafe_010', { 1: { wrong: '안녕히 가세요.' } })
-  check(`${P} 最後の案内文（カフェ）`, (await mainText()).includes('初めての注文ができました'))
+  // 教材に合わせた部分：最後の案内文
+  check(`${P} 最後の案内文（次はメニューを読む）`, (await mainText()).includes('メニューをじっくり読んで'))
   await click('次へ')
   check(`${P} event_002 完了`, (await saved()).progress.completedEvents.includes('event_002'))
 
-  // --- event_003（自宅・図鑑・1日の終わり。第3章の教材が届くまで今のまま） ---
-  await click('外に出る（マップへ）')
-  await click('自宅目標')
-  await click('図鑑を開く')
-  await click('次へ')
-  await nextCards(2)
-  check(`${P} 図鑑：単語カードで覚えた${vocabCount}語（全${vocabTotal}語）`, (await mainText()).includes(`${vocabCount} / ${vocabTotal}`), (await mainText()).slice(0, 200))
-  await click('閉じる')
-  await sleep(1600)
-  // 教材に合わせた部分：答えた問題の往復の数（home_005:1, home_006:2, home_007:2, home_008:2, cafe_008:1, cafe_009:2, cafe_010:2）と、書いて答えた数（2）
-  const turnsCorrect = 1 + 2 + 2 + 2 + 1 + 2 + 2
-  const written = 2
-  check(`${P} 1日の終わり：単語${vocabCount}語・会話の正解${turnsCorrect}回`, (await mainText()).includes(`${vocabCount} 語`) && (await mainText()).includes(`${turnsCorrect} 回`), (await mainText()).slice(0, 300))
-  await click('閉じる')
-
-  // --- event_910（第3章の仮のイベント：メニューを読む → 注文 → 聞き取り → 章の終わり） ---
-  await click('外に出る（マップへ）')
-  await click('カフェ目標')
+  // --- event_010（2回目のカフェ：単語 → メニューを読む → おはなし → 単語 → 注文 → 聞き取り） ---
   await click('もう一度カフェに入る')
+  await click('次へ')
+  const cards3 = await flipCards('カフェ')
+  check(`${P} 飲み物の単語カード（7枚）に、形が変わる言葉（따뜻한）の図がある`, cards3.total === 7 && cards3.forms > 0, JSON.stringify(cards3))
   await advanceEvent(`!!document.querySelector('.reading-step')`, 'メニューの読み物')
-  check(`${P} メニューの読み物：品物の絵・品名・値段`, (await evaluate(`document.querySelectorAll('.menu-item .menu-item__img').length`)) >= 3 && (await plainText('.menu-board')).includes('4,500원'), await plainText('.menu-board'))
+  const menu = readDir('menus').find((m) => m.id === 'menu_001')
+  check(`${P} メニューの読み物：品物の絵（${menu.items.length}品）・品名・値段`, (await evaluate(`document.querySelectorAll('.menu-item .menu-item__img').length`)) === menu.items.length && (await plainText('.menu-board')).includes('4,500원'), await plainText('.menu-board'))
   if (W === 375) await shot('375-07-menu')
   await layoutCheck(`${P} メニューの読み物`)
-  readingCorrect += await answerReading('reading_901', P)
+  readingCorrect += await answerReading('reading_001', P)
+  await advanceEvent(`!!document.querySelector('.learn-card')`, '食べ物の単語カード')
+  const cards4 = await flipCards('食べ物')
+  check(`${P} 食べ物の単語カード（9枚）に、形が変わる言葉（맛있어요）の図がある`, cards4.total === 9 && cards4.forms > 0, JSON.stringify(cards4))
   await sleep(150)
   check(`${P} 注文の画面：店員の台詞・メニュー・言うこと`, (await plainText('.order-step')).includes('주문하시겠어요') && (await evaluate(`!!document.querySelector('.order-step .menu-board') && !!document.querySelector('.order-step .task-label, .order-step .task')`)), (await plainText('.order-step')).slice(0, 200))
   if (W === 375) await shot('375-08-order')
@@ -440,28 +447,54 @@ for (const [W, H, mobile] of [
   await click('答える')
   await sleep(200)
   const reaction = await plainText('.order-step__lines')
-  check(`${P} 注文できた：数の確かめ → 品物のひとこと → 締めの台詞`, (await mainText()).includes('注文できました') && reaction.includes('한 잔이요') && reaction.includes('아메리카노요') && reaction.includes('기다려 주세요'), reaction)
-  check(`${P} 注文の記録（初めての注文）`, JSON.stringify((await saved()).learning.orders['order_901']?.items) === '["americano"]', JSON.stringify((await saved()).learning.orders))
+  const americanoReply = menu.items.find((i) => i.key === 'americano').reply[0].korean
+  check(`${P} 注文できた：数の確かめ → 品物のひとこと → 締めの台詞`, (await mainText()).includes('注文できました') && reaction.includes('한 잔이요') && reaction.includes(americanoReply) && reaction.includes('기다려 주세요'), reaction)
+  check(`${P} 注文の記録（初めての注文）`, JSON.stringify((await saved()).learning.orders['order_001']?.items) === '["americano"]', JSON.stringify((await saved()).learning.orders))
   await click('次へ')
   await sleep(200)
-  // 聞き取り：読み上げが使えれば答え、使えなければ飛ばす
+  // 聞き取り：読み上げが使えれば答え、使えなければ飛ばす。問題は音で出すので、選択肢の組からどの文かを見分けて答える
   let listened = 0
+  const eventSentences = listeningSentences.filter((x) => x.afterEvent === 'event_010')
+  const squash = (t) => t.replace(/\s+/g, '')
   if (await evaluate(`!!document.querySelector('.quiz') && !!document.querySelector('.choice__button')`)) {
-    const s = listeningSentences.find((x) => x.afterEvent === 'event_910')
-    await clickChoice(s.korean)
-    if ((await mainText()).includes('正解！')) listened++
-    await click('結果を見る')
-    check(`${P} イベントの聞き取り：問題に答え、結果を出す`, listened === 1 && (await mainText()).includes('1問中 1問正解'), (await mainText()).slice(0, 200))
+    for (let i = 0; i < eventSentences.length; i++) {
+      const shown = await evaluate(`[...document.querySelectorAll('.choice__button')].map((b) => { const c = b.cloneNode(true); c.querySelectorAll('rt').forEach((r) => r.remove()); return c.textContent })`)
+      const flat = shown.map(squash)
+      const s = eventSentences.find((x) => [x.korean, ...x.distractors.map((d) => d.korean)].every((k) => flat.some((c) => c.includes(squash(k)))))
+      if (s === undefined) throw new Error(`聞き取りの問題が分かりません: ${JSON.stringify(shown)}`)
+      await clickChoice(s.korean)
+      if ((await mainText()).includes('正解！')) listened++
+      await click(i === eventSentences.length - 1 ? '結果を見る' : '次へ')
+    }
+    check(`${P} イベントの聞き取り：${eventSentences.length}問に答え、結果を出す`, listened === eventSentences.length && (await mainText()).includes(`${eventSentences.length}問中 ${eventSentences.length}問正解`), (await mainText()).slice(0, 200))
     await click('次へ')
   } else {
     check(`${P} イベントの聞き取り：読み上げが使えない端末では、案内を出して飛ばせる`, (await mainText()).includes('聞き取りの問題は飛ばします'))
   }
+  await advanceEvent(`document.querySelector('h1')?.textContent.trim() === 'カフェ' && !document.querySelector('.event-header')`, '2回目のカフェの後')
+  check(`${P} event_010 完了`, (await saved()).progress.completedEvents.includes('event_010'))
+
+  // --- event_011（先生とふり返り → 第3章の終わり） ---
+  await click('外に出る（マップへ）')
+  await click('自宅目標')
+  await click('ノートパソコンを開く')
   await advanceEvent(`!!document.querySelector('.chapter-end')`, '第3章の終わり')
   check(`${P} 第3章の終わりの画面と、章末テストの案内`, (await mainText()).includes('第3章 クリア') && (await mainText()).includes('第3章のテスト'), (await mainText()).slice(0, 300))
   await click('次へ')
-  await advanceEvent(`document.querySelector('h1')?.textContent.trim() === 'カフェ' && !document.querySelector('.event-header')`, '第3章の後')
+  await advanceEvent(atLocation('自宅'), '第3章の後')
+
+  // 図鑑：単語カードで覚えた単語の数（おはなしのタップだけで覚える単語は入らない）
+  await click('図鑑を見る')
+  check(`${P} 図鑑：単語カードで覚えた${vocabCount}語（全${vocabTotal}語）`, (await mainText()).includes(`${vocabCount} / ${vocabTotal}`), (await mainText()).slice(0, 200))
+  await click('閉じる')
+  // 教材に合わせた部分：答えた問題の往復の数（home_005:1, home_006:2, home_007:2, home_008:2, cafe_008:1, cafe_009:2, cafe_010:2）と、書いて答えた数（3）
+  const turnsCorrect = 1 + 2 + 2 + 2 + 1 + 2 + 2
+  const written = 3
 
   // 施設の画面から、もう一度注文する（メニューにない品物 → 聞き返し、答えの例でも進める。経験値は初回だけ）
+  const order = readDir('orders').find((o) => o.id === 'order_001')
+  await click('外に出る（マップへ）')
+  await click('カフェ', { exact: false, within: '.town-map' })
   const xpBeforeReorder = (await saved()).stats.xp
   await click('注文する（メニューを見る）')
   await fillInput('.answer-input__field', '라면 주세요')
@@ -471,7 +504,7 @@ for (const [W, H, mobile] of [
   await fillInput('.answer-input__field', '아메리카노 한 개 주세요')
   await click('答える')
   await sleep(200)
-  check(`${P} 数え方の単位が品物と合わない：通じたものとして、注意を出す`, (await mainText()).includes('注文できました') && (await mainText()).includes('잔 で数える'), (await mainText()).slice(0, 300))
+  check(`${P} 数え方の単位が品物と合わない：通じたものとして、注意を出す`, (await mainText()).includes('注文できました') && (await mainText()).includes(order.counterNoteJa), (await mainText()).slice(0, 300))
   check(`${P} 2回目の注文では経験値を付けない`, (await saved()).stats.xp === xpBeforeReorder)
   await click('店を出る')
   check(`${P} 注文し直した後は、カフェの画面に戻る`, (await heading()) === 'カフェ')
@@ -484,7 +517,7 @@ for (const [W, H, mobile] of [
 
   // --- おはなしのアルバム ---
   await click('外に出る（マップへ）')
-  await click('自宅', { exact: false })
+  await click('自宅', { exact: false, within: '.town-map' })
   await click('おはなしのアルバム')
   const albumItems = await evaluate(`document.querySelectorAll('.album-list__item').length`)
   check(`${P} アルバムに、見たおはなしが並ぶ（${Object.keys(final.progress.storiesSeen).length}本）`, albumItems === Object.keys(final.progress.storiesSeen).length && albumItems > 0, String(albumItems))
@@ -539,6 +572,8 @@ const setVisibility = async (state, event) => {
 }
 const playingBefore = await audioState()
 check('BGM：はじめからで、曲が流れ始める', playingBefore.playing.length === 1 && playingBefore.contexts.includes('running'), JSON.stringify(playingBefore))
+// 流れ始めた直後（位置が 0 のまま）に止めると、止めた曲として数えられないので、少し進むのを待つ
+for (let i = 0; i < 20 && !((await audioState()).playing[0]?.t > 0.3); i++) await sleep(150)
 for (const [hideEvent, showEvent] of [
   ['visibilitychange', 'visibilitychange'],
   ['pagehide', 'pageshow'],

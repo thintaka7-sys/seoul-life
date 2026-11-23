@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SPEECH_HOLD_TIMEOUT_MS, createAudioSessionController, type AudioSessionLike } from './audioSession'
+import { SPEECH_HOLD_MAX_MS, SPEECH_HOLD_TIMEOUT_MS, createAudioSessionController, type AudioSessionLike } from './audioSession'
 
 function setup() {
   const session: AudioSessionLike = { type: 'auto' }
@@ -52,6 +52,17 @@ describe('マナーモードへの対応（audioSession）', () => {
     c.check(false)
     expect(session.type).toBe('ambient')
     expect(c.held()).toBe(false)
+  })
+
+  it('「読み上げ中」のまま変わらない端末でも、長く経ったら戻す', () => {
+    const { session, c, advance } = setup()
+    c.hold()
+    advance(SPEECH_HOLD_MAX_MS - 1)
+    c.check(true)
+    expect(session.type).toBe('playback')
+    advance(2)
+    c.check(true)
+    expect(session.type).toBe('ambient')
   })
 
   it('audioSession がないブラウザでは何もしない', () => {

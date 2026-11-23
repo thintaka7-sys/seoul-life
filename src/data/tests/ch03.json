@@ -1,0 +1,11 @@
+[
+  {
+    "id": "test_003",
+    "chapter": 3,
+    "titleJa": "第3章のテスト",
+    "questionCount": 10,
+    "passPercent": 80,
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。問題はプログラムが第3章の単語・文法・会話から作る"
+  }
+]

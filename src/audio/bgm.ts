@@ -3,13 +3,16 @@
 //   iPhone の Safari は audio.volume が効かないため、音量はつまみで変える。
 // - 曲の終わり（フェードアウトの手前で切ってある。npm run audio）が近づいたら、同じ曲の始めをもう一方のデッキで重ねて始める。
 // - 場面が変わったら、新しい曲を重ねながら切り替える。読み上げの間は小さくする（iPhone など、マナーモードを区別できるブラウザでは消す。audioSession.ts）。
+// - マイクで聞いている間（話して答える）は消す（声を聞き取りやすく、話しやすくするため。recognition.ts）。
 // - 画面が見えなくなったら止め、戻ったら続きから流す（pageVisibility.ts）。
+// - 流しているはずの曲が、こちらの操作なしに止まっていたら（iPhone で、ほかの音・マイクに止められたなど）、続きから流し直す。
 // - ブラウザは操作の前に音を出させないので、最初の操作で AudioContext ができてから鳴らし始める。
 //   iPhone は、操作の中で一度 play() した audio 要素でないと後から鳴らせないことがあるため、最初の操作で両方のデッキを一度鳴らして止める。
 
 import { audioAssets } from '../data'
 import type { BgmId } from '../data/types'
 import { currentAudioEngine, onAudioEngineReady } from './engine'
+import { isListening, subscribeListening } from './recognition'
 import { DUCK_VOLUME, LOOP_CROSSFADE_SEC, SWITCH_FADE_SEC, loopDue } from './bgmTiming'
 import { UNLOCK_EVENTS } from './sfx'
 
@@ -21,6 +24,8 @@ interface Deck {
   stopTimer: number | null
   /** 再生を断られた（操作の前など）か、画面が見えない間に始めようとした。次の操作・画面に戻ったときに再び試す */
   pending: boolean
+  /** play() の返事を待っている */
+  starting: boolean
 }
 
 interface Desired {
@@ -39,7 +44,8 @@ function flip(i: 0 | 1): 0 | 1 {
 }
 let desired: Desired = { track: null, level: 1 }
 let enabled = true
-let ducked = false
+/** いまの全体の大きさ（1：ふつう、DUCK_VOLUME：読み上げ中、0：マイクで聞いている間） */
+let mixLevel = 1
 let primed = false
 /** 画面が見えない間（止めている） */
 let hidden = false
@@ -62,12 +68,15 @@ function play(deck: Deck): void {
     deck.pending = true
     return
   }
+  deck.starting = true
   deck.el
     .play()
     .then(() => {
+      deck.starting = false
       deck.pending = false
     })
     .catch(() => {
+      deck.starting = false
       deck.pending = true
     })
 }
@@ -114,7 +123,7 @@ function apply(): void {
     current.track = null
     return
   }
-  if (current.track === target && (!current.el.paused || current.pending)) {
+  if (current.track === target && (!current.el.paused || current.pending || current.starting)) {
     ramp(current.gain, desired.level, SWITCH_FADE_SEC)
     if (current.pending) play(current)
     return
@@ -125,24 +134,34 @@ function apply(): void {
   start(other, target, current.el.paused ? 0.3 : SWITCH_FADE_SEC)
 }
 
-/** 定期的に：曲の終わりが近ければ重ねて始め直す。読み上げの間は小さくする */
+/** 全体の大きさを合わせる：マイクで聞いている間は 0、読み上げの間は小さく、それ以外はふつう */
+function updateMix(): void {
+  if (mix === null) return
+  const speaking = typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking
+  const level = isListening() ? 0 : speaking ? DUCK_VOLUME : 1
+  if (level === mixLevel) return
+  ramp(mix, level, level < mixLevel ? 0.15 : 0.6)
+  mixLevel = level
+}
+
+/** 定期的に：曲の終わりが近ければ重ねて始め直す。止められていた曲は流し直す。読み上げ・マイクの間は小さくする */
 function tick(): void {
   if (decks === null || mix === null || hidden) return
   const current = decks[active]
   const track = current.track
   const entry = track === null ? undefined : audioAssets.bgm[track]
-  if (track !== null && entry !== undefined && !current.el.paused && loopDue(current.el.currentTime, entry.duration)) {
+  // 曲の終わりまで流れてしまった（ended）ときも、始めから流し直す
+  if (track !== null && entry !== undefined && (current.el.ended || (!current.el.paused && loopDue(current.el.currentTime, entry.duration)))) {
     const other = decks[flip(active)]
     fadeOut(current, LOOP_CROSSFADE_SEC)
     current.track = null
     active = flip(active)
     start(other, track, LOOP_CROSSFADE_SEC)
+  } else if (track !== null && current.el.paused && !current.pending && !current.starting && ctx !== null && ctx.state === 'running') {
+    // こちらが止めたときは track を外すか（曲の切り替え・オフ）、hidden にしている。それ以外で止まっていたら流し直す（断られたら次の操作で）
+    play(current)
   }
-  const speaking = typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking
-  if (speaking !== ducked) {
-    ducked = speaking
-    ramp(mix, speaking ? DUCK_VOLUME : 1, speaking ? 0.15 : 0.6)
-  }
+  updateMix()
 }
 
 /** 操作のたびに：断られた再生をもう一度試す。最初の操作では、両方のデッキを一度鳴らして止める（iPhone） */
@@ -178,10 +197,11 @@ function setup(audio: AudioContext, output: AudioNode): void {
     const gain = audio.createGain()
     gain.gain.value = 0
     audio.createMediaElementSource(el).connect(gain).connect(mix as GainNode)
-    return { el, gain, track: null, stopTimer: null, pending: false }
+    return { el, gain, track: null, stopTimer: null, pending: false, starting: false }
   }
   decks = [make(), make()]
   window.setInterval(tick, 250)
+  subscribeListening(updateMix)
   for (const type of UNLOCK_EVENTS) window.addEventListener(type, onGesture, { passive: true, capture: true })
   onGesture()
   apply()

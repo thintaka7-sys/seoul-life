@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   FINAL_GRACE_MS,
   collectAlternatives,
+  createListeningTracker,
   describeRecognitionError,
   getRecognitionStatus,
   recognizeKorean,
@@ -155,5 +156,33 @@ describe('聞き取った結果のまとめ方（BUG-004）', () => {
     rec.onresult?.({ results: results({ alts: ['네'], final: false }) })
     s.abort()
     expect(await s.result).toMatchObject({ kind: 'error', error: { kind: 'aborted' } })
+  })
+})
+
+describe('聞き取り中のマイク（BGM を消す・画面が見えなくなったらやめる）', () => {
+  it('聞いている間だけ listening。結果が出たら外れ、変わったときだけ知らせる', async () => {
+    const tracker = createListeningTracker()
+    let changes = 0
+    tracker.subscribe(() => (changes += 1))
+    const rec = fakeRecognition()
+    const s = tracker.track(runRecognition(rec))
+    expect(tracker.listening()).toBe(true)
+    rec.onresult?.({ results: results({ alts: ['네'], final: false }) })
+    s.stop()
+    await s.result
+    await Promise.resolve()
+    expect(tracker.listening()).toBe(false)
+    expect(changes).toBe(2)
+  })
+
+  it('abortAll で、聞き取り中のものをすべてやめる（結果は aborted）', async () => {
+    const tracker = createListeningTracker()
+    const a = tracker.track(runRecognition(fakeRecognition()))
+    const b = tracker.track(runRecognition(fakeRecognition()))
+    tracker.abortAll()
+    expect(await a.result).toMatchObject({ kind: 'error', error: { kind: 'aborted' } })
+    expect(await b.result).toMatchObject({ kind: 'error', error: { kind: 'aborted' } })
+    await Promise.resolve()
+    expect(tracker.listening()).toBe(false)
   })
 })

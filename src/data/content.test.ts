@@ -51,6 +51,15 @@ describe('data/ の実データ', () => {
     }
   })
 
+  it('ハナ（friend）は、間違えた返事に明るく笑って反応する（CONTENT_FORMAT 10-4。表情は smile。選択の往復は正解・不正解がないので除く）', () => {
+    const lines = content.conversations.flatMap((c) =>
+      c.turns.flatMap((t, i) => (t.kind === 'decision' ? [] : (t.choices ?? [])).filter((ch) => ch.correct === false).flatMap((ch) => (ch.reply ?? []).map((line) => ({ where: `${c.id} 往復${i}`, line })))),
+    )
+    const friend = lines.filter(({ line }) => line.speaker === 'friend')
+    expect(friend.length).toBeGreaterThan(0)
+    for (const { where, line } of friend) expect(line.expression, `${where}：${line.korean}`).toBe('smile')
+  })
+
   it('すべての会話は、どこかのイベントで使われている', () => {
     const used = new Set(content.events.flatMap((e) => e.steps.flatMap((s) => (s.type === 'conversation' ? [s.id] : []))))
     expect(content.conversations.map((c) => c.id).filter((id) => !used.has(id))).toEqual([])

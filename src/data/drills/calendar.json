@@ -1,0 +1,235 @@
+[
+  {
+    "id": "drill_005",
+    "titleJa": "月と日にち",
+    "questionCount": 10,
+    "introJa": "月は、漢数詞のあとに 월 を付けます。ただし、6月は 육월 ではなく 유월、10月は 십월 ではなく 시월 です。言いにくい音が落ちたんですね。この2つは、テストにもよく出る名物ですよ。日にちは、漢数詞のあとに 일 を付けます。",
+    "figures": [
+      {
+        "type": "formation",
+        "parts": [
+          "육",
+          "월"
+        ],
+        "result": "유월",
+        "resultPronunciation": "ユウォル",
+        "noteJa": "ㄱ が落ちて 유월 になる"
+      },
+      {
+        "type": "formation",
+        "parts": [
+          "십",
+          "월"
+        ],
+        "result": "시월",
+        "resultPronunciation": "シウォル",
+        "noteJa": "ㅂ が落ちて 시월 になる"
+      }
+    ],
+    "items": [
+      {
+        "id": "dq_081",
+        "korean": "일월",
+        "pronunciation": "イルォル",
+        "japanese": "1月",
+        "digits": "1"
+      },
+      {
+        "id": "dq_082",
+        "korean": "이월",
+        "pronunciation": "イウォル",
+        "japanese": "2月",
+        "digits": "2"
+      },
+      {
+        "id": "dq_083",
+        "korean": "삼월",
+        "pronunciation": "サムォル",
+        "japanese": "3月",
+        "digits": "3"
+      },
+      {
+        "id": "dq_084",
+        "korean": "사월",
+        "pronunciation": "サウォル",
+        "japanese": "4月",
+        "digits": "4"
+      },
+      {
+        "id": "dq_085",
+        "korean": "오월",
+        "pronunciation": "オウォル",
+        "japanese": "5月",
+        "digits": "5"
+      },
+      {
+        "id": "dq_086",
+        "korean": "유월",
+        "pronunciation": "ユウォル",
+        "japanese": "6月",
+        "digits": "6"
+      },
+      {
+        "id": "dq_087",
+        "korean": "칠월",
+        "pronunciation": "チルォル",
+        "japanese": "7月",
+        "digits": "7"
+      },
+      {
+        "id": "dq_088",
+        "korean": "팔월",
+        "pronunciation": "パルォル",
+        "japanese": "8月",
+        "digits": "8"
+      },
+      {
+        "id": "dq_089",
+        "korean": "구월",
+        "pronunciation": "クウォル",
+        "japanese": "9月",
+        "digits": "9"
+      },
+      {
+        "id": "dq_090",
+        "korean": "시월",
+        "pronunciation": "シウォル",
+        "japanese": "10月",
+        "digits": "10"
+      },
+      {
+        "id": "dq_091",
+        "korean": "십일월",
+        "pronunciation": "シビルォル",
+        "japanese": "11月",
+        "digits": "11"
+      },
+      {
+        "id": "dq_092",
+        "korean": "십이월",
+        "pronunciation": "シビウォル",
+        "japanese": "12月",
+        "digits": "12"
+      },
+      {
+        "id": "dq_093",
+        "korean": "일월 일일",
+        "pronunciation": "イルォ リリル",
+        "japanese": "1月1日",
+        "digits": "1/1"
+      },
+      {
+        "id": "dq_094",
+        "korean": "오월 십오일",
+        "pronunciation": "オウォル シボイル",
+        "japanese": "5月15日",
+        "digits": "5/15"
+      },
+      {
+        "id": "dq_095",
+        "korean": "유월 이십오일",
+        "pronunciation": "ユウォ リシボイル",
+        "japanese": "6月25日",
+        "digits": "6/25"
+      },
+      {
+        "id": "dq_096",
+        "korean": "시월 구일",
+        "pronunciation": "シウォル グイル",
+        "japanese": "10月9日",
+        "digits": "10/9"
+      },
+      {
+        "id": "dq_097",
+        "korean": "십이월 이십오일",
+        "pronunciation": "シビウォ リシボイル",
+        "japanese": "12月25日",
+        "digits": "12/25"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。日付は数と単位を一息で言うので、空白をまたぐ連音も反映した。開発者の要望（カレンダーの月・日にちの単語がない）による。第8章（休日の約束）でも使う"
+  },
+  {
+    "id": "drill_006",
+    "titleJa": "先週・今月・来年",
+    "questionCount": 10,
+    "introJa": "「先週・今週・来週」は、지난（この前の）・이번（今度の）・다음（次の）を、주（週）・달（月）に付けて作ります。年だけは形が違って、작년（去年）・올해（今年）・내년（来年）です。予定を話すときに大活躍しますよ。",
+    "items": [
+      {
+        "id": "dq_101",
+        "korean": "지난주",
+        "pronunciation": "チナンジュ",
+        "japanese": "先週"
+      },
+      {
+        "id": "dq_102",
+        "korean": "이번 주",
+        "pronunciation": "イボン ッチュ",
+        "japanese": "今週"
+      },
+      {
+        "id": "dq_103",
+        "korean": "다음 주",
+        "pronunciation": "タウム ッチュ",
+        "japanese": "来週"
+      },
+      {
+        "id": "dq_104",
+        "korean": "지난달",
+        "pronunciation": "チナンダル",
+        "japanese": "先月"
+      },
+      {
+        "id": "dq_105",
+        "korean": "이번 달",
+        "pronunciation": "イボン ッタル",
+        "japanese": "今月"
+      },
+      {
+        "id": "dq_106",
+        "korean": "다음 달",
+        "pronunciation": "タウム ッタル",
+        "japanese": "来月"
+      },
+      {
+        "id": "dq_107",
+        "korean": "작년",
+        "pronunciation": "チャンニョン",
+        "japanese": "去年"
+      },
+      {
+        "id": "dq_108",
+        "korean": "올해",
+        "pronunciation": "オレ",
+        "japanese": "今年"
+      },
+      {
+        "id": "dq_109",
+        "korean": "내년",
+        "pronunciation": "ネニョン",
+        "japanese": "来年"
+      },
+      {
+        "id": "dq_110",
+        "korean": "그저께",
+        "pronunciation": "クジョッケ",
+        "japanese": "おととい"
+      },
+      {
+        "id": "dq_111",
+        "korean": "모레",
+        "pronunciation": "モレ",
+        "japanese": "あさって"
+      },
+      {
+        "id": "dq_112",
+        "korean": "매일",
+        "pronunciation": "メイル",
+        "japanese": "毎日"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。日付は数と単位を一息で言うので、空白をまたぐ連音も反映した。開発者の要望（来月・今週などの単語がない）による。曜日・今日・明日は drill_003"
+  }
+]

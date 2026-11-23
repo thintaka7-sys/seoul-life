@@ -225,5 +225,292 @@
     "exampleJapanese": "はい、大丈夫です。",
     "reviewed": true,
     "notes": "「아니요, 괜찮아요」で、すすめられたものを丁寧に断る言い方にもなる／確認：ChatGPT（2026-11-19）"
+  },
+  {
+    "id": "vocab_050",
+    "korean": "메뉴",
+    "pronunciation": "メニュ",
+    "japanese": "メニュー",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "메뉴 좀 보여 주세요.",
+    "examplePronunciation": "メニュ ジョム ボヨ ジュセヨ",
+    "exampleJapanese": "メニューを見せてください。",
+    "reviewed": true,
+    "notes": "第3章。外来語"
+  },
+  {
+    "id": "vocab_051",
+    "korean": "바닐라 라테",
+    "pronunciation": "パニルラ ラテ",
+    "japanese": "バニララテ",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "바닐라 라테 한 잔 주세요.",
+    "examplePronunciation": "パニルラ ラテ ハン ジャン ジュセヨ",
+    "exampleJapanese": "バニララテを1杯ください。",
+    "alternatives": [
+      "바닐라라테",
+      "바닐라 라떼",
+      "바닐라라떼"
+    ],
+    "reviewed": true,
+    "notes": "第3章のメニュー。라테 は 라떼 とも書く"
+  },
+  {
+    "id": "vocab_052",
+    "korean": "녹차 라테",
+    "pronunciation": "ノクチャ ラテ",
+    "japanese": "緑茶ラテ（抹茶ラテ）",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "녹차 라테 주세요.",
+    "examplePronunciation": "ノクチャ ラテ ジュセヨ",
+    "exampleJapanese": "緑茶ラテをください。",
+    "alternatives": [
+      "녹차라테",
+      "녹차 라떼",
+      "녹차라떼",
+      "말차 라테",
+      "말차라테",
+      "말차 라떼",
+      "말차라떼"
+    ],
+    "reviewed": true,
+    "notes": "第3章のメニュー。녹차（緑茶）＋라테。抹茶は 말차 で、말차 라테 と書く店もあるので、注文ではどちらも通じるようにした"
+  },
+  {
+    "id": "vocab_053",
+    "korean": "딸기 라테",
+    "pronunciation": "ッタルギ ラテ",
+    "japanese": "いちごラテ",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "딸기 라테가 제일 비싸요.",
+    "examplePronunciation": "ッタルギ ラテガ ジェイル ビッサヨ",
+    "exampleJapanese": "いちごラテがいちばん高いです。",
+    "alternatives": [
+      "딸기라테",
+      "딸기 라떼",
+      "딸기라떼"
+    ],
+    "reviewed": true,
+    "notes": "第3章のメニュー。딸기（いちご）＋라테"
+  },
+  {
+    "id": "vocab_054",
+    "korean": "유자차",
+    "pronunciation": "ユジャチャ",
+    "japanese": "ゆず茶",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "유자차는 따뜻해요.",
+    "examplePronunciation": "ユジャチャヌン ッタットゥテヨ",
+    "exampleJapanese": "ゆず茶は温かいです。",
+    "reviewed": true,
+    "notes": "第3章のメニュー。유자（ゆず）＋차（お茶）"
+  },
+  {
+    "id": "vocab_055",
+    "korean": "레몬에이드",
+    "pronunciation": "レモネイドゥ",
+    "japanese": "レモネード",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "레몬에이드 한 잔 주세요.",
+    "examplePronunciation": "レモネイドゥ ハン ジャン ジュセヨ",
+    "exampleJapanese": "レモネードを1杯ください。",
+    "reviewed": true,
+    "notes": "第3章のメニュー。外来語"
+  },
+  {
+    "id": "vocab_056",
+    "korean": "치즈케이크",
+    "pronunciation": "チジュケイク",
+    "japanese": "チーズケーキ",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "치즈케이크 하나 주세요.",
+    "examplePronunciation": "チジュケイク ハナ ジュセヨ",
+    "exampleJapanese": "チーズケーキを1つください。",
+    "alternatives": [
+      "치즈 케이크"
+    ],
+    "reviewed": true,
+    "notes": "第3章のメニュー。外来語"
+  },
+  {
+    "id": "vocab_057",
+    "korean": "크로플",
+    "pronunciation": "クロプル",
+    "japanese": "クロッフル",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "크로플이 맛있어요.",
+    "examplePronunciation": "クロプリ マシッソヨ",
+    "exampleJapanese": "クロッフルがおいしいです。",
+    "reviewed": true,
+    "notes": "第3章のメニュー。크루아상（クロワッサン）と 와플（ワッフル）を合わせた言葉"
+  },
+  {
+    "id": "vocab_058",
+    "korean": "마카롱",
+    "pronunciation": "マカロン",
+    "japanese": "マカロン",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "마카롱 두 개 주세요.",
+    "examplePronunciation": "マカロン ドゥ ゲ ジュセヨ",
+    "exampleJapanese": "マカロンを2つください。",
+    "reviewed": true,
+    "notes": "第3章のメニュー。外来語"
+  },
+  {
+    "id": "vocab_059",
+    "korean": "크루아상",
+    "pronunciation": "クルアサン",
+    "japanese": "クロワッサン",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "크루아상 하나 주세요.",
+    "examplePronunciation": "クルアサン ハナ ジュセヨ",
+    "exampleJapanese": "クロワッサンを1つください。",
+    "alternatives": [
+      "크로와상"
+    ],
+    "reviewed": true,
+    "notes": "第3章のメニュー。表記の基準は 크루아상 だが、店では 크로와상 もよく使う"
+  },
+  {
+    "id": "vocab_060",
+    "korean": "쿠키",
+    "pronunciation": "クキ",
+    "japanese": "クッキー",
+    "partOfSpeech": "noun",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "쿠키 한 개 주세요.",
+    "examplePronunciation": "クキ ハン ゲ ジュセヨ",
+    "exampleJapanese": "クッキーを1つください。",
+    "reviewed": true,
+    "notes": "第3章のメニュー。外来語"
+  },
+  {
+    "id": "vocab_061",
+    "korean": "개",
+    "pronunciation": "ケ",
+    "japanese": "〜個（物を数える単位）",
+    "partOfSpeech": "noun",
+    "genre": "number_money",
+    "level": 1,
+    "example": "케이크 두 개 주세요.",
+    "examplePronunciation": "ケイク ドゥ ゲ ジュセヨ",
+    "exampleJapanese": "ケーキを2つください。",
+    "reviewed": true,
+    "notes": "第3章。食べ物など、物を数える単位。飲み物は 잔（つまずきリスト W03）"
+  },
+  {
+    "id": "vocab_062",
+    "korean": "따뜻한",
+    "pronunciation": "ッタットゥタン",
+    "japanese": "温かい〜",
+    "partOfSpeech": "adjective",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "따뜻한 아메리카노 주세요.",
+    "examplePronunciation": "ッタットゥタン アメリカノ ジュセヨ",
+    "exampleJapanese": "温かいアメリカーノをください。",
+    "base": {
+      "korean": "따뜻하다",
+      "pronunciation": "ッタットゥタダ",
+      "japanese": "温かい"
+    },
+    "forms": [
+      {
+        "kind": "other",
+        "korean": "따뜻한",
+        "pronunciation": "ッタットゥタン",
+        "parts": [
+          "따뜻하",
+          "ㄴ"
+        ],
+        "wrong": [
+          "따뜻하는"
+        ],
+        "noteJa": "後ろの名詞を説明する形。따뜻하다 の語幹 따뜻하 に ㄴ を付ける。形容詞で名詞を説明するときは、語幹に ㄴ を付ける"
+      },
+      {
+        "kind": "present",
+        "korean": "따뜻해요",
+        "pronunciation": "ッタットゥテヨ",
+        "parts": [
+          "따뜻하",
+          "여요"
+        ],
+        "wrong": [
+          "따뜻하요"
+        ],
+        "noteJa": "하 ＋ 여요 は 해요 になる"
+      }
+    ],
+    "reviewed": true,
+    "notes": "第3章。飲み物の前に付けて「ホットの」。後ろの名詞を説明する形"
+  },
+  {
+    "id": "vocab_063",
+    "korean": "맛있어요",
+    "pronunciation": "マシッソヨ",
+    "japanese": "おいしいです",
+    "partOfSpeech": "adjective",
+    "genre": "food_drink",
+    "level": 1,
+    "example": "크로플이 정말 맛있어요.",
+    "examplePronunciation": "クロプリ ジョンマル マシッソヨ",
+    "exampleJapanese": "クロッフルが本当においしいです。",
+    "base": {
+      "korean": "맛있다",
+      "pronunciation": "マシッタ",
+      "japanese": "おいしい"
+    },
+    "forms": [
+      {
+        "kind": "present",
+        "korean": "맛있어요",
+        "pronunciation": "マシッソヨ",
+        "parts": [
+          "맛있",
+          "어요"
+        ],
+        "wrong": [
+          "맛있아요"
+        ],
+        "noteJa": "있 の母音は ㅣ なので、어요 が付く"
+      },
+      {
+        "kind": "past",
+        "korean": "맛있었어요",
+        "pronunciation": "マシッソッソヨ",
+        "parts": [
+          "맛있",
+          "었어요"
+        ],
+        "wrong": [
+          "맛있았어요"
+        ],
+        "noteJa": "過去の形。었어요 が付く"
+      }
+    ],
+    "reviewed": true,
+    "notes": "第3章"
   }
 ]
