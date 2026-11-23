@@ -36,18 +36,18 @@
     },
     "teacher": {
       "normal": {
-        "src": "assets/char/teacher/normal.webp?v=e8d9392e0e",
-        "width": 652,
+        "src": "assets/char/teacher/normal.webp?v=996114dde4",
+        "width": 654,
         "height": 1200
       },
       "smile": {
-        "src": "assets/char/teacher/smile.webp?v=fc3170d473",
-        "width": 652,
+        "src": "assets/char/teacher/smile.webp?v=cd64296f2c",
+        "width": 654,
         "height": 1200
       },
       "troubled": {
-        "src": "assets/char/teacher/troubled.webp?v=8682ab2a57",
-        "width": 652,
+        "src": "assets/char/teacher/troubled.webp?v=94c5a414cc",
+        "width": 654,
         "height": 1200
       }
     },
