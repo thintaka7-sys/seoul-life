@@ -1,5 +1,6 @@
 // Phase 3 区切り3の確認：図と絵（GAME_SPEC 4-11）、形が変わる言葉（4-3。単語カード・図鑑・復習の問題）、
-// 注文（4-4。分からない言い方・答えの例・偽の音声認識で話して注文）を、スマホ幅（320px）とPC幅で確かめる。
+// 注文（4-4。分からない言い方・答えの例・偽の音声認識で話して注文）、
+// 教材の図（ハングルのレッスンの説明・文字・パッチム・音の変化のカード、聞き分けの組）を、スマホ幅（320px）とPC幅で確かめる。
 // 第1〜3章を通した流れ（読み物・注文・聞き取りの段階）は chapters.mjs で確かめる。
 // 使い方: node scripts/e2e/phase3.mjs <URL>
 
@@ -19,7 +20,24 @@ const events = readDir('events')
 const vocab = readDir('vocabulary')
 const drills = readDir('drills')
 const withForms = vocab.filter((v) => (v.forms ?? []).length > 0)
-const figureDrill = drills.find((d) => (d.figures ?? []).length > 0)
+// 図の種類をすべて使った見本のドリル（仮データ）
+const figureDrill = drills.find((d) => d.id === 'drill_901')
+const lessons = readDir('hangul').sort((a, b) => a.order - b.order)
+const earSets = readDir('ear')
+/** 図の配列から、画面に出るはずの図の数・絵（画像）の数・断面図（SVG）の数を数える */
+const expectFigures = (figures = []) => {
+  const arts = figures.flatMap((f) => (f.type === 'image' ? [f.image] : f.type === 'compare' ? f.items.flatMap((i) => (i.image === undefined ? [] : [i.image])) : []))
+  return { all: figures.length, img: arts.filter((k) => !k.startsWith('final_')).length, svg: arts.filter((k) => k.startsWith('final_')).length, fallback: 0 }
+}
+/** 画面の中の、先生の説明に入った図を数える（画像は読み込めたものだけ。絵がないときの札の一覧は fallback） */
+const countFigures = () =>
+  evaluate(`({
+    all: document.querySelectorAll('.teacher-says .figure').length,
+    img: [...document.querySelectorAll('.teacher-says .figure__img')].filter(i => i.complete && i.naturalWidth > 0).length,
+    svg: document.querySelectorAll('.teacher-says .figure__svg').length,
+    fallback: document.querySelectorAll('.teacher-says .figure__label-list').length,
+  })`)
+const waitImages = () => evaluate(`Promise.all([...document.querySelectorAll('.figure__img')].map(i => i.decode().catch(() => undefined)))`)
 const orderEvent = events.find((e) => e.steps.some((s) => s.type === 'order'))
 const orderId = orderEvent.steps.find((s) => s.type === 'order').id
 
@@ -83,6 +101,56 @@ for (const [W, H, mobile] of [
   await layoutCheck(`${P} 図の見本`)
   await shot(`figures-${W}`)
   await click('戻る')
+  await click('戻る')
+
+  // --- 教材の図：ハングルのレッスン（説明・カード）。教材のとおりの数の図が、先生の説明の中に出る ---
+  const lessonProblems = []
+  let lessonFigures = 0
+  await click('レッスン合格', { exact: false })
+  for (const [li, lesson] of lessons.entries()) {
+    await evaluate(`document.querySelectorAll('.lesson-item')[${li}].click()`)
+    await sleep(200)
+    await waitImages()
+    const screens = [{ name: '説明', figures: lesson.figures }, ...(lesson.letters ?? []).map((x) => ({ name: x.jamo, figures: x.figures })), ...(lesson.finals ?? []).map((x) => ({ name: `パッチム${x.sound}`, figures: x.figures })), ...(lesson.rules ?? []).map((x) => ({ name: x.titleJa, figures: x.figures }))]
+    for (const [si, screen] of screens.entries()) {
+      if (si === 1) await click('文字を見る')
+      else if (si > 1) await click('次へ')
+      if (si > 0) {
+        await sleep(120)
+        await waitImages()
+      }
+      const want = expectFigures(screen.figures)
+      const got = await countFigures()
+      lessonFigures += got.all
+      if (JSON.stringify(got) !== JSON.stringify(want)) lessonProblems.push({ lesson: lesson.id, screen: screen.name, want, got })
+      if ((screen.figures ?? []).length > 0) await layoutCheck(`${P} ${lesson.id} ${screen.name} の図`)
+      if (W === 320 && lesson.id === 'hangul_009' && si === 1) await shot('lesson-final-figure-320')
+      if (W === 320 && lesson.id === 'hangul_006' && si === 0) await shot('lesson-compare-figure-320')
+    }
+    await click('やめる').catch(() => click('戻る'))
+    await sleep(150)
+    if ((await evaluate(`document.querySelector('h1')?.textContent.trim()`)) !== 'ハングル') await click('レッスン一覧へ', { exact: false }).catch(() => undefined)
+  }
+  const lessonFigureTotal = lessons.reduce((n, l) => n + [l, ...(l.letters ?? []), ...(l.finals ?? []), ...(l.rules ?? [])].reduce((m, x) => m + (x.figures ?? []).length, 0), 0)
+  check(`${P} ハングルのレッスン：教材の図（${lessonFigureTotal}個）がすべて、絵も読み込めて出る`, lessonProblems.length === 0 && lessonFigures === lessonFigureTotal, JSON.stringify({ lessonFigures, lessonProblems }))
+  await click('戻る')
+
+  // --- 教材の図：聞き分けの組（試しに聞く画面の、先生のこつの中） ---
+  await click('聞き分け', { exact: false })
+  const earProblems = []
+  for (const set of earSets.filter((s) => (s.figures ?? []).length > 0)) {
+    await evaluate(`[...document.querySelectorAll('.lesson-item--plain')].find(b => b.querySelector('.lesson-item__title').firstChild.textContent === ${JSON.stringify(set.titleJa)}).click()`)
+    await sleep(200)
+    await waitImages()
+    const want = expectFigures(set.figures)
+    const got = await countFigures()
+    if (JSON.stringify(got) !== JSON.stringify(want)) earProblems.push({ set: set.id, want, got })
+    await layoutCheck(`${P} ${set.id} の図`)
+    if (W === 320 && set.id === 'ear_001') await shot('ear-figure-320')
+    await click('戻る')
+    await sleep(120)
+  }
+  check(`${P} 聞き分け：教材の図（${earSets.filter((s) => (s.figures ?? []).length > 0).length}組）が、絵も読み込めて出る`, earProblems.length === 0, JSON.stringify(earProblems))
   await click('戻る')
 
   // --- 形が変わる言葉：今日の復習に形の問題が出る ---

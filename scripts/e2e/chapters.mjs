@@ -23,6 +23,7 @@ const convs = new Map(readDir('scenarios').map((c) => [c.id, c]))
 const vocabCount = readDir('vocabulary').length
 const events = readDir('events')
 const readings = new Map(readDir('readings').map((r) => [r.id, r]))
+const grammarById = new Map(readDir('grammar').map((g) => [g.id, g]))
 const listeningSentences = readDir('listening')
 
 const backdrop = () => evaluate(`document.querySelector('.backdrop__sharp')?.getAttribute('src') ?? ''`)
@@ -340,6 +341,15 @@ for (const [W, H, mobile] of [
   check(`${P} 単語6＋文法2のカード（文法は先生が説明する）`, (await stepHeading()).includes('/ 8'), await stepHeading())
   for (let i = 0; i < 7; i++) await click('次へ')
   check(`${P} 文法カードの説明を、先生が話す形で出す`, await evaluate(`!!document.querySelector('.learn-card .teacher-says')`))
+  {
+    // 最後のカードは、そのイベントで習う最後の文法。教材の図（部品 → くっついた形）を、先生の説明の中に出す
+    const learnStep = events.flatMap((e) => e.steps).find((s) => s.type === 'learn' && (s.grammar ?? []).length === 2)
+    const lastGrammar = grammarById.get(learnStep.grammar.at(-1))
+    const want = (lastGrammar.figures ?? []).length
+    const got = await evaluate(`document.querySelectorAll('.learn-card .teacher-says .figure').length`)
+    check(`${P} 文法カードの図（${lastGrammar.id}：${want}個）`, want > 0 && got === want, `${got} / ${want}`)
+    if (W === 375) await shot('375-06b-grammar-figure')
+  }
   await click('覚えた！')
   const before = (await saved()).progress.activeEvent
   await reload()

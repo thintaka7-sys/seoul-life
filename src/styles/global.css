@@ -3425,18 +3425,22 @@ h2.step-heading {
   font-weight: 700;
 }
 
-/* 幅の狭い画面では、3つを比べる図を1行に1つにし、絵を左・言葉を右に置く（絵が小さくなりすぎないように） */
+/* 幅の狭い画面では、3つを比べる図を1行に1つにし、絵を左・言葉を右に置く（絵が小さくなりすぎないように）。
+   絵のない組は、言葉・読み・説明を左寄せで縦に並べる */
 @media (max-width: 480px) {
   .compare--3 {
     grid-template-columns: 1fr;
   }
 
   .compare--3 .compare__item {
-    grid-template-columns: 128px 1fr;
-    column-gap: 10px;
     justify-items: start;
     align-items: center;
     text-align: left;
+  }
+
+  .compare--3 .compare__item--art {
+    grid-template-columns: 128px 1fr;
+    column-gap: 10px;
   }
 
   .compare--3 .compare__item > .figure__art {

@@ -143,7 +143,7 @@ function CompareFigure({ items, captionJa }: { items: readonly CompareItem[]; ca
     <div className="figure figure--compare">
       <ul className={`compare compare--${items.length}`}>
         {items.map((item, i) => (
-          <li key={i} className="compare__item">
+          <li key={i} className={`compare__item${item.image === undefined ? '' : ' compare__item--art'}`}>
             {item.image !== undefined && <FigureArt image={item.image} />}
             <p className="compare__word">
               <span lang="ko">{item.korean}</span>
