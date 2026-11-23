@@ -1,0 +1,180 @@
+[
+  {
+    "id": "grammar_004",
+    "title": "이에요 / 예요",
+    "level": 1,
+    "explanation": "「〜です」は、名詞の後ろに 이에요 か 예요 を付けます。どちらを付けるかは、名詞の最後にパッチムがあるかどうかで決まりますよ。자기소개（チャギソゲ。自己紹介）は、ほとんどこれだけでできてしまいます。",
+    "connectionJa": "名詞の最後にパッチムがあれば 이에요（학생이에요）、なければ 예요（주부예요）です。パッチムが「イ」を呼んでくる、と覚えてくださいね。",
+    "examples": [
+      {
+        "korean": "저는 학생이에요.",
+        "pronunciation": "チョヌン ハクセンイエヨ",
+        "japanese": "私は学生です。",
+        "blank": "학생이에요",
+        "blankWrong": [
+          "학생예요"
+        ]
+      },
+      {
+        "korean": "저는 주부예요.",
+        "pronunciation": "チョヌン ジュブエヨ",
+        "japanese": "私は主婦（主夫）です。",
+        "blank": "주부예요",
+        "blankWrong": [
+          "주부이에요"
+        ]
+      },
+      {
+        "korean": "저는 회사원이에요.",
+        "pronunciation": "チョヌン フェサウォニエヨ",
+        "japanese": "私は会社員です。",
+        "blank": "회사원이에요",
+        "blankWrong": [
+          "회사원예요"
+        ]
+      },
+      {
+        "korean": "저는 프리랜서예요.",
+        "pronunciation": "チョヌン プリレンソエヨ",
+        "japanese": "私はフリーランスです。",
+        "blank": "프리랜서예요",
+        "blankWrong": [
+          "프리랜서이에요"
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "type": "formation",
+        "parts": [
+          "학생",
+          "이에요"
+        ],
+        "result": "학생이에요",
+        "resultPronunciation": "ハクセンイエヨ",
+        "noteJa": "생 にパッチム ㅇ があるので 이에요"
+      },
+      {
+        "type": "formation",
+        "parts": [
+          "주부",
+          "예요"
+        ],
+        "result": "주부예요",
+        "resultPronunciation": "チュブエヨ",
+        "noteJa": "부 にパッチムがないので 예요"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章（つまずきリスト G14）。예요 は [에요] と発音する"
+  },
+  {
+    "id": "grammar_005",
+    "title": "은 / 는",
+    "level": 1,
+    "explanation": "「〜は」は、名詞の後ろに 은 か 는 を付けます。これも、名詞の最後にパッチムがあるかどうかで決まります。話すときは、저는 が縮んで 전 になることも多いですよ。",
+    "connectionJa": "名詞の最後にパッチムがあれば 은（선생님은）、なければ 는（저는）です。이에요 / 예요 と同じ考え方なので、セットで覚えましょう。",
+    "examples": [
+      {
+        "korean": "저는 일본 사람이에요.",
+        "pronunciation": "チョヌン イルボン サラミエヨ",
+        "japanese": "私は日本人です。",
+        "alternatives": [
+          "전 일본 사람이에요."
+        ],
+        "blank": "저는",
+        "blankWrong": [
+          "저은"
+        ]
+      },
+      {
+        "korean": "선생님은 한국 사람이에요.",
+        "pronunciation": "ソンセンニムン ハングク サラミエヨ",
+        "japanese": "先生は韓国人です。",
+        "blank": "선생님은",
+        "blankWrong": [
+          "선생님는"
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "type": "formation",
+        "parts": [
+          "저",
+          "는"
+        ],
+        "result": "저는",
+        "resultPronunciation": "チョヌン",
+        "noteJa": "저 にパッチムがないので 는"
+      },
+      {
+        "type": "formation",
+        "parts": [
+          "선생님",
+          "은"
+        ],
+        "result": "선생님은",
+        "resultPronunciation": "ソンセンニムン",
+        "noteJa": "님 にパッチム ㅁ があるので 은"
+      },
+      {
+        "type": "formation",
+        "parts": [
+          "저",
+          "는"
+        ],
+        "result": "전",
+        "resultPronunciation": "チョン",
+        "noteJa": "話し言葉では、저는 が縮んで 전 になる"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章（つまずきリスト G02・V04）"
+  },
+  {
+    "id": "grammar_006",
+    "title": "이름이 뭐예요?",
+    "level": 1,
+    "explanation": "名前を聞くときの決まった言い方です。日本語では「名前は何ですか」ですが、韓国語では「名前が何ですか」のように 이（〜が）を使います。뭐예요 は 무엇이에요 が縮んだ形で、「何ですか」の意味ですよ。",
+    "connectionJa": "「〇〇は何ですか？」と聞くときは、〇〇＋이/가＋뭐예요? です。書くときは 뭐에요 ではなく 뭐예요。ここはみんな一度は書き間違えるので、気をつけてくださいね。",
+    "examples": [
+      {
+        "korean": "이름이 뭐예요?",
+        "pronunciation": "イルミ ムォエヨ",
+        "japanese": "名前は何ですか？",
+        "alternatives": [
+          "이름 뭐예요?"
+        ],
+        "blank": "뭐예요",
+        "blankWrong": [
+          "뭐에요",
+          "뭐이에요"
+        ]
+      },
+      {
+        "korean": "이거 뭐예요?",
+        "pronunciation": "イゴ ムォエヨ",
+        "japanese": "これは何ですか？",
+        "blank": "뭐예요",
+        "blankWrong": [
+          "뭐에요"
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "type": "formation",
+        "parts": [
+          "무엇",
+          "이에요"
+        ],
+        "result": "뭐예요",
+        "resultPronunciation": "ムォエヨ",
+        "noteJa": "무엇이에요 が、話し言葉で縮んだ形"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章（つまずきリスト G01 の入り口・V05）。이거 뭐예요? の 이거 は第3章の単語（vocab_019）"
+  }
+]

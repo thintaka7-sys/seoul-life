@@ -1,0 +1,553 @@
+[
+  {
+    "id": "home_007",
+    "chapter": 2,
+    "location": "home",
+    "character": "friend",
+    "turns": [
+      {
+        "task": "「お会いできてうれしいです」と伝えよう",
+        "lines": [
+          {
+            "speaker": "friend",
+            "korean": "만나서 반가워요!",
+            "pronunciation": "マンナソ バンガウォヨ",
+            "japanese": "お会いできてうれしいです！",
+            "expression": "smile"
+          }
+        ],
+        "choices": [
+          {
+            "korean": "만나서 반갑습니다.",
+            "pronunciation": "マンナソ バンガプスムニダ",
+            "japanese": "お会いできてうれしいです。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "하하, 저도요!",
+                "pronunciation": "ハハ チョドヨ",
+                "japanese": "ははは、私もです！"
+              }
+            ]
+          },
+          {
+            "korean": "안녕히 계세요.",
+            "pronunciation": "アンニョンヒ ゲセヨ",
+            "japanese": "さようなら。（自分が帰るとき、残る人に）",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네? 벌써 가요?",
+                "pronunciation": "ネ ポルッソ ガヨ",
+                "japanese": "え？もう帰っちゃうんですか？",
+                "expression": "troubled"
+              }
+            ]
+          },
+          {
+            "korean": "괜찮아요.",
+            "pronunciation": "ケンチャナヨ",
+            "japanese": "大丈夫です。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네? 뭐가 괜찮아요?",
+                "pronunciation": "ネ ムォガ ケンチャナヨ",
+                "japanese": "え？何が大丈夫なんですか？",
+                "expression": "troubled"
+              }
+            ]
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "お会いできてうれしいです",
+          "answers": [
+            "만나서 반갑습니다",
+            "만나서 반가워요",
+            "반갑습니다",
+            "반가워요",
+            "저도 반가워요",
+            "저도 반갑습니다"
+          ]
+        }
+      },
+      {
+        "task": "「いいえ、私は日本人です」と答えよう",
+        "lines": [
+          {
+            "speaker": "friend",
+            "korean": "그런데 한국어 잘하네요! 한국 사람이에요?",
+            "pronunciation": "クロンデ ハングゴ ジャラネヨ ハングク サラミエヨ",
+            "japanese": "ところで、韓国語が上手ですね！韓国人ですか？",
+            "glosses": [
+              {
+                "text": "그런데",
+                "pronunciation": "クロンデ",
+                "japanese": "ところで"
+              },
+              {
+                "text": "잘하네요",
+                "pronunciation": "チャラネヨ",
+                "japanese": "上手ですね",
+                "noteJa": "잘하다（上手だ）＋네요（〜ですね）"
+              },
+              {
+                "text": "한국 사람이에요",
+                "vocab": "vocab_036",
+                "noteJa": "한국 사람（韓国人）＋이에요（〜です）"
+              }
+            ]
+          }
+        ],
+        "choices": [
+          {
+            "korean": "아니요, 저는 일본 사람이에요.",
+            "pronunciation": "アニヨ チョヌン イルボン サラミエヨ",
+            "japanese": "いいえ、私は日本人です。",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "아, 일본 사람이에요? 저 일본 애니메이션 정말 좋아해요!",
+                "pronunciation": "ア イルボン サラミエヨ チョ イルボン アニメイション ジョンマル ジョアヘヨ",
+                "japanese": "あ、日本人なんですね？私、日本のアニメが大好きなんです！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "일본 사람이에요",
+                    "vocab": "vocab_035",
+                    "noteJa": "일본 사람（日本人）＋이에요（〜です）"
+                  },
+                  {
+                    "text": "저",
+                    "vocab": "vocab_031"
+                  },
+                  {
+                    "text": "애니메이션",
+                    "pronunciation": "アニメイション",
+                    "japanese": "アニメ"
+                  },
+                  {
+                    "text": "정말",
+                    "pronunciation": "チョンマル",
+                    "japanese": "本当に"
+                  },
+                  {
+                    "text": "좋아해요",
+                    "pronunciation": "チョアヘヨ",
+                    "japanese": "好きです",
+                    "noteJa": "좋아하다（好きだ）の 해요 の形"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "네, 저는 일본 사람이에요.",
+            "pronunciation": "ネ チョヌン イルボン サラミエヨ",
+            "japanese": "はい、私は日本人です。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네…? 한국 사람이에요? 일본 사람이에요?",
+                "pronunciation": "ネ ハングク サラミエヨ イルボン サラミエヨ",
+                "japanese": "え…？韓国人ですか？日本人ですか？",
+                "expression": "troubled"
+              }
+            ]
+          },
+          {
+            "korean": "아니요, 저는 한국 사람이에요.",
+            "pronunciation": "アニヨ チョヌン ハングク サラミエヨ",
+            "japanese": "いいえ、私は韓国人です。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네? 그럼… 한국 사람이에요?",
+                "pronunciation": "ネ クロム ハングク サラミエヨ",
+                "japanese": "え？じゃあ…韓国人なんですか？",
+                "expression": "troubled"
+              }
+            ]
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "いいえ、私は日本人です",
+          "answers": [
+            "아니요, 저는 일본 사람이에요",
+            "아니요, 일본 사람이에요",
+            "아뇨, 저는 일본 사람이에요",
+            "아뇨, 일본 사람이에요",
+            "아니요, 전 일본 사람이에요",
+            "아니요, 저는 일본 사람입니다"
+          ]
+        }
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章。問題の往復2つ（GAME_SPEC 4-4）"
+  },
+  {
+    "id": "home_008",
+    "chapter": 2,
+    "location": "home",
+    "character": "friend",
+    "turns": [
+      {
+        "kind": "decision",
+        "task": "自分の仕事を答えよう",
+        "lines": [
+          {
+            "speaker": "friend",
+            "korean": "저는 회사원이에요. 무슨 일 하세요?",
+            "pronunciation": "チョヌン フェサウォニエヨ ムスン ニル ハセヨ",
+            "japanese": "私は会社員です。お仕事は何をされているんですか？",
+            "glosses": [
+              {
+                "text": "저는",
+                "vocab": "vocab_031",
+                "noteJa": "저（私）＋는（〜は）"
+              },
+              {
+                "text": "회사원이에요",
+                "vocab": "vocab_037",
+                "noteJa": "회사원（会社員）＋이에요（〜です）"
+              },
+              {
+                "text": "무슨 일",
+                "pronunciation": "ムスン ニル",
+                "japanese": "どんな仕事",
+                "noteJa": "무슨（どんな）＋일（仕事）。続けて言うと ㄴ の音が入り、ムスン ニル と聞こえる"
+              },
+              {
+                "text": "하세요",
+                "pronunciation": "ハセヨ",
+                "japanese": "なさいますか",
+                "noteJa": "하다（する）＋세요（相手を敬う、ていねいな形）"
+              }
+            ]
+          }
+        ],
+        "choices": [
+          {
+            "korean": "저는 회사원이에요.",
+            "pronunciation": "チョヌン フェサウォニエヨ",
+            "japanese": "私は会社員です。",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "와, 저랑 같네요!",
+                "pronunciation": "ワ チョラン ガンネヨ",
+                "japanese": "わあ、私と同じですね！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "저랑",
+                    "pronunciation": "チョラン",
+                    "japanese": "私と",
+                    "noteJa": "저（私）＋랑（〜と）"
+                  },
+                  {
+                    "text": "같네요",
+                    "pronunciation": "カンネヨ",
+                    "japanese": "同じですね",
+                    "noteJa": "같다（同じだ）＋네요"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "저는 학생이에요.",
+            "pronunciation": "チョヌン ハクセンイエヨ",
+            "japanese": "私は学生です。",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "오, 학생이에요? 공부 화이팅!",
+                "pronunciation": "オ ハクセンイエヨ コンブ ファイティン",
+                "japanese": "おお、学生さんなんですね？勉強、がんばって！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "학생이에요",
+                    "vocab": "vocab_038",
+                    "noteJa": "학생（学生）＋이에요"
+                  },
+                  {
+                    "text": "공부",
+                    "pronunciation": "コンブ",
+                    "japanese": "勉強"
+                  },
+                  {
+                    "text": "화이팅",
+                    "pronunciation": "ファイティン",
+                    "japanese": "がんばれ・ファイト"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "저는 주부예요.",
+            "pronunciation": "チョヌン ジュブエヨ",
+            "japanese": "私は主婦（主夫）です。",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "아, 그렇군요! 집안일 힘들죠?",
+                "pronunciation": "ア クロクンニョ チバンニル ヒムドゥルジョ",
+                "japanese": "あ、そうなんですね！家事って大変ですよね？",
+                "glosses": [
+                  {
+                    "text": "그렇군요",
+                    "pronunciation": "クロクンニョ",
+                    "japanese": "そうなんですね"
+                  },
+                  {
+                    "text": "집안일",
+                    "pronunciation": "チバンニル",
+                    "japanese": "家事"
+                  },
+                  {
+                    "text": "힘들죠",
+                    "pronunciation": "ヒムドゥルジョ",
+                    "japanese": "大変ですよね",
+                    "noteJa": "힘들다（大変だ）＋죠（〜でしょう）"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "저는 프리랜서예요.",
+            "pronunciation": "チョヌン プリレンソエヨ",
+            "japanese": "私はフリーランスです。",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "오, 멋있어요!",
+                "pronunciation": "オ モシッソヨ",
+                "japanese": "おお、かっこいいですね！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "멋있어요",
+                    "pronunciation": "モシッソヨ",
+                    "japanese": "かっこいいです",
+                    "noteJa": "멋있다（かっこいい）＋어요"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "task": "犬の名前を聞こう",
+        "lines": [
+          {
+            "speaker": "friend",
+            "korean": "아, 이거 보세요! 우리 강아지예요.",
+            "pronunciation": "ア イゴ ボセヨ ウリ ガンアジエヨ",
+            "japanese": "あ、これ見てください！うちの犬です。",
+            "expression": "smile",
+            "glosses": [
+              {
+                "text": "보세요",
+                "pronunciation": "ポセヨ",
+                "japanese": "見てください",
+                "noteJa": "보다（見る）＋세요"
+              },
+              {
+                "text": "우리",
+                "pronunciation": "ウリ",
+                "japanese": "うちの・私たちの"
+              },
+              {
+                "text": "강아지예요",
+                "pronunciation": "カンアジエヨ",
+                "japanese": "犬です",
+                "noteJa": "강아지（子犬・犬）＋예요（〜です）"
+              }
+            ]
+          }
+        ],
+        "choices": [
+          {
+            "korean": "이름이 뭐예요?",
+            "pronunciation": "イルミ ムォエヨ",
+            "japanese": "名前は何ですか？",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "콩이에요! 귀엽죠?",
+                "pronunciation": "コンイエヨ クィヨプチョ",
+                "japanese": "コンです！かわいいでしょう？",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "콩이에요",
+                    "pronunciation": "コンイエヨ",
+                    "japanese": "コンです",
+                    "noteJa": "콩（犬の名前。「豆」の意味）＋이에요"
+                  },
+                  {
+                    "text": "귀엽죠",
+                    "pronunciation": "クィヨプチョ",
+                    "japanese": "かわいいでしょう",
+                    "noteJa": "귀엽다（かわいい）＋죠"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "이거 뭐예요?",
+            "pronunciation": "イゴ ムォエヨ",
+            "japanese": "これは何ですか？",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네? 강아지예요…",
+                "pronunciation": "ネ カンアジエヨ",
+                "japanese": "え？犬ですけど…",
+                "expression": "troubled"
+              }
+            ]
+          },
+          {
+            "korean": "일본 사람이에요?",
+            "pronunciation": "イルボン サラミエヨ",
+            "japanese": "日本人ですか？",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네? 강아지가요? 하하.",
+                "pronunciation": "ネ カンアジガヨ ハハ",
+                "japanese": "え？犬がですか？ははは。",
+                "expression": "troubled"
+              }
+            ]
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "名前は何ですか？",
+          "answers": [
+            "이름이 뭐예요?",
+            "이름 뭐예요?"
+          ]
+        }
+      },
+      {
+        "task": "帰っていくハナさんにあいさつしよう",
+        "lines": [
+          {
+            "speaker": "friend",
+            "korean": "아, 저 이제 가야 돼요. 다음에 같이 커피 마셔요!",
+            "pronunciation": "ア チョ イジェ ガヤ ドェヨ タウメ カチ コピ マショヨ",
+            "japanese": "あ、私そろそろ行かなきゃ。今度、一緒にコーヒー飲みましょう！",
+            "glosses": [
+              {
+                "text": "저",
+                "vocab": "vocab_031"
+              },
+              {
+                "text": "이제",
+                "pronunciation": "イジェ",
+                "japanese": "もう・そろそろ"
+              },
+              {
+                "text": "가야 돼요",
+                "pronunciation": "カヤ ドェヨ",
+                "japanese": "行かなければなりません",
+                "noteJa": "가다（行く）＋야 돼요（〜しなければならない）"
+              },
+              {
+                "text": "다음에",
+                "pronunciation": "タウメ",
+                "japanese": "今度・次に",
+                "noteJa": "다음（次）＋에"
+              },
+              {
+                "text": "같이",
+                "pronunciation": "カチ",
+                "japanese": "一緒に"
+              },
+              {
+                "text": "마셔요",
+                "pronunciation": "マショヨ",
+                "japanese": "飲みましょう",
+                "noteJa": "마시다（飲む）＋어요"
+              }
+            ]
+          }
+        ],
+        "choices": [
+          {
+            "korean": "안녕히 가세요.",
+            "pronunciation": "アンニョンヒ ガセヨ",
+            "japanese": "さようなら。（立ち去る人に）",
+            "correct": true,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네, 또 봐요!",
+                "pronunciation": "ネ ット ボァヨ",
+                "japanese": "はい、またね！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "안녕히 계세요.",
+            "pronunciation": "アンニョンヒ ゲセヨ",
+            "japanese": "さようなら。（自分が帰るとき、残る人に）",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "네? 가는 사람은 저인데요…",
+                "pronunciation": "ネ カヌン サラムン チョインデヨ",
+                "japanese": "え？帰るのは私のほうですけど…",
+                "expression": "troubled"
+              }
+            ]
+          },
+          {
+            "korean": "만나서 반갑습니다.",
+            "pronunciation": "マンナソ パンガプスムニダ",
+            "japanese": "お会いできてうれしいです。",
+            "correct": false,
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "하하, 아까 말했잖아요!",
+                "pronunciation": "ハハ アッカ マレッチャナヨ",
+                "japanese": "ははは、さっき言いましたよ！",
+                "expression": "troubled"
+              }
+            ]
+          }
+        ],
+        "freeAnswer": {
+          "prompt": "さようなら（立ち去る人に）",
+          "answers": [
+            "안녕히 가세요",
+            "조심히 가세요"
+          ]
+        }
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章。職業は選択の往復（GAME_SPEC 2-2）。最後の往復で第1章の 가세요・계세요 を復習。Gemini の指摘のうち「カタカナにハングルが残っている」はデータに無く対応不要（確認用の文の表示の問題）。最後の往復の別解「잘 가요」は、初対面の相手には不自然との指摘で 조심히 가세요 に替えた"
+  }
+]

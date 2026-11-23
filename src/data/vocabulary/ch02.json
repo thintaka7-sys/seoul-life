@@ -1,0 +1,325 @@
+[
+  {
+    "id": "vocab_031",
+    "korean": "저",
+    "pronunciation": "チョ",
+    "japanese": "私（ていねいな言い方）",
+    "partOfSpeech": "pronoun",
+    "genre": "people",
+    "level": 1,
+    "example": "저도 반가워요.",
+    "examplePronunciation": "チョド パンガウォヨ",
+    "exampleJapanese": "私も、会えてうれしいです。",
+    "forms": [
+      {
+        "kind": "contraction",
+        "korean": "전",
+        "pronunciation": "チョン",
+        "parts": [
+          "저",
+          "는"
+        ],
+        "wrong": [
+          "저은"
+        ],
+        "noteJa": "저는（私は）が、話し言葉で縮んだ形"
+      }
+    ],
+    "reviewed": true,
+    "notes": "第2章。目上の人や初対面の人に使う「私」。話し言葉では 저는 が縮んで 전 になる（つまずきリスト V04・V05）"
+  },
+  {
+    "id": "vocab_032",
+    "korean": "이름",
+    "pronunciation": "イルム",
+    "japanese": "名前",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "이름이 뭐예요?",
+    "examplePronunciation": "イルミ ムォエヨ",
+    "exampleJapanese": "名前は何ですか？",
+    "reviewed": true,
+    "notes": "第2章"
+  },
+  {
+    "id": "vocab_033",
+    "korean": "사람",
+    "pronunciation": "サラム",
+    "japanese": "人",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "좋은 사람이에요.",
+    "examplePronunciation": "チョウン サラミエヨ",
+    "exampleJapanese": "いい人です。",
+    "reviewed": true,
+    "notes": "第2章"
+  },
+  {
+    "id": "vocab_034",
+    "korean": "일본",
+    "pronunciation": "イルボン",
+    "japanese": "日本",
+    "partOfSpeech": "noun",
+    "genre": "place",
+    "level": 1,
+    "example": "일본에서 왔어요.",
+    "examplePronunciation": "イルボネソ ワッソヨ",
+    "exampleJapanese": "日本から来ました。",
+    "reviewed": true,
+    "notes": "第2章"
+  },
+  {
+    "id": "vocab_035",
+    "korean": "일본 사람",
+    "pronunciation": "イルボン サラム",
+    "japanese": "日本人",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "저는 일본 사람이에요.",
+    "examplePronunciation": "チョヌン イルボン サラミエヨ",
+    "exampleJapanese": "私は日本人です。",
+    "reviewed": true,
+    "notes": "第2章。「国の名前＋사람」で「〜人」"
+  },
+  {
+    "id": "vocab_036",
+    "korean": "한국 사람",
+    "pronunciation": "ハングク サラム",
+    "japanese": "韓国人",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "하나 씨는 한국 사람이에요.",
+    "examplePronunciation": "ハナ ッシヌン ハングク サラミエヨ",
+    "exampleJapanese": "ハナさんは韓国人です。",
+    "reviewed": true,
+    "notes": "第2章。한국 の ㄱ の後の 사 は濃音（ッサ）で発音するが、ク の後なので「ッ」は付けない（表記ルール）"
+  },
+  {
+    "id": "vocab_037",
+    "korean": "회사원",
+    "pronunciation": "フェサウォン",
+    "japanese": "会社員",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "저는 회사원이에요.",
+    "examplePronunciation": "チョヌン フェサウォニエヨ",
+    "exampleJapanese": "私は会社員です。",
+    "reviewed": true,
+    "notes": "第2章。職業の選択肢（GAME_SPEC 2-2）"
+  },
+  {
+    "id": "vocab_038",
+    "korean": "학생",
+    "pronunciation": "ハクセン",
+    "japanese": "学生",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "저는 학생이에요.",
+    "examplePronunciation": "チョヌン ハクセンイエヨ",
+    "exampleJapanese": "私は学生です。",
+    "reviewed": true,
+    "notes": "第2章。職業の選択肢"
+  },
+  {
+    "id": "vocab_039",
+    "korean": "주부",
+    "pronunciation": "チュブ",
+    "japanese": "主婦・主夫",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "저는 주부예요.",
+    "examplePronunciation": "チョヌン ジュブエヨ",
+    "exampleJapanese": "私は主婦（主夫）です。",
+    "reviewed": true,
+    "notes": "第2章。職業の選択肢。男女どちらにも使える"
+  },
+  {
+    "id": "vocab_040",
+    "korean": "프리랜서",
+    "pronunciation": "プリレンソ",
+    "japanese": "フリーランス",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "저는 프리랜서예요.",
+    "examplePronunciation": "チョヌン プリレンソエヨ",
+    "exampleJapanese": "私はフリーランスです。",
+    "reviewed": true,
+    "notes": "第2章。職業の選択肢。外来語（英語の freelancer）"
+  },
+  {
+    "id": "vocab_041",
+    "korean": "뭐",
+    "pronunciation": "ムォ",
+    "japanese": "何",
+    "partOfSpeech": "pronoun",
+    "genre": "daily_life",
+    "level": 1,
+    "example": "이거 뭐예요?",
+    "examplePronunciation": "イゴ ムォエヨ",
+    "exampleJapanese": "これは何ですか？",
+    "base": {
+      "korean": "무엇",
+      "pronunciation": "ムオッ",
+      "japanese": "何（書き言葉・かたい言い方）"
+    },
+    "forms": [
+      {
+        "kind": "contraction",
+        "korean": "뭐예요",
+        "pronunciation": "ムォエヨ",
+        "parts": [
+          "무엇",
+          "이에요"
+        ],
+        "wrong": [
+          "뭐에요",
+          "뭐이에요"
+        ],
+        "noteJa": "무엇이에요 が、話し言葉で縮んだ形。書くときは 뭐에요 ではなく 뭐예요"
+      }
+    ],
+    "reviewed": true,
+    "notes": "第2章。무엇 の話し言葉の形"
+  },
+  {
+    "id": "vocab_042",
+    "korean": "만나서 반갑습니다",
+    "pronunciation": "マンナソ パンガプスムニダ",
+    "japanese": "お会いできてうれしいです",
+    "partOfSpeech": "greeting",
+    "genre": "greeting",
+    "level": 1,
+    "example": "네, 만나서 반갑습니다.",
+    "examplePronunciation": "ネ マンナソ バンガプスムニダ",
+    "exampleJapanese": "はい、お会いできてうれしいです。",
+    "reviewed": true,
+    "notes": "第2章。初対面のていねいなあいさつ"
+  },
+  {
+    "id": "vocab_043",
+    "korean": "반가워요",
+    "pronunciation": "パンガウォヨ",
+    "japanese": "（会えて）うれしいです",
+    "partOfSpeech": "greeting",
+    "genre": "greeting",
+    "level": 1,
+    "example": "저도 반가워요.",
+    "examplePronunciation": "チョド パンガウォヨ",
+    "exampleJapanese": "私も、会えてうれしいです。",
+    "base": {
+      "korean": "반갑다",
+      "pronunciation": "パンガプタ",
+      "japanese": "（会えて）うれしい"
+    },
+    "forms": [
+      {
+        "kind": "present",
+        "korean": "반가워요",
+        "pronunciation": "パンガウォヨ",
+        "parts": [
+          "반갑",
+          "어요"
+        ],
+        "wrong": [
+          "반갑어요",
+          "반갑아요"
+        ],
+        "noteJa": "ㅂ が 우 に変わって、우＋어요 が 워요 になる"
+      }
+    ],
+    "reviewed": true,
+    "notes": "第2章。반갑습니다 より少しやわらかい言い方。반갑다 の ㅂ が 우 に変わる形（ㅂ変則）"
+  },
+  {
+    "id": "vocab_044",
+    "korean": "여기",
+    "pronunciation": "ヨギ",
+    "japanese": "ここ",
+    "partOfSpeech": "pronoun",
+    "genre": "place",
+    "level": 1,
+    "example": "여기가 우리 집이에요.",
+    "examplePronunciation": "ヨギガ ウリ ジビエヨ",
+    "exampleJapanese": "ここが私の家です。",
+    "reviewed": true,
+    "notes": "第2章（第1章のおはなしにも出る）"
+  },
+  {
+    "id": "vocab_045",
+    "korean": "오늘",
+    "pronunciation": "オヌル",
+    "japanese": "今日",
+    "partOfSpeech": "noun",
+    "genre": "time",
+    "level": 1,
+    "example": "오늘은 월요일이에요.",
+    "examplePronunciation": "オヌルン ウォリョイリエヨ",
+    "exampleJapanese": "今日は月曜日です。",
+    "reviewed": true,
+    "notes": "第2章（第1章のおはなしにも出る）"
+  },
+  {
+    "id": "vocab_046",
+    "korean": "처음",
+    "pronunciation": "チョウム",
+    "japanese": "初めて",
+    "partOfSpeech": "noun",
+    "genre": "daily_life",
+    "level": 1,
+    "example": "한국어는 처음이에요.",
+    "examplePronunciation": "ハングゴヌン チョウミエヨ",
+    "exampleJapanese": "韓国語は初めてです。",
+    "reviewed": true,
+    "notes": "第2章（第1章のおはなし・会話 home_005 にも出る）"
+  },
+  {
+    "id": "vocab_047",
+    "korean": "한국어",
+    "pronunciation": "ハングゴ",
+    "japanese": "韓国語",
+    "partOfSpeech": "noun",
+    "genre": "daily_life",
+    "level": 1,
+    "example": "한국어 공부해요.",
+    "examplePronunciation": "ハングゴ ゴンブヘヨ",
+    "exampleJapanese": "韓国語を勉強しています。",
+    "reviewed": true,
+    "notes": "第2章（第1章のおはなしにも出る）。한국（韓国）＋어（語）"
+  },
+  {
+    "id": "vocab_048",
+    "korean": "한글",
+    "pronunciation": "ハングル",
+    "japanese": "ハングル（韓国語の文字）",
+    "partOfSpeech": "noun",
+    "genre": "daily_life",
+    "level": 1,
+    "example": "한글을 읽어요.",
+    "examplePronunciation": "ハングルル イルゴヨ",
+    "exampleJapanese": "ハングルを読みます。",
+    "reviewed": true,
+    "notes": "第2章（第1章のおはなしにも出る）。한국어 は言葉、한글 は文字"
+  },
+  {
+    "id": "vocab_049",
+    "korean": "친구",
+    "pronunciation": "チング",
+    "japanese": "友だち",
+    "partOfSpeech": "noun",
+    "genre": "people",
+    "level": 1,
+    "example": "하나 씨는 제 친구예요.",
+    "examplePronunciation": "ハナ ッシヌン チェ チングエヨ",
+    "exampleJapanese": "ハナさんは私の友だちです。",
+    "reviewed": true,
+    "notes": "第2章"
+  }
+]

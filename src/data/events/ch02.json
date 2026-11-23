@@ -15,26 +15,69 @@
       },
       {
         "type": "story",
-        "id": "story_905"
+        "id": "story_005"
+      },
+      {
+        "type": "message",
+        "textJa": "自己紹介の言葉を覚えましょう。「〜です」と「〜は」の形も一緒に覚えます。"
       },
       {
         "type": "learn",
         "vocabulary": [
-          "vocab_901",
-          "vocab_902"
+          "vocab_031",
+          "vocab_032",
+          "vocab_033",
+          "vocab_034",
+          "vocab_035",
+          "vocab_036",
+          "vocab_042",
+          "vocab_043"
         ],
-        "grammar": []
+        "grammar": [
+          "grammar_004",
+          "grammar_005"
+        ]
       },
       {
-        "type": "reading",
-        "id": "reading_902"
+        "type": "conversation",
+        "id": "home_007"
       },
       {
         "type": "message",
-        "textJa": "近所の友人ができました。"
+        "textJa": "ハナさんが、仕事のことを聞いてきそうです。仕事の言葉と、「何ですか？」の聞き方を覚えましょう。"
+      },
+      {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_037",
+          "vocab_038",
+          "vocab_039",
+          "vocab_040",
+          "vocab_041",
+          "vocab_049"
+        ],
+        "grammar": [
+          "grammar_006"
+        ]
+      },
+      {
+        "type": "conversation",
+        "id": "home_008"
+      },
+      {
+        "type": "background",
+        "id": "home"
+      },
+      {
+        "type": "column",
+        "id": "column_003"
+      },
+      {
+        "type": "message",
+        "textJa": "近所に友だちができました。今夜の授業で、先生に話してみましょう。"
       }
     ],
-    "notes": "仮のおはなし（story_905）・仮の単語（vocab_901・902。形が変わる言葉）・仮の読み物（reading_902）。自己紹介・質問の会話とコラムは、第2章の教材が届いたら入れる"
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章の最初。Claude Code の仮（story_905）と差し替え／開発側で変更（2026-11-24、開発者の指示）：どこでも覚えられなかった vocab_049 친구 を、2つ目の learn の最後に追加（story_006 の選択肢に出るため）"
   },
   {
     "id": "event_008",
@@ -44,17 +87,17 @@
       "event_007"
     ],
     "objectiveJa": "先生と第2章をふり返ろう",
-    "actionJa": "先生に報告する",
+    "actionJa": "ノートパソコンを開く",
     "steps": [
       {
         "type": "story",
-        "id": "story_906"
+        "id": "story_006"
       },
       {
         "type": "chapterEnd",
-        "textJa": "近所に友だちができました。"
+        "textJa": "第2章「自己紹介」、クリアです！名前・出身・仕事を言って、自己紹介ができるようになりました。"
       }
     ],
-    "notes": "仮のおはなし（story_906）"
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。第2章の終わり。Claude Code の仮（story_906）と差し替え"
   }
 ]

@@ -37,6 +37,8 @@ function eventById(id: string): GameEvent {
 }
 
 const ALL_EVENTS = content.events.map((e) => e.id)
+/** イベントの単語カードで覚える単語（おはなしのタップだけで覚える単語は入らない） */
+const LEARN_VOCAB = [...new Set(content.events.flatMap((e) => e.steps.flatMap((st) => (st.type === 'learn' ? st.vocabulary : []))))]
 
 /** eventId のイベントの直前の状態：それより前のイベント（ファイルの順）を終え、そのイベントの施設にいる */
 function stateBefore(eventId: string): GameState {
@@ -116,13 +118,13 @@ describe('第1章〜第3章を通して遊ぶ', () => {
     // 見たおはなしがアルバムに入る
     const stories = content.events.flatMap((e) => e.steps.flatMap((st) => (st.type === 'story' ? [st.id] : [])))
     expect(Object.keys(s.save?.progress.storiesSeen ?? {}).sort()).toEqual([...stories].sort())
-    // すべての単語・文法が図鑑に入っている
-    expect(Object.keys(s.save?.learning.words ?? {}).sort()).toEqual(content.vocabulary.map((v) => v.id).sort())
+    // 単語カードで覚える単語と、すべての文法が図鑑に入っている
+    expect(Object.keys(s.save?.learning.words ?? {}).sort()).toEqual([...LEARN_VOCAB].sort())
     expect(Object.keys(s.save?.learning.grammar ?? {}).sort()).toEqual(content.grammar.map((g) => g.id).sort())
     // 経験値：単語 × learnWord ＋ 会話の往復（選ぶ）× conversationChoice ＋ イベント × eventComplete
     const { xp } = content.balance
     const answeredTurns = content.conversations.reduce((n, c) => n + c.turns.filter((t) => t.choices !== undefined && t.kind !== 'decision').length, 0)
-    expect(s.save?.stats.xp).toBe(content.vocabulary.length * xp.learnWord + answeredTurns * xp.conversationChoice + ALL_EVENTS.length * xp.eventComplete)
+    expect(s.save?.stats.xp).toBe(LEARN_VOCAB.length * xp.learnWord + answeredTurns * xp.conversationChoice + ALL_EVENTS.length * xp.eventComplete)
   })
 
   it('カフェは、開くイベント（unlocks）を終えるまで行けない。開いたら知らせる', () => {

@@ -20,11 +20,13 @@ const readDir = (d) =>
     .sort()
     .flatMap((f) => readJson(`${d}/${f}`))
 const convs = new Map(readDir('scenarios').map((c) => [c.id, c]))
-const vocabCount = readDir('vocabulary').length
+// 単語カード（learn）で覚える単語。おはなしのタップだけで覚えられる単語（CONTENT_FORMAT 21-2）は、図鑑の「学んだ単語」と経験値に入らない
+const vocabTotal = readDir('vocabulary').length
 const events = readDir('events')
 const readings = new Map(readDir('readings').map((r) => [r.id, r]))
 const grammarById = new Map(readDir('grammar').map((g) => [g.id, g]))
 const listeningSentences = readDir('listening')
+const vocabCount = new Set(events.flatMap((e) => e.steps.flatMap((st) => (st.type === 'learn' ? st.vocabulary : [])))).size
 
 const backdrop = () => evaluate(`document.querySelector('.backdrop__sharp')?.getAttribute('src') ?? ''`)
 const expression = () => evaluate(`document.querySelector('.conversation .portrait')?.dataset.expression ?? ''`)
@@ -295,26 +297,49 @@ for (const [W, H, mobile] of [
   await click('次へ')
   await advanceEvent(atLocation('自宅'), '第1章の後')
 
-  // ---------- 第2章（仮のおはなし） ----------
+  // ---------- 第2章：自己紹介（event_007・event_008） ----------
   await click('外に出る（マップへ）')
   check(`${P} 第2章の間は、カフェにまだ行けない`, await evaluate(`[...document.querySelectorAll('main button')].find(b => b.textContent.includes('カフェ'))?.disabled === true`))
   await click('自宅目標')
   await click('外に出てみる')
   await advanceEvent(`!!document.querySelector('.story')`, '第2章のおはなし')
-  check(`${P} 仮のおはなしには「仮データ」の印`, await evaluate(`!!document.querySelector('.story .draft-badge')`))
+  check(`${P} 第2章のおはなし（教材）には「仮データ」の印を出さない`, !(await evaluate(`!!document.querySelector('.story .draft-badge')`)))
   check(`${P} 家の前の道の背景`, (await backdrop()).includes('bg/street'), await backdrop())
   await advanceEvent(`!!document.querySelector('.learn-card')`, '第2章の単語カード')
-  check(`${P} 形が変わる言葉の単語カード：部品 → くっついた形の図`, await evaluate(`!!document.querySelector('.learn-card .vocab-forms .formation__result')`))
-  if (W === 375) await shot('375-04b-forms')
-  await layoutCheck(`${P} 形が変わる言葉の単語カード`)
-  await advanceEvent(`!!document.querySelector('.reading-step')`, '第2章の読み物')
-  if (W === 375) await shot('375-04c-reading')
-  await layoutCheck(`${P} 読み物（メモ）`)
-  readingCorrect += await answerReading('reading_902', P)
-  await advanceEvent(atLocation('自宅'), '第2章のはじめの後')
-  await click('先生に報告する')
+  /** 単語・文法カードをめくりながら、形が変わる言葉の図・文法の図があるかを見る */
+  async function flipCards(label) {
+    const total = Number((await stepHeading()).match(/\/ (\d+)/)?.[1] ?? 0)
+    let forms = 0
+    let grammarFigures = 0
+    for (let i = 0; i < total; i++) {
+      if (await evaluate(`!!document.querySelector('.learn-card .vocab-forms .formation__result')`)) {
+        if (forms === 0 && W === 375) await shot(`375-04b-forms-${label}`)
+        if (forms === 0) await layoutCheck(`${P} 形が変わる言葉の単語カード（${label}）`)
+        forms++
+      }
+      if (await evaluate(`!!document.querySelector('.learn-card .teacher-says .figure')`)) grammarFigures++
+      await click(i === total - 1 ? '覚えた！' : '次へ')
+    }
+    return { total, forms, grammarFigures }
+  }
+  const cards1 = await flipCards('自己紹介')
+  check(`${P} 第2章の1つ目の単語カード（単語8・文法2）に、形が変わる言葉の図がある`, cards1.total === 10 && cards1.forms > 0, JSON.stringify(cards1))
+  await playConversation('home_007', { 1: { wrong: '네, 저는 일본 사람이에요.' } })
+  await advanceEvent(`!!document.querySelector('.learn-card')`, '第2章の2つ目の単語カード')
+  const cards2 = await flipCards('仕事')
+  check(`${P} 第2章の2つ目の単語カード（単語6・文法1）に、文法の図（이름이 뭐예요?）がある`, cards2.total === 7 && cards2.grammarFigures > 0, JSON.stringify(cards2))
+  await playConversation('home_008', {
+    0: { before: async () => check(`${P} home_008：仕事は選ぶだけ（選択の往復）`, (await mainText()).includes('どうしますか')), choice: '저는 학생이에요.' },
+  })
+  await sleep(200)
+  check(`${P} 第2章のコラム「年齢と呼び方」（部屋の背景）`, (await mainText()).includes('年齢と呼び方') && (await backdrop()).includes('bg/home'), (await mainText()).slice(0, 200))
+  await layoutCheck(`${P} 第2章のコラム`)
+  await advanceEvent(atLocation('自宅'), '第2章の自己紹介の後')
+  check(`${P} event_007 完了`, (await saved()).progress.completedEvents.includes('event_007'))
+  await click('ノートパソコンを開く')
   await advanceEvent(`!!document.querySelector('.chapter-end')`, '第2章の終わり')
-  check(`${P} 第2章の終わりの画面`, (await mainText()).includes('第2章 クリア'))
+  const end2 = await mainText()
+  check(`${P} 第2章の終わりの画面と、章末テストの案内`, end2.includes('第2章 クリア') && end2.includes('第2章のテスト'), end2.slice(0, 300))
   await click('次へ')
   await advanceEvent(atLocation('自宅'), '第2章の後')
 
@@ -343,7 +368,7 @@ for (const [W, H, mobile] of [
   check(`${P} 文法カードの説明を、先生が話す形で出す`, await evaluate(`!!document.querySelector('.learn-card .teacher-says')`))
   {
     // 最後のカードは、そのイベントで習う最後の文法。教材の図（部品 → くっついた形）を、先生の説明の中に出す
-    const learnStep = events.flatMap((e) => e.steps).find((s) => s.type === 'learn' && (s.grammar ?? []).length === 2)
+    const learnStep = events.filter((e) => e.location === 'cafe').flatMap((e) => e.steps).find((s) => s.type === 'learn' && (s.grammar ?? []).length === 2)
     const lastGrammar = grammarById.get(learnStep.grammar.at(-1))
     const want = (lastGrammar.figures ?? []).length
     const got = await evaluate(`document.querySelectorAll('.learn-card .teacher-says .figure').length`)
@@ -389,11 +414,11 @@ for (const [W, H, mobile] of [
   await click('図鑑を開く')
   await click('次へ')
   await nextCards(2)
-  check(`${P} 図鑑：${vocabCount}語すべて`, (await mainText()).includes(`${vocabCount} / ${vocabCount}`), (await mainText()).slice(0, 200))
+  check(`${P} 図鑑：単語カードで覚えた${vocabCount}語（全${vocabTotal}語）`, (await mainText()).includes(`${vocabCount} / ${vocabTotal}`), (await mainText()).slice(0, 200))
   await click('閉じる')
   await sleep(1600)
-  // 教材に合わせた部分：答えた問題の往復の数（home_005:1, home_006:2, cafe_008:1, cafe_009:2, cafe_010:2）と、書いて答えた数（2）
-  const turnsCorrect = 1 + 2 + 1 + 2 + 2
+  // 教材に合わせた部分：答えた問題の往復の数（home_005:1, home_006:2, home_007:2, home_008:2, cafe_008:1, cafe_009:2, cafe_010:2）と、書いて答えた数（2）
+  const turnsCorrect = 1 + 2 + 2 + 2 + 1 + 2 + 2
   const written = 2
   check(`${P} 1日の終わり：単語${vocabCount}語・会話の正解${turnsCorrect}回`, (await mainText()).includes(`${vocabCount} 語`) && (await mainText()).includes(`${turnsCorrect} 回`), (await mainText()).slice(0, 300))
   await click('閉じる')

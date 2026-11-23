@@ -1,0 +1,379 @@
+[
+  {
+    "id": "story_005",
+    "chapter": 2,
+    "titleJa": "家の前で",
+    "bgm": "home",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "street"
+      },
+      {
+        "type": "narration",
+        "textJa": "韓国に来て、数日がたった。今日は近所を歩いてみようと、家の外に出た。"
+      },
+      {
+        "type": "narration",
+        "textJa": "マンションの入口で、買い物袋を提げた人と目が合った。"
+      },
+      {
+        "type": "scene",
+        "character": "friend"
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "안녕하세요! 여기 살아요?",
+        "pronunciation": "アンニョンハセヨ ヨギ サラヨ",
+        "japanese": "こんにちは！ここに住んでいるんですか？",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "살아요",
+            "pronunciation": "サラヨ",
+            "japanese": "住んでいます（か）",
+            "noteJa": "살다（住む）＋아요"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう答える？",
+        "choices": [
+          {
+            "korean": "네, 여기 살아요.",
+            "pronunciation": "ネ ヨギ サラヨ",
+            "japanese": "はい、ここに住んでいます。",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "와, 그래요? 저는 옆 건물에 살아요!",
+                "pronunciation": "ワ クレヨ チョヌン ヨプ コンムレ サラヨ",
+                "japanese": "わあ、そうなんですか？私は隣の建物に住んでいます！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "저는",
+                    "vocab": "vocab_031",
+                    "noteJa": "저（私）＋는（〜は）"
+                  },
+                  {
+                    "text": "옆",
+                    "pronunciation": "ヨプ",
+                    "japanese": "隣"
+                  },
+                  {
+                    "text": "건물에",
+                    "pronunciation": "コンムレ",
+                    "japanese": "建物に",
+                    "noteJa": "건물（建物）＋에（〜に）"
+                  },
+                  {
+                    "text": "살아요",
+                    "pronunciation": "サラヨ",
+                    "japanese": "住んでいます",
+                    "noteJa": "살다（住む）＋아요"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "korean": "네, 이사 왔어요.",
+            "pronunciation": "ネ イサ ワッソヨ",
+            "japanese": "はい、引っ越してきました。",
+            "reply": [
+              {
+                "speaker": "friend",
+                "korean": "아, 이사 왔어요? 저는 옆 건물에 살아요!",
+                "pronunciation": "ア イサ ワッソヨ チョヌン ヨプ コンムレ サラヨ",
+                "japanese": "あ、引っ越してきたんですね？私は隣の建物に住んでいます！",
+                "expression": "smile",
+                "glosses": [
+                  {
+                    "text": "이사",
+                    "pronunciation": "イサ",
+                    "japanese": "引っ越し"
+                  },
+                  {
+                    "text": "왔어요",
+                    "pronunciation": "ワッソヨ",
+                    "japanese": "来ました",
+                    "noteJa": "오다（来る）の過去の形"
+                  },
+                  {
+                    "text": "저는",
+                    "vocab": "vocab_031",
+                    "noteJa": "저（私）＋는（〜は）"
+                  },
+                  {
+                    "text": "옆",
+                    "pronunciation": "ヨプ",
+                    "japanese": "隣"
+                  },
+                  {
+                    "text": "건물에",
+                    "pronunciation": "コンムレ",
+                    "japanese": "建物に",
+                    "noteJa": "건물（建物）＋에（〜に）"
+                  },
+                  {
+                    "text": "살아요",
+                    "pronunciation": "サラヨ",
+                    "japanese": "住んでいます",
+                    "noteJa": "살다（住む）＋아요"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "저는 윤하나예요. 이름이 뭐예요?",
+        "pronunciation": "チョヌン ユナナエヨ イルミ ムォエヨ",
+        "japanese": "私はユン・ハナです。名前は何ですか？",
+        "glosses": [
+          {
+            "text": "저는",
+            "vocab": "vocab_031",
+            "noteJa": "저（私）＋는（〜は）"
+          },
+          {
+            "text": "윤하나예요",
+            "pronunciation": "ユナナエヨ",
+            "japanese": "ユン・ハナです",
+            "noteJa": "윤하나（名前）＋예요（〜です）。続けて言うと ㅎ が弱くなり、ユナナ と聞こえる"
+          },
+          {
+            "text": "이름이",
+            "vocab": "vocab_032",
+            "noteJa": "이름（名前）＋이（〜が）"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "（あなたは、自分の名前を伝えた）"
+      },
+      {
+        "type": "line",
+        "speaker": "friend",
+        "korean": "와, 좋은 이름이네요!",
+        "pronunciation": "ワ チョウン イルミネヨ",
+        "japanese": "わあ、いい名前ですね！",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "좋은",
+            "pronunciation": "チョウン",
+            "japanese": "いい〜",
+            "noteJa": "좋다（よい）が、次の名詞を説明する形"
+          },
+          {
+            "text": "이름이네요",
+            "vocab": "vocab_032",
+            "noteJa": "이름（名前）＋이네요（〜ですね）"
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "明るくて、人なつこい人だ。もっと話してみたい。でも、自分のことを話す韓国語が、まだ分からない……。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）"
+  },
+  {
+    "id": "story_006",
+    "chapter": 2,
+    "titleJa": "先生とふり返り：初めての友だち",
+    "bgm": "home",
+    "beats": [
+      {
+        "type": "scene",
+        "background": "home"
+      },
+      {
+        "type": "narration",
+        "textJa": "その夜。3回目の授業の時間だ。"
+      },
+      {
+        "type": "sfx",
+        "id": "call"
+      },
+      {
+        "type": "scene",
+        "call": "teacher"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "오늘 뭐 했어요?",
+        "pronunciation": "オヌル ムォ ヘッソヨ",
+        "japanese": "今日は何をしましたか？",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "오늘",
+            "vocab": "vocab_045"
+          },
+          {
+            "text": "했어요",
+            "pronunciation": "ヘッソヨ",
+            "japanese": "しましたか",
+            "noteJa": "하다（する）の過去の形"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう答える？",
+        "choices": [
+          {
+            "korean": "친구가 생겼어요!",
+            "pronunciation": "チングガ センギョッソヨ",
+            "japanese": "友だちができました！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "와, 축하해요!",
+                "pronunciation": "ワ チュカヘヨ",
+                "japanese": "わあ、おめでとうございます！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "이웃을 만났어요.",
+            "pronunciation": "イウスル マンナッソヨ",
+            "japanese": "近所の人に会いました。",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "오, 좋네요!",
+                "pronunciation": "オ チョンネヨ",
+                "japanese": "おお、いいですね！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "textJa": "家の前で会ったハナさんのことを話した。会社員で、日本のアニメが好きで、コンという名前の犬を飼っていること。"
+      },
+      {
+        "type": "narration",
+        "textJa": "「ハナさんの名前には、『1つ』という意味もあるんですよ。韓国で最初の友だち、まさに『ナンバーワン』ですね。……あれ、今のは笑うところですよ？」"
+      },
+      {
+        "type": "narration",
+        "textJa": "「今日の自己紹介で使った『〜です』の形を、もう一度おさらいしましょう」"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "받침이 있으면 이에요, 없으면 예요.",
+        "pronunciation": "パッチミ イッスミョン イエヨ オプスミョン エヨ",
+        "japanese": "パッチムがあれば イエヨ、なければ エヨ です。",
+        "glosses": [
+          {
+            "text": "받침이",
+            "pronunciation": "パッチミ",
+            "japanese": "パッチムが",
+            "noteJa": "받침（パッチム）＋이（〜が）"
+          },
+          {
+            "text": "있으면",
+            "pronunciation": "イッスミョン",
+            "japanese": "あれば",
+            "noteJa": "있다（ある）＋으면（〜なら）"
+          },
+          {
+            "text": "없으면",
+            "pronunciation": "オプスミョン",
+            "japanese": "なければ",
+            "noteJa": "없다（ない）＋으면（〜なら）"
+          }
+        ]
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "korean": "다음에는 카페에 가 봐요!",
+        "pronunciation": "タウメヌン カペエ ガ ボァヨ",
+        "japanese": "次は、カフェに行ってみましょう！",
+        "expression": "smile",
+        "glosses": [
+          {
+            "text": "다음에는",
+            "pronunciation": "タウメヌン",
+            "japanese": "次は",
+            "noteJa": "다음（次）＋에는（〜には）"
+          },
+          {
+            "text": "카페에",
+            "vocab": "vocab_023",
+            "noteJa": "카페（カフェ）＋에（〜に）"
+          },
+          {
+            "text": "가 봐요",
+            "pronunciation": "カ ボァヨ",
+            "japanese": "行ってみましょう",
+            "noteJa": "가다（行く）＋아 보다（〜してみる）"
+          }
+        ]
+      },
+      {
+        "type": "choice",
+        "promptJa": "どう返事する？",
+        "choices": [
+          {
+            "korean": "네, 좋아요!",
+            "pronunciation": "ネ チョアヨ",
+            "japanese": "はい、いいですね！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "좋아요! 그럼 또 만나요!",
+                "pronunciation": "チョアヨ クロム ット マンナヨ",
+                "japanese": "いいですね！では、また会いましょう！",
+                "expression": "smile"
+              }
+            ]
+          },
+          {
+            "korean": "커피 주세요!",
+            "pronunciation": "コピ ジュセヨ",
+            "japanese": "コーヒーください！",
+            "reply": [
+              {
+                "speaker": "teacher",
+                "korean": "하하, 벌써 준비됐네요!",
+                "pronunciation": "ハハ ポルッソ チュンビドェンネヨ",
+                "japanese": "ははは、もう準備ばっちりですね！",
+                "expression": "smile"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "scene",
+        "call": null
+      },
+      {
+        "type": "narration",
+        "textJa": "通話を切った。韓国で、初めての友だちができた。"
+      }
+    ],
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）"
+  }
+]

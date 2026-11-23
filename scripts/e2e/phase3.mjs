@@ -180,7 +180,9 @@ for (const [W, H, mobile] of [
     await evaluate(`[...document.querySelectorAll('.practice-feedback button')].at(-1)?.click()`)
     await sleep(200)
   }
-  check(`${P} 形の問題：くっついた形から元の形を選ぶ・部品から形を選ぶ問題が出て、正解できる`, answered === formKeys.length && [...headings].some((h) => h.includes('元の形')) && [...headings].some((h) => h.includes('くっつけた')), JSON.stringify({ answered, headings: [...headings] }))
+  // どちらの問題になるかはランダムなので、出た見出しが2種類のどちらかであることを確かめる（作り分けは forms.test.ts で確かめる）
+  const knownHeading = (h) => h.includes('元の形') || h.includes('縮める前の形') || h.includes('くっつけた')
+  check(`${P} 形の問題：元の形（縮める前の形）を選ぶ・部品から形を選ぶ問題が出て、すべて正解できる`, answered === formKeys.length && headings.size > 0 && [...headings].every(knownHeading), JSON.stringify({ answered, headings: [...headings] }))
   const forms = (await saved()).learning.forms
   check(`${P} 形の問題に初めて正解した記録を付ける`, formKeys.every((k) => forms[k.slice('form:'.length)] !== undefined), JSON.stringify(forms))
   await evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === '戻る')?.click()`)

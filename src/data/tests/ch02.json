@@ -1,0 +1,11 @@
+[
+  {
+    "id": "test_002",
+    "chapter": 2,
+    "titleJa": "第2章のテスト",
+    "questionCount": 10,
+    "passPercent": 80,
+    "reviewed": true,
+    "notes": "教材側で作成（2026-11-23）／確認：Gemini（2026-11-24。ChatGPT の利用制限のため）。問題はプログラムが第2章の単語・文法・会話から作る"
+  }
+]
