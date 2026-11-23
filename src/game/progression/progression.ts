@@ -44,10 +44,13 @@ export function startEvent(save: SaveData, event: GameEvent, now: string): SaveD
   return { ...save, updatedAt: now, progress: { ...save.progress, activeEvent: { id: event.id, step } } }
 }
 
-/** 単語・文法を覚えた記録を付ける。初めての単語ごとに経験値 */
+/**
+ * 単語・文法を覚えた記録を付ける。初めての単語ごとに経験値。
+ * forms は、覚えた単語の形が変わる言葉の問題のキー（form:…）。単語と同じく翌日から復習に出す（GAME_SPEC 4-3）
+ */
 export function learnItems(
   save: SaveData,
-  items: { vocabulary: readonly string[]; grammar: readonly string[] },
+  items: { vocabulary: readonly string[]; grammar: readonly string[]; forms?: readonly string[] },
   chapter: number,
   balance: Balance,
   now: string,
@@ -72,6 +75,7 @@ export function learnItems(
     grammar[id] = { learnedAt: now, chapter }
     startReview(reviewKey('grammar', id))
   }
+  for (const key of items.forms ?? []) startReview(key)
   const xp = newWords * balance.xp.learnWord
   const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, words, grammar, review } }
   return { save: addXp(next, xp, now), reward: { xp, newWords } }
@@ -112,6 +116,12 @@ export type ReviewSource = 'review' | 'practice'
  */
 export function answerReview(save: SaveData, key: string, correct: boolean, source: ReviewSource, balance: Balance, now: string): Updated {
   const today = localDate(now)
+  // 形が変わる言葉の問題は、初めて正解した記録を付ける（経験値は復習の分だけ）
+  const formId = correct && key.startsWith('form:') ? key.slice('form:'.length) : null
+  if (formId !== null && save.learning.forms[formId] === undefined) {
+    const recorded: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, forms: { ...save.learning.forms, [formId]: { correctAt: now } } } }
+    return answerReview(recorded, key, correct, source, balance, now)
+  }
   const record = save.learning.review[key]
   if (source === 'review' && record !== undefined && isDue(record, today)) {
     const next = { ...withReview(save, { ...save.learning.review, [key]: answerScheduled(record, correct, today, now, balance.review) }), updatedAt: now }
@@ -187,6 +197,23 @@ export function stampToday(save: SaveData, activity: StampActivity, balance: Bal
   const today = localDate(now)
   if (!balance.stampActivities.includes(activity) || save.daily.stamps.includes(today)) return { save, stamped: false }
   return { save: { ...save, updatedAt: now, daily: { ...save.daily, stamps: withStamp(save.daily.stamps, today) } }, stamped: true }
+}
+
+/** 読み物の問題に正解した記録を付ける（key は reading_001#0）。問題ごとに、初めて正解したときだけ経験値。復習には入れない（計画 Q12） */
+export function recordReadingCorrect(save: SaveData, key: string, balance: Balance, now: string): Updated {
+  if (save.learning.readings[key] !== undefined) return { save, reward: NO_REWARD }
+  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, readings: { ...save.learning.readings, [key]: { correctAt: now } } } }
+  return { save: addXp(next, balance.xp.readingQuestion, now), reward: { xp: balance.xp.readingQuestion, newWords: 0 } }
+}
+
+/** 注文できた記録を付ける（注文した品物を足す）。初めて注文できたときだけ経験値（GAME_SPEC 4-4） */
+export function recordOrder(save: SaveData, orderId: string, itemKey: string, balance: Balance, now: string): Updated {
+  const prev = save.learning.orders[orderId]
+  if (prev !== undefined && prev.items.includes(itemKey)) return { save, reward: NO_REWARD }
+  const record = prev === undefined ? { firstAt: now, items: [itemKey] } : { ...prev, items: [...prev.items, itemKey] }
+  const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, orders: { ...save.learning.orders, [orderId]: record } } }
+  if (prev !== undefined) return { save: next, reward: NO_REWARD }
+  return { save: addXp(next, balance.xp.order, now), reward: { xp: balance.xp.order, newWords: 0 } }
 }
 
 /** おはなしを見た記録を付ける（アルバムに入る）。2回目以降は変えない */

@@ -35,6 +35,7 @@ export function bgmFor(scene: Scene, override: BgmId | 'none' | null = null): Bg
       if (override === 'none') return { track: null, level: 1 }
       return { track: override ?? locationTrack(scene.locationId), level: 1 }
     case 'conversationReplay':
+    case 'order':
       return { track: locationTrack(scene.locationId), level: 1 }
     case 'storyReplay':
       if (override === 'none') return { track: null, level: 1 }

@@ -8,7 +8,9 @@
     "listening": 3,
     "review": 3,
     "drillItem": 2,
-    "chapterTest": 30
+    "chapterTest": 30,
+    "readingQuestion": 5,
+    "order": 15
   },
   "furiganaAlwaysUntilChapter": 3,
   "initialLocations": ["home"],

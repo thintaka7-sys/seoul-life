@@ -98,7 +98,7 @@ const event = (id: string, extra: Record<string, unknown> = {}) => ({
 })
 
 const balance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3, review: 3, drillItem: 2, chapterTest: 30 },
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3, review: 3, drillItem: 2, chapterTest: 30, readingQuestion: 5, order: 15 },
   furiganaAlwaysUntilChapter: 3,
   initialLocations: ['home'],
   startLocation: 'home',

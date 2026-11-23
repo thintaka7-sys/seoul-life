@@ -312,3 +312,54 @@ export function alignFigures(img: RGBAImage, boxes: Box[]): RGBAImage[] {
     return out
   })
 }
+
+function luminance(img: RGBAImage, x: number, y: number): number {
+  const i = px(img, x, y)
+  return 0.299 * (img.data[i] ?? 0) + 0.587 * (img.data[i + 1] ?? 0) + 0.114 * (img.data[i + 2] ?? 0)
+}
+
+/**
+ * 枠線で囲んだマスを並べた画像（メニューの品物・説明の図）から、各マスの枠の内側を求める（左上から行ごとの順）。
+ * マスの外（すき間）は無地なので、おおよそのマスの位置の外側から内側へ向かって、すき間の色と明るさが大きく違う最初の画素（枠線）を探す。
+ * 何本も調べた位置の中央値を枠線の位置とし、そこから inset だけ内側を返す（枠線と、そのにじみを含めないため）。
+ */
+export function findCellFrames(img: RGBAImage, rows: number, cols: number, inset: number, threshold = 35): Box[] {
+  const slotW = img.width / cols
+  const slotH = img.height / rows
+  const boxes: Box[] = []
+  /** (x, y) から (dx, dy) の向きに、limit 画素まで調べて、枠線までの距離を返す（見つからなければ null） */
+  const scan = (x: number, y: number, dx: number, dy: number, limit: number): number | null => {
+    const base = luminance(img, x, y)
+    for (let d = 1; d < limit; d++) {
+      const cx = x + dx * d
+      const cy = y + dy * d
+      if (cx < 0 || cy < 0 || cx >= img.width || cy >= img.height) return null
+      if (Math.abs(luminance(img, cx, cy) - base) > threshold) return d
+    }
+    return null
+  }
+  const edge = (values: (number | null)[], where: string): number => {
+    const found = values.filter((v): v is number => v !== null)
+    if (found.length < values.length / 2) throw new Error(`マスの枠線が見つかりません（${where}）`)
+    return median(found)
+  }
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const sx0 = Math.round(c * slotW)
+      const sx1 = Math.round((c + 1) * slotW) - 1
+      const sy0 = Math.round(r * slotH)
+      const sy1 = Math.round((r + 1) * slotH) - 1
+      const where = `${r + 1}段目の${c + 1}つ目`
+      // マスの真ん中の 60% の範囲で、20本ずつ調べる
+      const ys = Array.from({ length: 20 }, (_, k) => Math.round(sy0 + slotH * (0.2 + (0.6 * k) / 19)))
+      const xs = Array.from({ length: 20 }, (_, k) => Math.round(sx0 + slotW * (0.2 + (0.6 * k) / 19)))
+      const left = sx0 + edge(ys.map((y) => scan(sx0, y, 1, 0, Math.round(slotW / 2))), where)
+      const right = sx1 - edge(ys.map((y) => scan(sx1, y, -1, 0, Math.round(slotW / 2))), where)
+      const top = sy0 + edge(xs.map((x) => scan(x, sy0, 0, 1, Math.round(slotH / 2))), where)
+      const bottom = sy1 - edge(xs.map((x) => scan(x, sy1, 0, -1, Math.round(slotH / 2))), where)
+      if (right - left <= inset * 2 || bottom - top <= inset * 2) throw new Error(`マスが小さすぎます（${where}）`)
+      boxes.push({ x0: left + inset, y0: top + inset, x1: right - inset + 1, y1: bottom - inset + 1 })
+    }
+  }
+  return boxes
+}

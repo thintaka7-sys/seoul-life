@@ -10,6 +10,8 @@ import { conversationTurnKey, type ConversationRecord } from '../../storage/save
 export interface TestSources {
   events: readonly GameEvent[]
   conversations: readonly Conversation[]
+  /** 単語の、形が変わる言葉の問題のキー（省略したら出さない） */
+  formKeysOf?: (vocabId: string) => string[]
 }
 
 /** その章の会話の、問題の往復（会話ID#往復の番号） */
@@ -24,12 +26,13 @@ export function testProgress(test: ChapterTest, conversations: readonly Conversa
   return { answered, total: ids.length, unlocked: ids.length > 0 && answered === ids.length }
 }
 
-/** テストの問題のもと：その章のイベントで覚える単語・文法、その章の会話の問題の往復、テストの items */
+/** テストの問題のもと：その章のイベントで覚える単語・文法（形が変わる言葉の問題も）、その章の会話の問題の往復、テストの items */
 export function chapterTestKeys(test: ChapterTest, sources: TestSources): string[] {
   const learn = sources.events.filter((e) => e.chapter === test.chapter).flatMap((e) => e.steps.flatMap((s) => (s.type === 'learn' ? [s] : [])))
   const keys = [
     ...learn.flatMap((s) => s.vocabulary.map((id) => reviewKey('word', id))),
     ...learn.flatMap((s) => s.grammar.map((id) => reviewKey('grammar', id))),
+    ...(sources.formKeysOf === undefined ? [] : learn.flatMap((s) => s.vocabulary.flatMap(sources.formKeysOf ?? (() => [])))),
     ...chapterTurnIds(test.chapter, sources.conversations).map((id) => reviewKey('turn', id)),
     ...test.items.map((item) => reviewKey('drill', item.id)),
   ]

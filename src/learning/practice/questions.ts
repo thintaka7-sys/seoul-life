@@ -3,6 +3,7 @@
 // 乱数は引数で受け取る（テストで同じ問題を作れるように）。
 
 import type { Conversation, ConversationLine, ConversationTurn, DrillItem, EarItem, EarSet, Grammar, GrammarExample, Vocab } from '../../data/types'
+import { formQuestions, parseFormId } from '../forms/forms'
 import { shuffle, type Random } from '../hangul/quiz'
 import { normalizeAnswer } from '../judge/judgeAnswer'
 import { parseReviewKey } from '../review/review'
@@ -27,6 +28,8 @@ export type Prompt =
   | { kind: 'blank'; before: string; after: string; japanese: string }
   /** 会話の場面：相手の台詞と「言うこと」 */
   | { kind: 'conversation'; character: string; lines: ConversationLine[]; task: string | null }
+  /** 部品（가＋아요）と、くっついた形の意味（形が変わる言葉。GAME_SPEC 4-3） */
+  | { kind: 'formation'; parts: string[]; japanese: string }
 
 export interface ChoiceOption {
   text: string
@@ -65,6 +68,10 @@ export type QuestionForm =
   | 'grammarWrite'
   /** 聞き分け：組の1つを聞いて、同じ組の中から選ぶ（GAME_SPEC 4-10） */
   | 'ear'
+  /** 形が変わる言葉：くっついた形から元の形を選ぶ（GAME_SPEC 4-3） */
+  | 'formBase'
+  /** 形が変わる言葉：部品からくっついた形を選ぶ */
+  | 'formBuild'
 
 export interface PracticeQuestion {
   /** 復習のキー（word:vocab_001 など） */
@@ -405,6 +412,15 @@ export function createPracticeIndex(sources: PracticeSources): PracticeIndex {
   const drillItems = new Map<string, { item: DrillItem; group: readonly DrillItem[] }>()
   for (const group of sources.drillGroups) for (const item of group) drillItems.set(item.id, { item, group })
   const earSets = new Map((sources.earSets ?? []).map((e) => [e.id, e]))
+  /** 形が変わる言葉の問題に使う単語（forms のあるもの） */
+  const withForms = sources.vocabulary.filter((v) => (v.forms?.length ?? 0) > 0)
+
+  function formOf(id: string): { v: Vocab; form: NonNullable<Vocab['forms']>[number] } | null {
+    const parsed = parseFormId(id)
+    const v = parsed === null ? undefined : vocab.get(parsed.vocabId)
+    const form = v?.forms?.find((f) => f.korean === parsed?.korean)
+    return v === undefined || form === undefined ? null : { v, form }
+  }
 
   function turnOf(id: string): { conversation: Conversation; index: number } | null {
     const hash = id.lastIndexOf('#')
@@ -440,6 +456,10 @@ export function createPracticeIndex(sources: PracticeSources): PracticeIndex {
         const target = set === undefined ? undefined : pick(set.items, options.random)
         return set === undefined || target === undefined || !options.audio ? [] : [earQuestion(set, target, options)]
       }
+      case 'form': {
+        const f = formOf(parsed.id)
+        return f === null ? [] : formQuestions(f.v, f.form, withForms, options)
+      }
     }
   }
 
@@ -457,6 +477,8 @@ export function createPracticeIndex(sources: PracticeSources): PracticeIndex {
         return drillItems.has(parsed.id)
       case 'ear':
         return earSets.has(parsed.id)
+      case 'form':
+        return formOf(parsed.id) !== null
     }
   }
 

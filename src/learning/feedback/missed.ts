@@ -61,6 +61,8 @@ function questionOf(prompt: Prompt): MissedItem['question'] {
       const last = prompt.lines.at(-1)
       return last === undefined ? null : { text: last.korean, lang: 'ko' }
     }
+    case 'formation':
+      return { text: `${prompt.parts.join(' ＋ ')} → ？`, lang: 'ko' }
   }
 }
 

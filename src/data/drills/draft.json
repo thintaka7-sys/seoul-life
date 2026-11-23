@@ -1,0 +1,107 @@
+[
+  {
+    "id": "drill_901",
+    "titleJa": "図の見本（仮）",
+    "introJa": "説明に添える図の見本です。口の形・息の出方・パッチムで止める位置・音節の組み立て・形が変わる言葉を、図で見せます。",
+    "figures": [
+      {
+        "type": "compare",
+        "items": [
+          {
+            "korean": "어",
+            "pronunciation": "オ",
+            "image": "mouth_eo",
+            "noteJa": "口を縦に開け、唇は丸めない"
+          },
+          {
+            "korean": "오",
+            "pronunciation": "オ",
+            "image": "mouth_o",
+            "noteJa": "唇を丸めて前に出す"
+          }
+        ],
+        "captionJa": "ㅓ と ㅗ は、唇を丸めるかどうかが違います"
+      },
+      {
+        "type": "image",
+        "image": "breath_strong",
+        "captionJa": "激音（ㅋ・ㅌ・ㅍ・ㅊ）は、息を強く出します",
+        "labels": [
+          {
+            "x": 70,
+            "y": 30,
+            "textJa": "強い息",
+            "arrow": "down"
+          }
+        ]
+      },
+      {
+        "type": "compare",
+        "items": [
+          {
+            "korean": "각",
+            "pronunciation": "カク",
+            "image": "final_back",
+            "noteJa": "舌の奥で止める"
+          },
+          {
+            "korean": "갇",
+            "pronunciation": "カッ",
+            "image": "final_tip",
+            "noteJa": "舌先で止める"
+          },
+          {
+            "korean": "갑",
+            "pronunciation": "カプ",
+            "image": "final_lips",
+            "noteJa": "唇で止める"
+          }
+        ],
+        "captionJa": "パッチム ㄱ・ㄷ・ㅂ は、止める位置が違います"
+      },
+      {
+        "type": "syllable",
+        "korean": "한",
+        "noteJa": "子音 ㅎ ＋ 母音 ㅏ ＋ パッチム ㄴ"
+      },
+      {
+        "type": "formation",
+        "parts": [
+          "가",
+          "아요"
+        ],
+        "result": "가요",
+        "resultPronunciation": "カヨ",
+        "noteJa": "同じ ㅏ が重なるので、1つになります"
+      }
+    ],
+    "items": [
+      {
+        "id": "dq_901",
+        "korean": "가요",
+        "pronunciation": "カヨ",
+        "japanese": "行きます"
+      },
+      {
+        "id": "dq_902",
+        "korean": "와요",
+        "pronunciation": "ワヨ",
+        "japanese": "来ます"
+      },
+      {
+        "id": "dq_903",
+        "korean": "한국",
+        "pronunciation": "ハングク",
+        "japanese": "韓国"
+      },
+      {
+        "id": "dq_904",
+        "korean": "오다",
+        "pronunciation": "オダ",
+        "japanese": "来る"
+      }
+    ],
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code が作成）。第2・3章の教材が届いたら差し替える。図の見せ方を確かめるため（図は教材担当がハングルのレッスン・文法・第2章の教材に付けて届ける）"
+  }
+]

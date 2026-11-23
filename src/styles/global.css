@@ -2806,8 +2806,11 @@ h2.step-heading {
 
 /* ---------- Phase 3：単語のタップ（GAME_SPEC 4-8） ---------- */
 
+/* 短い語（내일 など）でも押しやすいように、幅は44px以上にする */
 .gloss {
-  display: inline;
+  display: inline-block;
+  min-width: 44px;
+  text-align: center;
   margin: 0;
   padding: 0 1px;
   border: none;
@@ -2930,4 +2933,513 @@ h2.step-heading {
 .hangul-intro {
   display: grid;
   gap: 12px;
+}
+
+/* ---------- Phase 3：図と絵（GAME_SPEC 4-11） ---------- */
+
+.figures {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.figure {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff8ec;
+  min-width: 0;
+}
+
+.figure__art {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.figure__img,
+.figure__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.figure__label {
+  position: absolute;
+  translate: -50% -50%;
+  padding: 2px 8px;
+  border: 2px solid #5b4636;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
+}
+
+/* 札から出す矢印（小さな三角） */
+.figure__label--up::after,
+.figure__label--down::after,
+.figure__label--left::after,
+.figure__label--right::after {
+  content: '';
+  position: absolute;
+  border: 7px solid transparent;
+}
+.figure__label--up::after {
+  bottom: 100%;
+  left: 50%;
+  translate: -50% 0;
+  border-bottom-color: #5b4636;
+}
+.figure__label--down::after {
+  top: 100%;
+  left: 50%;
+  translate: -50% 0;
+  border-top-color: #5b4636;
+}
+.figure__label--left::after {
+  right: 100%;
+  top: 50%;
+  translate: 0 -50%;
+  border-right-color: #5b4636;
+}
+.figure__label--right::after {
+  left: 100%;
+  top: 50%;
+  translate: 0 -50%;
+  border-left-color: #5b4636;
+}
+
+.figure__label-list {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.figure__caption {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.formation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.formation__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.formation__part,
+.formation__result,
+.syllable-figure__whole {
+  font-family: var(--font-ko);
+  font-size: 1.35rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 2px solid var(--color-border);
+}
+
+.formation__result {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.formation__result--unknown {
+  border-style: dashed;
+  color: var(--color-muted);
+  border-color: var(--color-muted);
+}
+
+.formation__op {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.formation__reading {
+  margin: 0;
+  text-align: center;
+}
+
+.syllable-figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.syllable-grid {
+  display: grid;
+  gap: 3px;
+  width: 92px;
+  font-family: var(--font-ko);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.syllable-grid--side {
+  grid-template-areas: 'i m';
+}
+.syllable-grid--below {
+  grid-template-areas: 'i' 'm';
+}
+.syllable-grid--both {
+  grid-template-areas: 'i m' 'h m';
+}
+.syllable-grid--side.syllable-grid--final {
+  grid-template-areas: 'i m' 'f f';
+}
+.syllable-grid--below.syllable-grid--final {
+  grid-template-areas: 'i' 'm' 'f';
+}
+.syllable-grid--both.syllable-grid--final {
+  grid-template-areas: 'i m' 'h m' 'f f';
+}
+
+.syllable-grid__cell {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  border-radius: 8px;
+}
+.syllable-grid__cell--initial {
+  grid-area: i;
+  background: #dbe8fb;
+}
+.syllable-grid__cell--medial {
+  grid-area: m;
+  background: #fde2c8;
+}
+.syllable-grid__cell--final {
+  grid-area: f;
+  background: #dcefd9;
+}
+
+.syllable-figure__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.syllable-figure__key {
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.syllable-figure__key--initial {
+  background: #dbe8fb;
+}
+.syllable-figure__key--medial {
+  background: #fde2c8;
+}
+.syllable-figure__key--final {
+  background: #dcefd9;
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compare--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compare__item {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.compare__item .figure__art {
+  max-width: 100%;
+}
+
+.compare__word {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-family: var(--font-ko);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.compare__word p,
+.compare__item p {
+  margin: 0;
+}
+
+.compare__note {
+  font-size: 0.85rem;
+}
+
+/* ---------- Phase 3：メニュー・読み物・注文（GAME_SPEC 4-4・4-7） ---------- */
+
+.menu-board {
+  padding: 12px;
+  border-radius: var(--radius);
+  background: #3b2f27;
+  color: #fff8ec;
+  box-shadow: var(--shadow-panel);
+}
+
+.menu-board__title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+
+.menu-board__items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-item {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  justify-items: center;
+  padding: 6px;
+  border-radius: 10px;
+  background: #fff4e0;
+  color: var(--color-text);
+  text-align: center;
+  min-width: 0;
+}
+
+.menu-item--correct {
+  outline: 3px solid var(--color-correct);
+}
+
+.menu-item--wrong {
+  outline: 3px solid var(--color-wrong);
+}
+
+.menu-item__img {
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  border-radius: 8px;
+}
+
+.menu-item__name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-family: var(--font-ko);
+  font-weight: 700;
+  min-height: 44px;
+}
+
+.menu-item__ja,
+.menu-item__price {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.menu-item__price {
+  font-family: var(--font-ko);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.find-chip {
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 2px dashed var(--color-primary);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-text);
+  font: inherit;
+  font-family: var(--font-ko);
+  cursor: pointer;
+}
+
+.find-chip:hover,
+.find-chip:focus-visible {
+  background: var(--color-warn-bg);
+}
+
+.reading-step,
+.order-step {
+  display: grid;
+  gap: 12px;
+}
+
+.reading {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: #fffdf7;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
+}
+
+.reading--memo {
+  background: #fff9c9;
+  border-color: #eadf8f;
+}
+
+.reading--message {
+  background: #eef4fb;
+}
+
+.reading--notice {
+  border: 3px double var(--color-border);
+}
+
+.reading--menu {
+  background: #f6efe6;
+}
+
+.reading__kind {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.reading__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.reading__lines {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reading__line {
+  display: grid;
+  gap: 2px;
+}
+
+.reading__line .ko-text {
+  font-size: 1.15rem;
+}
+
+.reading__find {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.reading__ja {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.practice-model__ja {
+  margin: 0;
+  font-weight: 700;
+}
+
+.order-step__staff {
+  display: flex;
+  justify-content: center;
+}
+
+.order-step__portrait {
+  width: min(42%, 180px);
+}
+
+.order-step__lines {
+  display: grid;
+  gap: 8px;
+}
+
+.order-line {
+  cursor: default;
+}
+
+.order-example {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--color-surface-soft);
+}
+
+.vocab-forms {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.vocab-forms__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vocab-forms__list p {
+  margin: 0 0 2px;
+}
+
+.dict-entry__forms summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* 幅の狭い画面では、3つを比べる図を1行に1つにし、絵を左・言葉を右に置く（絵が小さくなりすぎないように） */
+@media (max-width: 480px) {
+  .compare--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .compare--3 .compare__item {
+    grid-template-columns: 128px 1fr;
+    column-gap: 10px;
+    justify-items: start;
+    align-items: center;
+    text-align: left;
+  }
+
+  .compare--3 .compare__item > .figure__art {
+    grid-row: span 3;
+  }
 }

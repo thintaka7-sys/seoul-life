@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { content } from '../data'
 import type { GameEvent } from '../data/types'
 import { nextEvent } from '../game/events/events'
+import { formKeysOf } from '../learning/forms/forms'
 import { CURRENT_SAVE_VERSION, createNewSave } from '../storage/saveData'
 import { SAVE_KEY, loadSave } from '../storage/saveStore'
 import { DEFAULT_SETTINGS } from '../storage/settings'
@@ -18,6 +19,7 @@ const reducer = createGameReducer({
   balance: content.balance,
   locationIds: new Set(content.locations.map((l) => l.id)),
   storyIds: new Set(content.stories.map((s) => s.id)),
+  formKeysOf: (vocabId) => formKeysOf(content.vocabulary.find((v) => v.id === vocabId)),
 })
 
 function run(state: GameState, ...actions: GameAction[]): GameState {
@@ -575,5 +577,46 @@ describe('会話をもう一度（BUG-007）', () => {
     s = run(s, { type: 'conversationAnswered', turn: questionTurn, method: 'write', now: T1 })
     expect(s.save?.learning.conversations[`${conversationId}#${questionTurn}`]).toEqual({ choice: false, write: true })
     expect(s.save?.progress.completedEvents).toEqual(ALL_EVENTS)
+  })
+})
+
+describe('読み物・注文・形が変わる言葉（Phase 3 区切り3）', () => {
+  it('読み物の問題は、初めて正解したときだけ経験値。2回目は変えない', () => {
+    const s = atHome()
+    const first = run(s, { type: 'readingCorrect', key: 'reading_901#0', now: T1 })
+    expect(first.save?.learning.readings['reading_901#0']).toEqual({ correctAt: T1 })
+    expect(first.save?.stats.xp).toBe(content.balance.xp.readingQuestion)
+    expect(run(first, { type: 'readingCorrect', key: 'reading_901#0', now: T1 })).toBe(first)
+  })
+
+  it('注文は、初めて注文できたときだけ経験値。品物は記録に足していく', () => {
+    const s = atHome()
+    const first = run(s, { type: 'orderPlaced', orderId: 'order_901', itemKey: 'americano', now: T1 })
+    expect(first.save?.learning.orders['order_901']).toEqual({ firstAt: T1, items: ['americano'] })
+    expect(first.save?.stats.xp).toBe(content.balance.xp.order)
+    const second = run(first, { type: 'orderPlaced', orderId: 'order_901', itemKey: 'cheesecake', now: T1 })
+    expect(second.save?.learning.orders['order_901']?.items).toEqual(['americano', 'cheesecake'])
+    expect(second.save?.stats.xp).toBe(content.balance.xp.order)
+    expect(run(second, { type: 'orderPlaced', orderId: 'order_901', itemKey: 'americano', now: T1 })).toBe(second)
+  })
+
+  it('注文の段階のあるイベントを終えたら、その施設の画面から何度でも注文し直せる', () => {
+    const event = content.events.find((e) => e.steps.some((st) => st.type === 'order'))
+    const step = event?.steps.find((st) => st.type === 'order')
+    if (event === undefined || step?.type !== 'order') throw new Error('注文の段階がない')
+    const before = stateBefore(event.id)
+    expect(run(before, { type: 'openOrder', orderId: step.id })).toBe(before)
+    const done = playWholeEvent(before, event.id)
+    const opened = run(done, { type: 'openOrder', orderId: step.id })
+    expect(opened.scene).toMatchObject({ name: 'order', orderId: step.id, locationId: event.location })
+    expect(run(opened, { type: 'back', now: T1 }).scene).toEqual(done.scene)
+  })
+
+  it('形が変わる言葉のある単語を覚えたら、形の問題も翌日の復習に入る', () => {
+    const v = content.vocabulary.find((x) => (x.forms?.length ?? 0) > 0)
+    const event = content.events.find((e) => e.steps.some((st) => st.type === 'learn' && st.vocabulary.includes(v?.id ?? '')))
+    if (v === undefined || event === undefined) throw new Error('形が変わる言葉の単語がない')
+    const done = playWholeEvent(stateBefore(event.id), event.id)
+    for (const key of formKeysOf(v)) expect(done.save?.learning.review[key]).toMatchObject({ stage: 0 })
   })
 })

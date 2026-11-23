@@ -12,7 +12,8 @@ import { content } from '../../data'
 import { LISTENING_HEADINGS, missedFromListening, optionState, type MissedItem } from '../../learning/feedback/missed'
 import { buildListeningRound, isListeningCorrect, listeningCandidates, type ListeningQuestion } from '../../learning/listening/questions'
 
-function ListeningQuestionView({
+/** リスニングの1問（イベントの listening の段階でも使う） */
+export function ListeningQuestionView({
   q,
   index,
   total,

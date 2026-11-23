@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseAssetConfig } from './config.ts'
-import { alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
+import { alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
 
 const GREEN: [number, number, number, number] = [10, 250, 5, 255]
 const KEY = { r: 10, g: 250, b: 5 }
@@ -174,6 +174,9 @@ describe('設定（assets.config.json）', () => {
     characterHeight: 1200,
     backgroundWidth: 1080,
     mapWidth: 1080,
+    menuSize: 400,
+    figureWidth: 720,
+    cellSheets: [{ kind: 'menu', file: 'menu.png', rows: 1, cols: 2, inset: 4, keys: ['americano', 'cookie'] }],
     characters: [{ id: 'neighbor', sheet: 's.png', expressions: ['normal', 'smile'], keepGreen: [{ x: 1, y: 2, w: 3, h: 4 }] }],
     backgrounds: [{ id: 'home', file: 'bg.png' }],
     map: { file: 'map.png' },
@@ -189,5 +192,42 @@ describe('設定（assets.config.json）', () => {
     expect(() => parseAssetConfig({ ...valid, characters: [{ id: 'a', sheet: 's.png', expressions: ['happy'] }] })).toThrow(/表情のキー/)
     expect(() => parseAssetConfig({ ...valid, characters: [{ id: 'a', sheet: 's.png', expressions: ['smile', 'smile'] }] })).toThrow(/重複/)
     expect(() => parseAssetConfig({ ...valid, webpQuality: 101 })).toThrow(/webpQuality/)
+  })
+
+  it('マスの画像：キーの数がマスの数と違う・重複・種類の間違いは止める', () => {
+    expect(parseAssetConfig(valid).cellSheets[0]?.keys).toEqual(['americano', 'cookie'])
+    expect(() => parseAssetConfig({ ...valid, cellSheets: [{ kind: 'menu', file: 'm.png', rows: 1, cols: 3, inset: 4, keys: ['a', 'b'] }] })).toThrow(/マスの数/)
+    expect(() => parseAssetConfig({ ...valid, cellSheets: [{ kind: 'menu', file: 'm.png', rows: 1, cols: 2, inset: 4, keys: ['a', 'a'] }] })).toThrow(/重複/)
+    expect(() => parseAssetConfig({ ...valid, cellSheets: [{ kind: 'poster', file: 'm.png', rows: 1, cols: 1, inset: 4, keys: ['a'] }] })).toThrow(/menu か figure/)
+  })
+})
+
+describe('枠線で囲んだマスを切り分ける（メニュー・説明の図）', () => {
+  const CREAM: [number, number, number, number] = [255, 244, 224, 255]
+  const LINE: [number, number, number, number] = [190, 160, 130, 255]
+  /** 2段×3列のマス。各マスは x 10〜49（すき間に枠線）、中に濃い絵（枠に接する） */
+  function sheet(): RGBAImage {
+    const img = createImage(180, 120, CREAM)
+    for (let r = 0; r < 2; r++)
+      for (let c = 0; c < 3; c++) {
+        const x0 = c * 60 + 8
+        const y0 = r * 60 + 8
+        fillRect(img, x0, y0, x0 + 44, y0 + 44, LINE)
+        fillRect(img, x0 + 2, y0 + 2, x0 + 42, y0 + 42, CREAM)
+        // 絵が下の枠線に接している（人物の服など）
+        fillRect(img, x0 + 15, y0 + 20, x0 + 30, y0 + 42, [60, 40, 30, 255])
+      }
+    return img
+  }
+
+  it('枠線の内側を、左上から行ごとの順に返す', () => {
+    const boxes = findCellFrames(sheet(), 2, 3, 3)
+    expect(boxes).toHaveLength(6)
+    expect(boxes[0]).toEqual({ x0: 11, y0: 11, x1: 49, y1: 49 })
+    expect(boxes[5]).toEqual({ x0: 131, y0: 71, x1: 169, y1: 109 })
+  })
+
+  it('枠線がなければ止める', () => {
+    expect(() => findCellFrames(createImage(60, 60, CREAM), 1, 1, 2)).toThrow(/枠線が見つかりません/)
   })
 })

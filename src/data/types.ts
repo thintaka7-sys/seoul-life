@@ -567,6 +567,12 @@ export interface FigureLabel {
 
 export const FIGURE_ARROWS = ['up', 'down', 'left', 'right'] as const
 
+/**
+ * 図の絵のキー（docs/CONTENT_FORMAT.md 10-15）。口の形・息の出方は Gemini の絵（fig_mouth_sheet・fig_breath_sheet のマス）、
+ * パッチムで止める位置（final_…）は画面の作りで描く図（components/figures/finalDiagram.ts）
+ */
+export const FIGURE_IMAGES = ['mouth_eo', 'mouth_o', 'mouth_eu', 'mouth_u', 'breath_weak', 'breath_strong', 'final_back', 'final_tip', 'final_lips'] as const
+
 /** 比べる図の1つ */
 export interface CompareItem {
   korean: string
@@ -845,6 +851,10 @@ export interface AssetManifest {
   map: ImageAsset | null
   /** おはなしの一枚絵（キー → 画像。元の画像は cg_キー） */
   cg: Record<string, ImageAsset>
+  /** メニューの品物の絵（MENU_IMAGES のキー → 正方形の画像。元の画像は menu_cafe_1・menu_cafe_2 のマス） */
+  menu: Record<string, ImageAsset>
+  /** 説明の図の絵（図の image のキー → 画像。元の画像は fig_…_sheet のマス） */
+  figures: Record<string, ImageAsset>
 }
 
 /** ゲームの調整用の数値（src/data/game/balance.json） */
@@ -864,6 +874,10 @@ export interface Balance {
     drillItem: number
     /** 章末テストに初めて合格したとき */
     chapterTest: number
+    /** 読み物の問題に初めて正解したとき（問題ごと） */
+    readingQuestion: number
+    /** 注文に初めて成功したとき（注文ごと） */
+    order: number
   }
   /** フリガナを「おすすめ」設定でいつも表示する最後の章 */
   furiganaAlwaysUntilChapter: number

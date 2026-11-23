@@ -8,6 +8,7 @@ import {
   FIGURE_ARROWS,
   FIGURE_TYPES,
   FORM_KINDS,
+  FIGURE_IMAGES,
   MENU_IMAGES,
   READING_QUESTION_TYPES,
   READING_STYLES,
@@ -465,7 +466,7 @@ function parseFigure(value: Obj, path: string, errs: FieldError[]): Figure | und
   checkKnownKeys(value, FIGURE_KEYS[type], path, errs)
   switch (type) {
     case 'image': {
-      const image = keyField(value, 'image', path, errs)
+      const image = oneOf(value, 'image', path, errs, FIGURE_IMAGES)
       const captionJa = optionalText(value, 'captionJa', path, errs)
       let labels: FigureLabel[] | undefined
       if (value['labels'] !== undefined) {
@@ -517,7 +518,7 @@ function parseFigure(value: Obj, path: string, errs: FieldError[]): Figure | und
         checkKnownKeys(it, COMPARE_ITEM_KEYS, itPath, errs)
         const korean = text(it, 'korean', itPath, errs)
         const pronunciation = reading(it, 'pronunciation', itPath, errs, korean)
-        const image = it['image'] === undefined ? undefined : keyField(it, 'image', itPath, errs)
+        const image = it['image'] === undefined ? undefined : oneOf(it, 'image', itPath, errs, FIGURE_IMAGES)
         const noteJa = optionalText(it, 'noteJa', itPath, errs)
         if (korean === undefined || pronunciation === undefined) continue
         const item: CompareItem = { korean, pronunciation }
@@ -2178,7 +2179,7 @@ export interface LoadedContent {
 
 /** balance.json が読めなかったときに使う値（ゲームを止めないため） */
 export const DEFAULT_BALANCE: Balance = {
-  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3, review: 3, drillItem: 2, chapterTest: 30 },
+  xp: { learnWord: 2, conversationChoice: 10, conversationWrite: 15, eventComplete: 20, hangulLesson: 20, listening: 3, review: 3, drillItem: 2, chapterTest: 30, readingQuestion: 5, order: 15 },
   furiganaAlwaysUntilChapter: 3,
   initialLocations: ['home', 'cafe'],
   startLocation: 'home',
@@ -2212,7 +2213,7 @@ const BALANCE_KEYS = [
   'earQuestions',
   'stampActivities',
 ] as const
-const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening', 'review', 'drillItem', 'chapterTest'] as const
+const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening', 'review', 'drillItem', 'chapterTest', 'readingQuestion', 'order'] as const
 const REVIEW_KEYS = ['intervalsDays', 'masteredDays', 'dailyLimit'] as const
 
 /** 復習の間隔など（balance.json の review） */
@@ -2272,7 +2273,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
   if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
     errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
   }
-  const { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening, drillItem, chapterTest } = xp
+  const { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening, drillItem, chapterTest, readingQuestion, order } = xp
   const reviewXp = xp.review
   if (
     errs.length > 0 ||
@@ -2285,6 +2286,8 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     reviewXp === undefined ||
     drillItem === undefined ||
     chapterTest === undefined ||
+    readingQuestion === undefined ||
+    order === undefined ||
     furiganaAlwaysUntilChapter === undefined ||
     initialLocations === undefined ||
     startLocation === undefined ||
@@ -2303,7 +2306,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     return undefined
   }
   return {
-    xp: { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening, review: reviewXp, drillItem, chapterTest },
+    xp: { learnWord, conversationChoice, conversationWrite, eventComplete, hangulLesson, listening, review: reviewXp, drillItem, chapterTest, readingQuestion, order },
     furiganaAlwaysUntilChapter,
     initialLocations,
     startLocation,

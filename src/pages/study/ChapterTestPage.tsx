@@ -8,9 +8,10 @@ import { DraftBadge } from '../../components/DraftBadge'
 import { Notice } from '../../components/Notice'
 import { PracticeRunner } from '../../components/practice/PracticeRunner'
 import { ScreenLayout } from '../../components/ScreenLayout'
-import { content } from '../../data'
+import { content, findVocab } from '../../data'
 import { conversationEntries } from '../../game/conversations/replayList'
 import { chapterTestKeys, pickTestKeys, testProgress, testSettings } from '../../game/tests/chapterTest'
+import { formKeysOf } from '../../learning/forms/forms'
 import { quizScore } from '../../learning/hangul/quiz'
 import { buildQuestions, type PracticeQuestion } from '../../learning/practice/questions'
 import { correctCount } from '../../learning/practice/round'
@@ -33,7 +34,7 @@ export function ChapterTestPage({ testId }: { testId: string }) {
   }
   const { count, passPercent } = testSettings(test, content.balance)
   const progress = testProgress(test, content.conversations, save.learning.conversations)
-  const keys = chapterTestKeys(test, content).filter(practiceIndex.exists)
+  const keys = chapterTestKeys(test, { ...content, formKeysOf: (id) => formKeysOf(findVocab(id)) }).filter(practiceIndex.exists)
   const record = save.learning.tests[test.id]
 
   function start() {

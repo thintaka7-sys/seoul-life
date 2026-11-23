@@ -6,28 +6,149 @@
   "characterHeight": 1200,
   "backgroundWidth": 1080,
   "mapWidth": 1080,
+  "menuSize": 400,
+  "figureWidth": 720,
   "characters": [
-    { "id": "cafe_staff", "sheet": "char_cafe_staff_sheet.png", "expressions": ["normal", "smile", "troubled"] },
-    { "id": "friend", "sheet": "char_friend_sheet.png", "expressions": ["normal", "smile", "troubled"] },
-    { "id": "teacher", "sheet": "char_teacher_sheet.png", "expressions": ["normal", "smile", "troubled"] },
+    {
+      "id": "cafe_staff",
+      "sheet": "char_cafe_staff_sheet.png",
+      "expressions": [
+        "normal",
+        "smile",
+        "troubled"
+      ]
+    },
+    {
+      "id": "friend",
+      "sheet": "char_friend_sheet.png",
+      "expressions": [
+        "normal",
+        "smile",
+        "troubled"
+      ]
+    },
+    {
+      "id": "teacher",
+      "sheet": "char_teacher_sheet.png",
+      "expressions": [
+        "normal",
+        "smile",
+        "troubled"
+      ]
+    },
     {
       "id": "neighbor",
       "sheet": "char_neighbor_sheet.png",
-      "expressions": ["normal", "smile", "troubled"],
+      "expressions": [
+        "normal",
+        "smile",
+        "troubled"
+      ],
       "keepGreen": [
-        { "x": 718, "y": 60, "w": 75, "h": 82 },
-        { "x": 1594, "y": 60, "w": 75, "h": 82 },
-        { "x": 2482, "y": 60, "w": 75, "h": 82 }
+        {
+          "x": 718,
+          "y": 60,
+          "w": 75,
+          "h": 82
+        },
+        {
+          "x": 1594,
+          "y": 60,
+          "w": 75,
+          "h": 82
+        },
+        {
+          "x": 2482,
+          "y": 60,
+          "w": 75,
+          "h": 82
+        }
       ]
     }
   ],
   "backgrounds": [
-    { "id": "home", "file": "bg_home.png" },
-    { "id": "cafe", "file": "bg_cafe.png" },
-    { "id": "entrance", "file": "bg_entrance.png" },
-    { "id": "airport", "file": "bg_airport" },
-    { "id": "taxi", "file": "bg_taxi" },
-    { "id": "street", "file": "bg_street" }
+    {
+      "id": "home",
+      "file": "bg_home.png"
+    },
+    {
+      "id": "cafe",
+      "file": "bg_cafe.png"
+    },
+    {
+      "id": "entrance",
+      "file": "bg_entrance.png"
+    },
+    {
+      "id": "airport",
+      "file": "bg_airport"
+    },
+    {
+      "id": "taxi",
+      "file": "bg_taxi"
+    },
+    {
+      "id": "street",
+      "file": "bg_street"
+    }
   ],
-  "map": { "file": "map_town.png" }
+  "cellSheets": [
+    {
+      "kind": "menu",
+      "file": "menu_cafe_1",
+      "rows": 2,
+      "cols": 3,
+      "inset": 14,
+      "keys": [
+        "americano",
+        "cafe_latte",
+        "vanilla_latte",
+        "green_tea_latte",
+        "strawberry_latte",
+        "yuzu_tea"
+      ]
+    },
+    {
+      "kind": "menu",
+      "file": "menu_cafe_2",
+      "rows": 2,
+      "cols": 3,
+      "inset": 14,
+      "keys": [
+        "lemonade",
+        "cheesecake",
+        "croffle",
+        "macaron",
+        "croissant",
+        "cookie"
+      ]
+    },
+    {
+      "kind": "figure",
+      "file": "fig_mouth_sheet",
+      "rows": 2,
+      "cols": 2,
+      "inset": 14,
+      "keys": [
+        "mouth_eo",
+        "mouth_o",
+        "mouth_eu",
+        "mouth_u"
+      ]
+    },
+    {
+      "kind": "figure",
+      "file": "fig_breath_sheet",
+      "rows": 1,
+      "cols": 2,
+      "inset": 14,
+      "keys": [
+        "breath_weak",
+        "breath_strong"
+      ]
+    }
+  ],
+  "map": {
+    "file": "map_town.png"
+  }
 }

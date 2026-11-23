@@ -31,6 +31,22 @@ export interface AssetConfig {
   map: { file: string } | null
   /** おはなしの一枚絵（id は一枚絵のキー。元の画像は cg_キー） */
   cg: { id: string; file: string }[]
+  /** 枠線で囲んだマスを並べた画像（メニューの品物・説明の図）。左上から行ごとの順に keys のキーで切り出す */
+  cellSheets: CellSheetConfig[]
+  /** メニューの品物の絵の大きさ（正方形の1辺、px） */
+  menuSize: number
+  /** 説明の図の絵の幅（px） */
+  figureWidth: number
+}
+
+export interface CellSheetConfig {
+  kind: 'menu' | 'figure'
+  file: string
+  rows: number
+  cols: number
+  keys: string[]
+  /** 枠線から内側へ、切り落とす幅（元の画像の画素） */
+  inset: number
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -86,6 +102,19 @@ export function parseAssetConfig(raw: unknown): AssetConfig {
   })
   const backgrounds = list(raw, 'backgrounds').map((b, i) => ({ id: str(b, 'id', `backgrounds[${i}]`), file: str(b, 'file', `backgrounds[${i}]`) }))
   const cg = raw['cg'] === undefined ? [] : list(raw, 'cg').map((b, i) => ({ id: str(b, 'id', `cg[${i}]`), file: str(b, 'file', `cg[${i}]`) }))
+  const cellSheets = (raw['cellSheets'] === undefined ? [] : list(raw, 'cellSheets')).map((s, i): CellSheetConfig => {
+    const where = `cellSheets[${i}]`
+    const kind = s['kind']
+    if (kind !== 'menu' && kind !== 'figure') throw new Error(`${where}.kind は menu か figure にしてください`)
+    const rows = posInt(s, 'rows')
+    const cols = posInt(s, 'cols')
+    const keys = s['keys']
+    if (!Array.isArray(keys) || !keys.every((k) => typeof k === 'string' && /^[a-z][a-z0-9_]*$/.test(k))) throw new Error(`${where}.keys は英小文字のキーの配列にしてください`)
+    if (keys.length !== rows * cols) throw new Error(`${where}.keys の数を、マスの数（${rows * cols}）に合わせてください`)
+    return { kind, file: str(s, 'file', where), rows, cols, keys, inset: posInt(s, 'inset') }
+  })
+  const allKeys = cellSheets.flatMap((s) => s.keys.map((k) => `${s.kind}:${k}`))
+  if (new Set(allKeys).size !== allKeys.length) throw new Error('cellSheets の keys に同じキーが重複しています')
   const rawMap = raw['map']
   const map = rawMap === null || rawMap === undefined ? null : isObj(rawMap) ? { file: str(rawMap, 'file', 'map') } : null
   return {
@@ -100,5 +129,8 @@ export function parseAssetConfig(raw: unknown): AssetConfig {
     backgrounds,
     map,
     cg,
+    cellSheets,
+    menuSize: posInt(raw, 'menuSize'),
+    figureWidth: posInt(raw, 'figureWidth'),
   }
 }

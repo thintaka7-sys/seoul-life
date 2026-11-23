@@ -1,0 +1,65 @@
+[
+  {
+    "id": "menu_901",
+    "location": "cafe",
+    "titleJa": "カフェのメニュー（仮）",
+    "currency": {
+      "korean": "원",
+      "pronunciation": "ウォン"
+    },
+    "items": [
+      {
+        "key": "americano",
+        "vocab": "vocab_013",
+        "price": 4500,
+        "pricePronunciation": "サチョノベグォン",
+        "image": "americano",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "네, 아메리카노요.",
+            "pronunciation": "ネ アメリカノヨ",
+            "japanese": "はい、アメリカーノですね。"
+          }
+        ]
+      },
+      {
+        "key": "cafe_latte",
+        "vocab": "vocab_014",
+        "price": 5000,
+        "pricePronunciation": "オチョヌォン",
+        "image": "cafe_latte",
+        "counter": "잔",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "카페라테 맛있어요.",
+            "pronunciation": "カペラテ マシッソヨ",
+            "japanese": "カフェラテ、おいしいですよ。",
+            "expression": "smile"
+          }
+        ]
+      },
+      {
+        "key": "cheesecake",
+        "vocab": "vocab_017",
+        "price": 5500,
+        "pricePronunciation": "オチョノベグォン",
+        "image": "cheesecake",
+        "counter": "개",
+        "reply": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "케이크요. 좋아요.",
+            "pronunciation": "ケイクヨ チョアヨ",
+            "japanese": "ケーキですね。いいですね。",
+            "expression": "smile"
+          }
+        ]
+      }
+    ],
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code が作成）。第2・3章の教材が届いたら差し替える"
+  }
+]

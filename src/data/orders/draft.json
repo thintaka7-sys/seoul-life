@@ -1,0 +1,130 @@
+[
+  {
+    "id": "order_901",
+    "chapter": 3,
+    "location": "cafe",
+    "character": "cafe_staff",
+    "menu": "menu_901",
+    "task": "メニューから好きなものを1つ注文しよう",
+    "lines": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "주문하시겠어요?",
+        "pronunciation": "チュムナシゲッソヨ",
+        "japanese": "ご注文はお決まりですか？"
+      }
+    ],
+    "counts": [
+      {
+        "korean": "한 잔",
+        "pronunciation": "ハン ジャン",
+        "number": 1,
+        "counter": "잔",
+        "confirm": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "한 잔이요.",
+            "pronunciation": "ハン ジャニヨ",
+            "japanese": "1杯ですね。"
+          }
+        ]
+      },
+      {
+        "korean": "두 잔",
+        "pronunciation": "トゥ ジャン",
+        "number": 2,
+        "counter": "잔",
+        "confirm": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "두 잔이요.",
+            "pronunciation": "トゥ ジャニヨ",
+            "japanese": "2杯ですね。"
+          }
+        ]
+      },
+      {
+        "korean": "한 개",
+        "pronunciation": "ハン ゲ",
+        "number": 1,
+        "counter": "개",
+        "confirm": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "한 개요.",
+            "pronunciation": "ハン ゲヨ",
+            "japanese": "1つですね。"
+          }
+        ]
+      },
+      {
+        "korean": "하나",
+        "pronunciation": "ハナ",
+        "number": 1,
+        "confirm": [
+          {
+            "speaker": "cafe_staff",
+            "korean": "하나요.",
+            "pronunciation": "ハナヨ",
+            "japanese": "1つですね。"
+          }
+        ]
+      }
+    ],
+    "endings": [
+      {
+        "korean": "주세요",
+        "pronunciation": "ジュセヨ"
+      },
+      {
+        "korean": "요",
+        "attached": true
+      },
+      {
+        "korean": "이요",
+        "attached": true
+      }
+    ],
+    "modifiers": [
+      {
+        "korean": "아이스",
+        "pronunciation": "アイス",
+        "counter": "잔"
+      },
+      {
+        "korean": "따뜻한",
+        "pronunciation": "タットゥタン",
+        "counter": "잔"
+      }
+    ],
+    "closing": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "네, 잠시만 기다려 주세요.",
+        "pronunciation": "ネ チャムシマン キダリョ ジュセヨ",
+        "japanese": "はい、少々お待ちください。"
+      }
+    ],
+    "notOnMenu": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "죄송합니다. 그건 없어요.",
+        "pronunciation": "チェソンハムニダ クゴン オプソヨ",
+        "japanese": "申し訳ありません。それはございません。",
+        "expression": "troubled"
+      }
+    ],
+    "unclear": [
+      {
+        "speaker": "cafe_staff",
+        "korean": "네? 다시 한번 말씀해 주시겠어요?",
+        "pronunciation": "ネ タシ ハンボン マルスメ ジュシゲッソヨ",
+        "japanese": "はい？もう一度おっしゃっていただけますか？",
+        "expression": "troubled"
+      }
+    ],
+    "counterNoteJa": "飲み物は 잔 で数えるのが自然です。",
+    "reviewed": false,
+    "notes": "動作確認用の仮データ（Claude Code が作成）。第2・3章の教材が届いたら差し替える"
+  }
+]

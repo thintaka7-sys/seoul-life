@@ -12,7 +12,7 @@ import sharp, { type Sharp } from 'sharp'
 import type { AssetManifest, ImageAsset } from '../../src/data/types.ts'
 import { parseAssetConfig, type AssetConfig } from './config.ts'
 import { findInput } from './inputFiles.ts'
-import { DEFAULT_KEY_OPTIONS, alignFigures, estimateKeyColor, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
+import { DEFAULT_KEY_OPTIONS, alignFigures, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const { values } = parseArgs({ options: { preview: { type: 'string' } } })
@@ -72,7 +72,7 @@ function inputPath(file: string): string | null {
   return null
 }
 
-const manifest: AssetManifest = { characters: {}, backgrounds: {}, map: null, cg: {} }
+const manifest: AssetManifest = { characters: {}, backgrounds: {}, map: null, cg: {}, menu: {}, figures: {} }
 
 for (const c of config.characters) {
   console.log(`立ち絵：${c.id}（${c.sheet}）`)
@@ -107,6 +107,27 @@ for (const c of config.cg) {
   const file = inputPath(c.file)
   if (file === null) continue
   manifest.cg[c.id] = await writeWebp(sharp(file).resize({ width: config.backgroundWidth, withoutEnlargement: true }), `cg/${c.id}.webp`)
+}
+
+for (const s of config.cellSheets) {
+  console.log(`${s.kind === 'menu' ? 'メニューの絵' : '説明の図の絵'}：${s.keys.join('・')}（${s.file}）`)
+  const file = inputPath(s.file)
+  if (file === null) continue
+  const sheet = await readRgba(file)
+  const boxes = findCellFrames(sheet, s.rows, s.cols, s.inset)
+  for (const [i, key] of s.keys.entries()) {
+    const box = boxes[i]
+    if (box === undefined) continue
+    const area = { left: box.x0, top: box.y0, width: box.x1 - box.x0, height: box.y1 - box.y0 }
+    if (s.kind === 'menu') {
+      // メニューの品物は正方形のカードとして使う（短いほうの辺に合わせて、真ん中を切り出す）
+      const side = Math.min(area.width, area.height)
+      const square = { left: area.left + Math.floor((area.width - side) / 2), top: area.top + Math.floor((area.height - side) / 2), width: side, height: side }
+      manifest.menu[key] = await writeWebp(sharp(file).extract(square).resize({ width: config.menuSize, height: config.menuSize }), `menu/${key}.webp`)
+    } else {
+      manifest.figures[key] = await writeWebp(sharp(file).extract(area).resize({ width: config.figureWidth, withoutEnlargement: true }), `fig/${key}.webp`)
+    }
+  }
 }
 
 if (config.map !== null) {

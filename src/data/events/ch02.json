@@ -18,11 +18,23 @@
         "id": "story_905"
       },
       {
+        "type": "learn",
+        "vocabulary": [
+          "vocab_901",
+          "vocab_902"
+        ],
+        "grammar": []
+      },
+      {
+        "type": "reading",
+        "id": "reading_902"
+      },
+      {
         "type": "message",
         "textJa": "近所の友人ができました。"
       }
     ],
-    "notes": "仮のおはなし（story_905）。自己紹介・質問の会話とコラムは、第2章の教材が届いたら入れる"
+    "notes": "仮のおはなし（story_905）・仮の単語（vocab_901・902。形が変わる言葉）・仮の読み物（reading_902）。自己紹介・質問の会話とコラムは、第2章の教材が届いたら入れる"
   },
   {
     "id": "event_008",

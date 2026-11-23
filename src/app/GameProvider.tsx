@@ -3,7 +3,8 @@ import { setBgmEnabled } from '../audio/bgm'
 import { setBgmMasterVolume, setSfxVolume } from '../audio/engine'
 import { setSfxEnabled } from '../audio/sfx'
 import { applySavedSlowRate } from '../audio/speech'
-import { content } from '../data'
+import { content, findVocab } from '../data'
+import { formKeysOf } from '../learning/forms/forms'
 import type { SaveData } from '../storage/saveData'
 import { saveGame } from '../storage/saveStore'
 import { saveSettings, type Settings } from '../storage/settings'
@@ -18,6 +19,7 @@ const gameReducer = createGameReducer({
   locationIds: new Set(content.locations.map((l) => l.id)),
   firstHangulLessonId: content.hangulLessons[0]?.id ?? null,
   storyIds: new Set(content.stories.map((s) => s.id)),
+  formKeysOf: (vocabId) => formKeysOf(findVocab(vocabId)),
 })
 
 function initState(boot: BootResult) {

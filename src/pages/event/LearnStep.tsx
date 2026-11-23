@@ -9,7 +9,9 @@ import { Translation } from '../../components/Translation'
 import { findGrammar, findVocab } from '../../data'
 import type { Grammar, Vocab } from '../../data/types'
 import type { FuriganaDisplay } from '../../learning/furigana/furigana'
+import { Figures } from '../../components/figures/Figure'
 import { TeacherSays } from '../../components/TeacherCall'
+import { VocabForms } from '../../components/VocabForms'
 
 type Card = { kind: 'vocab'; vocab: Vocab } | { kind: 'grammar'; grammar: Grammar }
 
@@ -22,6 +24,7 @@ function VocabCard({ vocab, display }: { vocab: Vocab; display: FuriganaDisplay 
         <SpeakButton text={vocab.korean} />
       </div>
       <p className="learn-card__ja">{vocab.japanese}</p>
+      <VocabForms vocab={vocab} display={display} />
       {vocab.example !== undefined && vocab.examplePronunciation !== undefined && (
         <div className="learn-card__example">
           <p className="muted small">例文</p>
@@ -50,6 +53,7 @@ function GrammarCard({ grammar, display }: { grammar: Grammar; display: Furigana
             <p>{grammar.connectionJa}</p>
           </div>
         )}
+        <Figures figures={grammar.figures} />
       </TeacherSays>
       <ul className="learn-card__examples">
         {grammar.examples.map((ex) => (

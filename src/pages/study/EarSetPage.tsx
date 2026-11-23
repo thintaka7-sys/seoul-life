@@ -12,6 +12,7 @@ import { content } from '../../data'
 import type { EarSet } from '../../data/types'
 import { earRound } from '../../learning/ear/round'
 import type { PracticeQuestion } from '../../learning/practice/questions'
+import { Figures } from '../../components/figures/Figure'
 import { TeacherSays } from '../../components/TeacherCall'
 
 /**
@@ -47,7 +48,9 @@ function EarPreview({ set }: { set: EarSet }) {
         ))}
       </ul>
       <SlowRepeatNotice />
-      <TeacherSays paragraphs={[set.tipJa]} />
+      <TeacherSays paragraphs={[set.tipJa]}>
+        <Figures figures={set.figures} />
+      </TeacherSays>
     </section>
   )
 }

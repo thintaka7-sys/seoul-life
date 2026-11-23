@@ -17,6 +17,7 @@ import {
   FORM_KINDS,
   HANGUL_LESSON_KINDS,
   GENRE_LABELS,
+  FIGURE_IMAGES,
   MENU_IMAGES,
   PARTS_OF_SPEECH,
   PART_OF_SPEECH_LABELS,
@@ -207,6 +208,7 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
     expect(keysInSection(doc, '### 10-11.')).toEqual([...SCENE_SOUNDS])
     expect(keysInSection(doc, '### 10-13.')).toEqual([...READING_STYLES])
     expect(keysInSection(doc, '### 10-14.')).toEqual([...MENU_IMAGES])
+    expect(keysInSection(doc, '### 10-15.')).toEqual([...FIGURE_IMAGES])
   })
 
   it('形の種類（10-12）がプログラムと一致し、名前も同じ', () => {

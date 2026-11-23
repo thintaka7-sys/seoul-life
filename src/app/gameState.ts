@@ -14,6 +14,8 @@ import {
   learnItems,
   passHangulLesson,
   recordListeningCorrect,
+  recordOrder,
+  recordReadingCorrect,
   rememberWord,
   seeStory,
   stampToday,
@@ -66,6 +68,8 @@ export type Scene =
   | { name: 'album'; back: Scene }
   /** アルバムから、見たおはなしをもう一度見る（記録しない） */
   | { name: 'storyReplay'; storyId: string; back: Scene }
+  /** 施設の画面から、もう一度注文する（GAME_SPEC 4-4。locationId は背景のため） */
+  | { name: 'order'; orderId: string; locationId: string; back: Scene }
   | { name: 'saveError'; reason: CorruptReason; detail: string; backupKey: string | null }
 
 /**
@@ -130,6 +134,12 @@ export type GameAction =
   | { type: 'rememberWord'; vocabId: string; chapter: number; now: string }
   /** 一度だけのお知らせを閉じる */
   | { type: 'dismissNotice'; notice: SaveNotice; now: string }
+  /** 読み物の問題に正解した（key は reading_001#0） */
+  | { type: 'readingCorrect'; key: string; now: string }
+  /** 注文できた（itemKey はメニューの品物の key） */
+  | { type: 'orderPlaced'; orderId: string; itemKey: string; now: string }
+  /** 施設の画面から、もう一度注文する（注文の段階のあるイベントを終えた後） */
+  | { type: 'openOrder'; orderId: string }
   | { type: 'openAlbum' }
   | { type: 'openStoryReplay'; storyId: string }
   | { type: 'openStudy' }
@@ -180,6 +190,8 @@ export interface GameDeps {
   storyIds?: ReadonlySet<string>
   /** 会話（選択の往復への答えを記録しないために使う。省略したら確かめない） */
   conversations?: readonly Conversation[]
+  /** 単語の、形が変わる言葉の問題のキー（覚えたら復習に入れる。省略したら入れない） */
+  formKeysOf?: (vocabId: string) => string[]
 }
 
 export function createInitialState(load: LoadResult, backupKey: string | null, settings: Settings): GameState {
@@ -240,6 +252,7 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'earSet':
     case 'album':
     case 'storyReplay':
+    case 'order':
       return 'closeStudyScene'
     case 'location':
     case 'main':
@@ -271,6 +284,7 @@ type StudyScene = Extract<
       | 'earSet'
       | 'album'
       | 'storyReplay'
+      | 'order'
   }
 >
 
@@ -291,6 +305,7 @@ const STUDY_SCENES: readonly Scene['name'][] = [
   'earSet',
   'album',
   'storyReplay',
+  'order',
 ]
 
 function isStudyScene(scene: Scene): scene is StudyScene {
@@ -404,6 +419,28 @@ export function createGameReducer(deps: GameDeps) {
         if (save === null || state.scene.name !== 'album' || save.progress.storiesSeen[action.storyId] === undefined) return state
         if (deps.storyIds !== undefined && !deps.storyIds.has(action.storyId)) return state
         return { ...state, scene: { name: 'storyReplay', storyId: action.storyId, back: state.scene } }
+      }
+
+      case 'readingCorrect': {
+        if (state.save === null) return state
+        const recorded = recordReadingCorrect(state.save, action.key, balance, action.now)
+        return recorded.save === state.save ? state : { ...state, save: recorded.save, reward: addReward(state, recorded.reward) }
+      }
+
+      case 'orderPlaced': {
+        if (state.save === null) return state
+        const recorded = recordOrder(state.save, action.orderId, action.itemKey, balance, action.now)
+        return recorded.save === state.save ? state : { ...state, save: recorded.save, reward: addReward(state, recorded.reward) }
+      }
+
+      case 'openOrder': {
+        // 注文の段階のあるイベントを終えたか、一度注文できたら、施設の画面から何度でも注文し直せる
+        const save = state.save
+        if (save === null || state.scene.name !== 'location') return state
+        const event = events.find((e) => e.steps.some((s) => s.type === 'order' && s.id === action.orderId))
+        const opened = save.learning.orders[action.orderId] !== undefined || (event !== undefined && save.progress.completedEvents.includes(event.id))
+        if (!opened || event?.location !== state.scene.locationId) return state
+        return { ...state, scene: { name: 'order', orderId: action.orderId, locationId: state.scene.locationId, back: state.scene } }
       }
 
       case 'openStudy':
@@ -590,7 +627,8 @@ export function createGameReducer(deps: GameDeps) {
         if (step?.type !== 'learn' || run === null || state.save === null) return state
         if (run.replay) return finishStep(state, { xp: 0, newWords: 0 }, action.now)
         const chapter = findEvent(events, run.eventId)?.chapter ?? 1
-        const learned = learnItems(state.save, step, chapter, balance, action.now)
+        const forms = deps.formKeysOf === undefined ? [] : step.vocabulary.flatMap(deps.formKeysOf)
+        const learned = learnItems(state.save, { ...step, forms }, chapter, balance, action.now)
         return finishStep({ ...state, save: learned.save }, learned.reward, action.now)
       }
 

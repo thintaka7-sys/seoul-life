@@ -1,7 +1,7 @@
 // 加工済みの画像の一覧（src/data/assets/manifest.json。npm run assets が書き出す）を読み、確かめる。
 // 一覧がない・壊れている・知らないキャラクターや背景を指している場合は、その画像を使わない（画面では仮の絵を出す）。
 
-import { BGM_IDS, EXPRESSIONS, SCENE_SOUNDS, type AssetManifest, type BgmId, type Expression, type ImageAsset, type SceneSound, type ValidationIssue } from './types'
+import { BGM_IDS, EXPRESSIONS, MENU_IMAGES, SCENE_SOUNDS, type AssetManifest, type BgmId, type Expression, type ImageAsset, type SceneSound, type ValidationIssue } from './types'
 
 const FILE = 'assets/manifest.json'
 
@@ -18,7 +18,7 @@ function parseImage(v: unknown): ImageAsset | null {
 }
 
 export function emptyAssetManifest(): AssetManifest {
-  return { characters: {}, backgrounds: {}, map: null, cg: {} }
+  return { characters: {}, backgrounds: {}, map: null, cg: {}, menu: {}, figures: {} }
 }
 
 /** 画像の一覧を確かめる。使えない項目は除き、問題の一覧を返す */
@@ -65,6 +65,21 @@ export function parseAssetManifest(
     const parsed = parseImage(image)
     if (!/^[a-z][a-z0-9_]*$/.test(key) || parsed === null) issue(`cg.${key}`, '一枚絵のキーか画像の情報が正しくありません')
     else manifest.cg[key] = parsed
+  }
+
+  const menu = isObj(raw['menu']) ? raw['menu'] : {}
+  for (const [key, image] of Object.entries(menu)) {
+    const parsed = parseImage(image)
+    if (!MENU_IMAGES.some((k) => k === key)) issue(`menu.${key}`, `メニューの絵のキーではありません：${key}`)
+    else if (parsed === null) issue(`menu.${key}`, '画像の情報が正しくありません')
+    else manifest.menu[key] = parsed
+  }
+
+  const figures = isObj(raw['figures']) ? raw['figures'] : {}
+  for (const [key, image] of Object.entries(figures)) {
+    const parsed = parseImage(image)
+    if (!/^[a-z][a-z0-9_]*$/.test(key) || parsed === null) issue(`figures.${key}`, '図の絵のキーか画像の情報が正しくありません')
+    else manifest.figures[key] = parsed
   }
 
   if (raw['map'] !== null && raw['map'] !== undefined) {

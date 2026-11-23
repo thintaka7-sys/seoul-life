@@ -31,6 +31,7 @@ export function backdropFor(scene: Scene, run: EventRun | null = null): ImageAss
     case 'event':
       return eventBackdrop(scene.locationId, run)
     case 'conversationReplay':
+    case 'order':
       return backgroundImage(scene.locationId)
     case 'settings':
     case 'dictionary':

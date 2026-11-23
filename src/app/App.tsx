@@ -23,6 +23,7 @@ import { ConversationReplayPage } from '../pages/study/ConversationReplayPage'
 import { ReviewPage } from '../pages/study/ReviewPage'
 import { StudyPage } from '../pages/study/StudyPage'
 import { AlbumPage } from '../pages/AlbumPage'
+import { OrderPage } from '../pages/OrderPage'
 import { StoryReplayPage } from '../pages/StoryReplayPage'
 import { setBgm } from '../audio/bgm'
 import { backgroundImage } from '../data'
@@ -80,6 +81,8 @@ function SceneView({ scene }: { scene: Scene }) {
       return <AlbumPage />
     case 'storyReplay':
       return <StoryReplayPage storyId={scene.storyId} />
+    case 'order':
+      return <OrderPage orderId={scene.orderId} />
     case 'saveError':
       return <SaveErrorPage reason={scene.reason} detail={scene.detail} backupKey={scene.backupKey} />
   }
@@ -94,6 +97,7 @@ function sceneKey(scene: Scene): string {
   if (scene.name === 'conversationReplay') return `${scene.name}:${scene.conversationId}`
   if (scene.name === 'earSet') return `${scene.name}:${scene.setId ?? 'mix'}`
   if (scene.name === 'storyReplay') return `${scene.name}:${scene.storyId}`
+  if (scene.name === 'order') return `${scene.name}:${scene.orderId}`
   return scene.name
 }
 

@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { eventBackdrop } from '../../app/backdrop'
 import { useGame, nowIso } from '../../app/GameContext'
 import { Button } from '../../components/Button'
-import { findColumn, findConversation, findGameEvent, findLocation, findStory } from '../../data'
+import { content, findColumn, findConversation, findGameEvent, findLocation, findStory } from '../../data'
 import { backgroundAt, stepProgress } from '../../game/events/events'
 import { DictionaryList } from '../DictionaryPage'
 import { ColumnStep } from './ColumnStep'
@@ -12,6 +12,9 @@ import { DayEndStep } from './DayEndStep'
 import { HangulIntroStep } from './HangulIntroStep'
 import { StoryStep } from './StoryStep'
 import { LearnStep } from './LearnStep'
+import { ListeningStep } from './ListeningStep'
+import { OrderStep } from './OrderStep'
+import { ReadingStep } from './ReadingStep'
 
 /** イベントの段階を1つずつ表示する画面 */
 export function EventPage() {
@@ -20,6 +23,7 @@ export function EventPage() {
   const event = run === null ? undefined : findGameEvent(run.eventId)
   const step = run === null ? undefined : event?.steps[run.step]
   const storyDone = useCallback(() => dispatch({ type: 'storyDone', now: nowIso() }), [dispatch])
+  const stepDone = useCallback(() => dispatch({ type: 'stepDone', now: nowIso() }), [dispatch])
 
   if (run === null || event === undefined || step === undefined) {
     return (
@@ -100,18 +104,18 @@ export function EventPage() {
     case 'chapterEnd':
       body = <ChapterEndStep key={stepKey} chapter={event.chapter} textJa={step.textJa} />
       break
-    case 'reading':
-    case 'order':
+    case 'reading': {
+      const reading = content.readings.find((r) => r.id === step.id)
+      body = reading === undefined ? <p>読み物が見つかりませんでした。</p> : <ReadingStep key={stepKey} reading={reading} onDone={stepDone} />
+      break
+    }
+    case 'order': {
+      const order = content.orders.find((o) => o.id === step.id)
+      body = order === undefined ? <p>注文の教材が見つかりませんでした。</p> : <OrderStep key={stepKey} order={order} onDone={stepDone} />
+      break
+    }
     case 'listening':
-      // Phase 3 の区切り3で作る段階。教材にはまだ使われていないが、来た場合は飛ばせるようにする
-      body = (
-        <>
-          <p className="message">この段階は準備中です。</p>
-          <Button variant="primary" onClick={() => dispatch({ type: 'stepDone', now: nowIso() })}>
-            次へ
-          </Button>
-        </>
-      )
+      body = <ListeningStep key={stepKey} eventId={event.id} chapter={event.chapter} onDone={stepDone} />
       break
   }
 
@@ -137,7 +141,7 @@ export function EventPage() {
       <progress className="event-progress" max={progress.total} value={progress.done} aria-label="イベントの進み具合" />
       <div className="screen__body">
         <div key={stepKey} className="step-enter">
-          {step.type === 'conversation' || step.type === 'story' ? body : <div className="panel">{body}</div>}
+          {step.type === 'conversation' || step.type === 'story' || step.type === 'reading' || step.type === 'order' || step.type === 'listening' ? body : <div className="panel">{body}</div>}
         </div>
       </div>
     </main>

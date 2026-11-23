@@ -1,7 +1,9 @@
 // 第1章〜第3章（Phase 3）を、スマホ幅とPC幅で最初から最後まで遊んで確かめる（first-day.mjs を作り直したもの）。
 // はじめから自動で始まるおはなし（ふりがな・訳の切り替え、ログ、単語のタップと「覚える」、看板、飛ばす）、
 // 先生のビデオ通話の枠と「ハングルは読めますか？」、お隣さんの会話（背景の切り替え・反応と表情・書いて答える）、
-// 章の終わりの画面、カフェが開く知らせ、カフェの会話（分かち書きの注意・再読み込みしての再開）、図鑑、1日の終わり、経験値の合計、BGM の読み込み。
+// 章の終わりの画面、カフェが開く知らせ、カフェの会話（分かち書きの注意・再読み込みしての再開）、図鑑、1日の終わり、
+// 読み物（選ぶ・探す・書く・数字。訳は答え終わるまで隠す）、形が変わる言葉の単語カード、注文（書いて注文・店員の反応・施設から注文し直す）、
+// イベントの聞き取り、経験値の合計、BGM の読み込み。
 // 教材を変えたら、下の「教材に合わせた部分」を直す。
 // 使い方: node scripts/e2e/chapters.mjs <URL>
 
@@ -20,6 +22,8 @@ const readDir = (d) =>
 const convs = new Map(readDir('scenarios').map((c) => [c.id, c]))
 const vocabCount = readDir('vocabulary').length
 const events = readDir('events')
+const readings = new Map(readDir('readings').map((r) => [r.id, r]))
+const listeningSentences = readDir('listening')
 
 const backdrop = () => evaluate(`document.querySelector('.backdrop__sharp')?.getAttribute('src') ?? ''`)
 const expression = () => evaluate(`document.querySelector('.conversation .portrait')?.dataset.expression ?? ''`)
@@ -29,6 +33,41 @@ const dialogueHas = (s) => `(() => { const d = document.querySelector('.dialogue
 const answering = `!!document.querySelector('.answer')`
 const atLocation = (name) => `!document.querySelector('.event-header') && document.querySelector('h1')?.textContent.trim() === ${JSON.stringify(name)}`
 const toast = () => evaluate(`document.querySelector('.toast')?.textContent ?? ''`)
+
+/** 入力欄に文字を入れる（端末のキーボードで打ったのと同じ input イベントを起こす） */
+const fillInput = (selector, value) =>
+  evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+const plainText = (selector) =>
+  evaluate(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return ''; const c = el.cloneNode(true); c.querySelectorAll('rt').forEach(r => r.remove()); return c.textContent.replace(/\\s+/g, ' ').trim() })()`)
+
+/** 読み物の問題に、教材の答えで上から順に答える。正解した問題の数を返す */
+async function answerReading(id, P) {
+  const reading = readings.get(id)
+  let correct = 0
+  check(`${P} ${id}：答える前は日本語訳を出さない`, !(await evaluate(`!!document.querySelector('.reading__ja, .menu-item__ja')`)))
+  for (const [i, q] of reading.questions.entries()) {
+    await sleep(150)
+    if (q.type === 'find') {
+      const ok = await evaluate(`(() => { const plain = (el) => { const c = el.cloneNode(true); c.querySelectorAll('rt').forEach(r => r.remove()); return c.textContent.replace(/[\\s.,?!]/g, '') }; const b = [...document.querySelectorAll('.find-chip')].find(b => plain(b) === ${JSON.stringify(q.answer)}); if (!b) return false; b.click(); return true })()`)
+      check(`${P} ${id}：本文から「${q.answer}」を探して押せる`, ok)
+    } else if (q.type === 'choice') {
+      const c = q.choices.find((x) => x.correct)
+      await clickChoice(c.textJa ?? c.korean)
+    } else if (q.type === 'number') {
+      await fillInput('input[aria-label="答え（数字）"]', q.digits)
+      await click('答える')
+    } else {
+      await fillInput('.answer-input__field', q.answers[0])
+      await click('答える')
+    }
+    await sleep(150)
+    if ((await mainText()).includes('正解！')) correct++
+    await click(i === reading.questions.length - 1 ? '答え合わせを終える' : '次の問題へ')
+  }
+  check(`${P} ${id}：すべて正解し、答え終わったら日本語訳を出す`, correct === reading.questions.length && (await evaluate(`!!document.querySelector('.reading__ja, .menu-item__ja')`)), String(correct))
+  await click('読み終える')
+  return correct
+}
 
 /** 条件を満たすまで、紹介カードの「会話をはじめる」と台詞の「次へ」を押して進める */
 async function advanceUntil(cond, label) {
@@ -89,6 +128,7 @@ for (const [W, H, mobile] of [
   [1280, 800, false],
 ]) {
   P = `${W}`
+  let readingCorrect = 0
   await viewport(W, H, mobile)
   await freshStart()
 
@@ -262,6 +302,14 @@ for (const [W, H, mobile] of [
   await advanceEvent(`!!document.querySelector('.story')`, '第2章のおはなし')
   check(`${P} 仮のおはなしには「仮データ」の印`, await evaluate(`!!document.querySelector('.story .draft-badge')`))
   check(`${P} 家の前の道の背景`, (await backdrop()).includes('bg/street'), await backdrop())
+  await advanceEvent(`!!document.querySelector('.learn-card')`, '第2章の単語カード')
+  check(`${P} 形が変わる言葉の単語カード：部品 → くっついた形の図`, await evaluate(`!!document.querySelector('.learn-card .vocab-forms .formation__result')`))
+  if (W === 375) await shot('375-04b-forms')
+  await layoutCheck(`${P} 形が変わる言葉の単語カード`)
+  await advanceEvent(`!!document.querySelector('.reading-step')`, '第2章の読み物')
+  if (W === 375) await shot('375-04c-reading')
+  await layoutCheck(`${P} 読み物（メモ）`)
+  readingCorrect += await answerReading('reading_902', P)
   await advanceEvent(atLocation('自宅'), '第2章のはじめの後')
   await click('先生に報告する')
   await advanceEvent(`!!document.querySelector('.chapter-end')`, '第2章の終わり')
@@ -339,13 +387,69 @@ for (const [W, H, mobile] of [
   const written = 2
   check(`${P} 1日の終わり：単語${vocabCount}語・会話の正解${turnsCorrect}回`, (await mainText()).includes(`${vocabCount} 語`) && (await mainText()).includes(`${turnsCorrect} 回`), (await mainText()).slice(0, 300))
   await click('閉じる')
+
+  // --- event_910（第3章の仮のイベント：メニューを読む → 注文 → 聞き取り → 章の終わり） ---
+  await click('外に出る（マップへ）')
+  await click('カフェ目標')
+  await click('もう一度カフェに入る')
+  await advanceEvent(`!!document.querySelector('.reading-step')`, 'メニューの読み物')
+  check(`${P} メニューの読み物：品物の絵・品名・値段`, (await evaluate(`document.querySelectorAll('.menu-item .menu-item__img').length`)) >= 3 && (await plainText('.menu-board')).includes('4,500원'), await plainText('.menu-board'))
+  if (W === 375) await shot('375-07-menu')
+  await layoutCheck(`${P} メニューの読み物`)
+  readingCorrect += await answerReading('reading_901', P)
+  await sleep(150)
+  check(`${P} 注文の画面：店員の台詞・メニュー・言うこと`, (await plainText('.order-step')).includes('주문하시겠어요') && (await evaluate(`!!document.querySelector('.order-step .menu-board') && !!document.querySelector('.order-step .task-label, .order-step .task')`)), (await plainText('.order-step')).slice(0, 200))
+  if (W === 375) await shot('375-08-order')
+  await layoutCheck(`${P} 注文`)
+  await fillInput('.answer-input__field', '아메리카노 한 잔 주세요')
+  await click('答える')
+  await sleep(200)
+  const reaction = await plainText('.order-step__lines')
+  check(`${P} 注文できた：数の確かめ → 品物のひとこと → 締めの台詞`, (await mainText()).includes('注文できました') && reaction.includes('한 잔이요') && reaction.includes('아메리카노요') && reaction.includes('기다려 주세요'), reaction)
+  check(`${P} 注文の記録（初めての注文）`, JSON.stringify((await saved()).learning.orders['order_901']?.items) === '["americano"]', JSON.stringify((await saved()).learning.orders))
+  await click('次へ')
+  await sleep(200)
+  // 聞き取り：読み上げが使えれば答え、使えなければ飛ばす
+  let listened = 0
+  if (await evaluate(`!!document.querySelector('.quiz') && !!document.querySelector('.choice__button')`)) {
+    const s = listeningSentences.find((x) => x.afterEvent === 'event_910')
+    await clickChoice(s.korean)
+    if ((await mainText()).includes('正解！')) listened++
+    await click('結果を見る')
+    check(`${P} イベントの聞き取り：問題に答え、結果を出す`, listened === 1 && (await mainText()).includes('1問中 1問正解'), (await mainText()).slice(0, 200))
+    await click('次へ')
+  } else {
+    check(`${P} イベントの聞き取り：読み上げが使えない端末では、案内を出して飛ばせる`, (await mainText()).includes('聞き取りの問題は飛ばします'))
+  }
+  await advanceEvent(`!!document.querySelector('.chapter-end')`, '第3章の終わり')
+  check(`${P} 第3章の終わりの画面と、章末テストの案内`, (await mainText()).includes('第3章 クリア') && (await mainText()).includes('第3章のテスト'), (await mainText()).slice(0, 300))
+  await click('次へ')
+  await advanceEvent(`document.querySelector('h1')?.textContent.trim() === 'カフェ' && !document.querySelector('.event-header')`, '第3章の後')
+
+  // 施設の画面から、もう一度注文する（メニューにない品物 → 聞き返し、答えの例でも進める。経験値は初回だけ）
+  const xpBeforeReorder = (await saved()).stats.xp
+  await click('注文する（メニューを見る）')
+  await fillInput('.answer-input__field', '라면 주세요')
+  await click('答える')
+  await sleep(200)
+  check(`${P} メニューにない品物：店員が「ありません」と答え、もう一度注文できる`, (await plainText('.order-step__lines')).includes('그건 없어요') && (await evaluate(`!!document.querySelector('.answer-input__field')`)))
+  await fillInput('.answer-input__field', '아메리카노 한 개 주세요')
+  await click('答える')
+  await sleep(200)
+  check(`${P} 数え方の単位が品物と合わない：通じたものとして、注意を出す`, (await mainText()).includes('注文できました') && (await mainText()).includes('잔 で数える'), (await mainText()).slice(0, 300))
+  check(`${P} 2回目の注文では経験値を付けない`, (await saved()).stats.xp === xpBeforeReorder)
+  await click('店を出る')
+  check(`${P} 注文し直した後は、カフェの画面に戻る`, (await heading()) === 'カフェ')
+
   const final = await saved()
-  // 単語×2 ＋ 選んだ往復×10 ＋ 書いた往復×15 ＋ イベント×20（src/data/game/balance.json）
-  const expectXp = vocabCount * 2 + (turnsCorrect - written) * 10 + written * 15 + events.length * 20
+  // 単語×2 ＋ 選んだ往復×10 ＋ 書いた往復×15 ＋ イベント×20 ＋ 読み物の正解×5 ＋ 初めての注文15 ＋ 聞き取りの正解×3（src/data/game/balance.json）
+  const expectXp = vocabCount * 2 + (turnsCorrect - written) * 10 + written * 15 + events.length * 20 + readingCorrect * 5 + 15 + listened * 3
   check(`${P} 経験値の合計 ${expectXp}`, final.stats.xp === expectXp, String(final.stats.xp))
   check(`${P} すべてのイベント完了（${events.length}）`, final.progress.completedEvents.length === events.length, JSON.stringify(final.progress.completedEvents))
 
   // --- おはなしのアルバム ---
+  await click('外に出る（マップへ）')
+  await click('自宅', { exact: false })
   await click('おはなしのアルバム')
   const albumItems = await evaluate(`document.querySelectorAll('.album-list__item').length`)
   check(`${P} アルバムに、見たおはなしが並ぶ（${Object.keys(final.progress.storiesSeen).length}本）`, albumItems === Object.keys(final.progress.storiesSeen).length && albumItems > 0, String(albumItems))

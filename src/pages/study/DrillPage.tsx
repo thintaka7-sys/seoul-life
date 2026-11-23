@@ -11,6 +11,7 @@ import { content } from '../../data'
 import { shuffle } from '../../learning/hangul/quiz'
 import { buildQuestions, type PracticeQuestion } from '../../learning/practice/questions'
 import { parseReviewKey, reviewKey } from '../../learning/review/review'
+import { Figures } from '../../components/figures/Figure'
 import { TeacherSays } from '../../components/TeacherCall'
 
 /** 基礎ドリル（GAME_SPEC 4-9）。初めて正解した問題に経験値。間違えた問題は翌日の復習へ */
@@ -50,7 +51,13 @@ export function DrillPage({ drillId }: { drillId: string }) {
     <ScreenLayout eyebrow="基礎ドリル" title={title} footer={<Button onClick={close}>戻る</Button>}>
       {session === null ? (
         <section className="panel">
-          {drill.introJa !== undefined && <TeacherSays paragraphs={[drill.introJa]} />}
+          {drill.introJa !== undefined ? (
+            <TeacherSays paragraphs={[drill.introJa]}>
+              <Figures figures={drill.figures} />
+            </TeacherSays>
+          ) : (
+            <Figures figures={drill.figures} />
+          )}
           <p className="muted small">
             1回 {count} 問。初めて正解した問題には経験値が付きます。間違えた問題は、明日の復習にもう一度出ます。
             {drill.items.some((i) => i.digits !== undefined) && '数字の問題は、選択肢を出さずに入力で答えます。'}

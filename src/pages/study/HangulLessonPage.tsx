@@ -15,6 +15,7 @@ import { content, findHangulLesson, findVocab } from '../../data'
 import type { HangulFinal, HangulLesson, HangulLetter, SoundChangeRule } from '../../data/types'
 import { hangulHeading, missedFromHangul, type MissedItem } from '../../learning/feedback/missed'
 import { buildQuiz, isCorrectAnswer, questionAnswer, quizScore, readingItems, type HangulQuestion, type ReadingItem } from '../../learning/hangul/quiz'
+import { Figures } from '../../components/figures/Figure'
 import { TeacherSays } from '../../components/TeacherCall'
 
 const CONTINUE_HINT = '続きのレッスンは、自宅の「勉強する」→「ハングル」から、いつでも進められます。'
@@ -56,7 +57,9 @@ function LessonCard({ card }: { card: Card }) {
             {card.letter.jamo}
           </p>
           <SoundList sounds={card.letter.sounds} />
-          <TeacherSays paragraphs={[card.letter.tipJa]} />
+          <TeacherSays paragraphs={[card.letter.tipJa]}>
+            <Figures figures={card.letter.figures} />
+          </TeacherSays>
         </article>
       )
     case 'final':
@@ -67,14 +70,18 @@ function LessonCard({ card }: { card: Card }) {
             {card.final.letters.join(' ')}
           </p>
           <SoundList sounds={card.final.sounds} />
-          <TeacherSays paragraphs={[card.final.tipJa]} />
+          <TeacherSays paragraphs={[card.final.tipJa]}>
+            <Figures figures={card.final.figures} />
+          </TeacherSays>
         </article>
       )
     case 'rule':
       return (
         <article className="card hangul-card">
           <h2 className="learn-card__title">{card.rule.titleJa}</h2>
-          <TeacherSays paragraphs={[card.rule.explanationJa]} />
+          <TeacherSays paragraphs={[card.rule.explanationJa]}>
+            <Figures figures={card.rule.figures} />
+          </TeacherSays>
           <ul className="sound-change-list">
             {card.rule.examples.map((ex) => (
               <li key={ex.korean}>
@@ -307,7 +314,9 @@ export function HangulLessonPage({ lessonId, onboarding }: { lessonId: string; o
     case 'intro':
       body = (
         <section className="panel">
-          <TeacherSays paragraphs={lesson.introJa} />
+          <TeacherSays paragraphs={lesson.introJa}>
+            <Figures figures={lesson.figures} />
+          </TeacherSays>
           <Button variant="primary" onClick={() => (cards.length > 0 ? setPhase({ name: 'cards', index: 0 }) : afterCards())}>
             {cards.length > 0 ? '文字を見る' : '読んでみる'}
           </Button>

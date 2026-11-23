@@ -1,6 +1,7 @@
 // 復習・練習の画面から使う、教材とセーブデータのつなぎ。
 
 import { content } from '../data'
+import { parseFormId } from '../learning/forms/forms'
 import { createPracticeIndex } from '../learning/practice/questions'
 import { parseReviewKey, reviewKey } from '../learning/review/review'
 import type { SaveData } from '../storage/saveData'
@@ -38,12 +39,16 @@ export function learnedKeys(save: SaveData, category: PracticeCategory): string[
   return keys.filter(practiceIndex.exists)
 }
 
-/** フリガナの表示を決める章：単語・文法は覚えたときの章（会話は会話の章、ドリルは1章） */
+/** フリガナの表示を決める章：単語・文法・形が変わる言葉は覚えたときの章（会話は会話の章、ドリルは1章） */
 export function chapterOfKey(save: SaveData): (key: string) => number | undefined {
   return (key) => {
     const parsed = parseReviewKey(key)
     if (parsed?.kind === 'word') return save.learning.words[parsed.id]?.chapter
     if (parsed?.kind === 'grammar') return save.learning.grammar[parsed.id]?.chapter
+    if (parsed?.kind === 'form') {
+      const vocabId = parseFormId(parsed.id)?.vocabId
+      return vocabId === undefined ? undefined : save.learning.words[vocabId]?.chapter
+    }
     return undefined
   }
 }

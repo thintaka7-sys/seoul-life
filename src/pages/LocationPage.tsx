@@ -23,6 +23,15 @@ export function LocationPage({ locationId }: { locationId: string }) {
   const next = save === null ? undefined : nextEventAt(content.events, save.progress, locationId)
   const resuming = next !== undefined && save?.progress.activeEvent?.id === next.id
   const replays = save === null ? [] : completedEventsAt(content.events, save.progress, locationId)
+  // 注文の段階のあるイベントを終えたら（一度注文できたら）、ここから何度でも注文し直せる（GAME_SPEC 4-4）
+  const orders =
+    save === null
+      ? []
+      : content.orders.filter((o) => {
+          if (o.location !== locationId) return false
+          const event = content.events.find((e) => e.steps.some((s) => s.type === 'order' && s.id === o.id))
+          return save.learning.orders[o.id] !== undefined || (event !== undefined && save.progress.completedEvents.includes(event.id))
+        })
 
   return (
     <ScreenLayout
@@ -53,6 +62,12 @@ export function LocationPage({ locationId }: { locationId: string }) {
         ) : (
           <p className="muted">いまは、ここですることはありません。</p>
         )}
+
+        {orders.map((o) => (
+          <Button key={o.id} onClick={() => dispatch({ type: 'openOrder', orderId: o.id })}>
+            注文する（メニューを見る）
+          </Button>
+        ))}
 
         {locationId === 'home' && (
           <>

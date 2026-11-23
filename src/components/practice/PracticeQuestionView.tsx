@@ -8,6 +8,7 @@ import type { ChoiceOption, Phrase, PracticeQuestion, Prompt } from '../../learn
 import { AnswerInput } from '../AnswerInput'
 import { Button } from '../Button'
 import { NamePlate } from '../dialogue/NamePlate'
+import { FormationFigure } from '../figures/Figure'
 import { KoreanText } from '../KoreanText'
 import { Notice } from '../Notice'
 import { SpeakButton } from '../SpeakButton'
@@ -65,6 +66,13 @@ function PromptView({ prompt, display, answered }: { prompt: Prompt; display: Fu
             </div>
           ))}
           {prompt.task !== null && <TaskLabel task={prompt.task} />}
+        </div>
+      )
+    case 'formation':
+      return (
+        <div className="practice-ja">
+          <FormationFigure parts={prompt.parts} result={null} />
+          <p className="muted">{prompt.japanese}</p>
         </div>
       )
   }
@@ -292,8 +300,15 @@ function PracticeFeedback({
       {written && (!result.correct || result.spacing) && <AnswerCompare given={given} answers={result.correct ? [result.matched] : answers} digits={body.type === 'number'} />}
       <div className="practice-model">
         <p className="muted small">{alternative ? '模範解答' : '正解'}</p>
-        <PhraseLine phrase={q.model} display={display === 'tap' ? 'show' : display} />
-        <p className="muted small">{q.model.japanese}</p>
+        {q.model.korean === '' ? (
+          // 読み物の日本語の選択肢・数字の問題は、正解を日本語（数字）だけで見せる
+          <p className="practice-model__ja">{q.model.japanese}</p>
+        ) : (
+          <>
+            <PhraseLine phrase={q.model} display={display === 'tap' ? 'show' : display} />
+            {q.model.japanese !== '' && <p className="muted small">{q.model.japanese}</p>}
+          </>
+        )}
       </div>
       {q.note !== undefined && <p className="answer-note small">{q.note}</p>}
       {listening && q.prompt.kind === 'audio' && <ListenCompare given={chosenKorean} answer={q.prompt.phrase.korean} />}

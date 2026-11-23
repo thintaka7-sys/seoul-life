@@ -6,6 +6,7 @@ import { KoreanText } from '../components/KoreanText'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { SpeakButton } from '../components/SpeakButton'
 import { SpeechNotice } from '../components/SpeechNotice'
+import { VocabForms } from '../components/VocabForms'
 import { content } from '../data'
 import { GENRE_LABELS, PART_OF_SPEECH_LABELS, PARTS_OF_SPEECH, VOCAB_GENRES, type PartOfSpeech, type Vocab, type VocabGenre } from '../data/types'
 import { isMastered, reviewKey } from '../learning/review/review'
@@ -26,6 +27,12 @@ function WordEntry({ vocab, chapter, status }: { vocab: Vocab; chapter: number; 
         <span className={`dict-status dict-status--${status}`}>{STATUS_LABELS[status]}</span>
       </div>
       <p className="dict-entry__ja">{vocab.japanese}</p>
+      {(vocab.base !== undefined || (vocab.forms?.length ?? 0) > 0) && (
+        <details className="dict-entry__forms">
+          <summary>形が変わる言葉</summary>
+          <VocabForms vocab={vocab} display={display} />
+        </details>
+      )}
       {vocab.example !== undefined && vocab.examplePronunciation !== undefined && (
         <div className="dict-entry__example">
           <div className="ko-row">

@@ -117,6 +117,16 @@ function sentenceQuestions(sources: ListeningSources, progress: ListeningProgres
     })
 }
 
+/** イベントの listening の段階で出す問題：afterEvent がそのイベントのリスニングの文（書いた順） */
+export function eventListeningQuestions(sentences: readonly ListeningSentence[], eventId: string, chapter: number, random: Random): ListeningQuestion[] {
+  return sentences
+    .filter((s) => s.afterEvent === eventId)
+    .map((s) => {
+      const line: ListeningLine = { korean: s.korean, pronunciation: s.pronunciation, japanese: s.japanese }
+      return { kind: 'sentence' as const, key: listeningKey('sentence', s.id), chapter, audio: line, options: shuffle([line, ...s.distractors], random), answers: [s.korean] }
+    })
+}
+
 /** いま出せるリスニング問題（すべて） */
 export function listeningCandidates(sources: ListeningSources, progress: ListeningProgress, random: Random): ListeningQuestion[] {
   return [...wordQuestions(sources, progress, random), ...replyQuestions(sources, progress, random), ...sentenceQuestions(sources, progress, random)]

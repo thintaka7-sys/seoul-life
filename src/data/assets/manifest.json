@@ -106,5 +106,99 @@
     "width": 1080,
     "height": 1935
   },
-  "cg": {}
+  "cg": {},
+  "menu": {
+    "americano": {
+      "src": "assets/menu/americano.webp?v=eabeef6144",
+      "width": 400,
+      "height": 400
+    },
+    "cafe_latte": {
+      "src": "assets/menu/cafe_latte.webp?v=6da02b87f6",
+      "width": 400,
+      "height": 400
+    },
+    "vanilla_latte": {
+      "src": "assets/menu/vanilla_latte.webp?v=b00cab8222",
+      "width": 400,
+      "height": 400
+    },
+    "green_tea_latte": {
+      "src": "assets/menu/green_tea_latte.webp?v=4b10018e4d",
+      "width": 400,
+      "height": 400
+    },
+    "strawberry_latte": {
+      "src": "assets/menu/strawberry_latte.webp?v=6e5baa1d06",
+      "width": 400,
+      "height": 400
+    },
+    "yuzu_tea": {
+      "src": "assets/menu/yuzu_tea.webp?v=e6ae1b8d5b",
+      "width": 400,
+      "height": 400
+    },
+    "lemonade": {
+      "src": "assets/menu/lemonade.webp?v=0d93966c69",
+      "width": 400,
+      "height": 400
+    },
+    "cheesecake": {
+      "src": "assets/menu/cheesecake.webp?v=294764cf40",
+      "width": 400,
+      "height": 400
+    },
+    "croffle": {
+      "src": "assets/menu/croffle.webp?v=cd5f0b5454",
+      "width": 400,
+      "height": 400
+    },
+    "macaron": {
+      "src": "assets/menu/macaron.webp?v=00918d575f",
+      "width": 400,
+      "height": 400
+    },
+    "croissant": {
+      "src": "assets/menu/croissant.webp?v=f9c241f052",
+      "width": 400,
+      "height": 400
+    },
+    "cookie": {
+      "src": "assets/menu/cookie.webp?v=857b3c6d0e",
+      "width": 400,
+      "height": 400
+    }
+  },
+  "figures": {
+    "mouth_eo": {
+      "src": "assets/fig/mouth_eo.webp?v=3cbf1cedfe",
+      "width": 720,
+      "height": 465
+    },
+    "mouth_o": {
+      "src": "assets/fig/mouth_o.webp?v=a993d225e2",
+      "width": 720,
+      "height": 465
+    },
+    "mouth_eu": {
+      "src": "assets/fig/mouth_eu.webp?v=cd3bc51480",
+      "width": 720,
+      "height": 465
+    },
+    "mouth_u": {
+      "src": "assets/fig/mouth_u.webp?v=ec44f50e66",
+      "width": 720,
+      "height": 465
+    },
+    "breath_weak": {
+      "src": "assets/fig/breath_weak.webp?v=83b0e237ca",
+      "width": 720,
+      "height": 793
+    },
+    "breath_strong": {
+      "src": "assets/fig/breath_strong.webp?v=94493751ef",
+      "width": 720,
+      "height": 793
+    }
+  }
 }
