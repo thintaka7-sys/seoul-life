@@ -100,6 +100,16 @@ describe('createSpeechPlayer（読み上げの再生）', () => {
     expect((log[2]?.startAt ?? 0) - (log[1]?.endAt ?? 0)).toBeGreaterThanOrEqual(REPEAT_GAP_MS)
   })
 
+  it('止める（画面が見えなくなったとき）：読み上げ中のものを止め、くり返しの2回目も読まない', async () => {
+    const { player, log, cancels } = fakeDevice()
+    const p = player.speak('커피', 'slow', { slowButton: true })
+    await vi.advanceTimersByTimeAsync(CANCEL_GAP_MS + 50)
+    player.stop()
+    await run(p)
+    expect(cancels).toHaveLength(2)
+    expect(log).toHaveLength(1)
+  })
+
   it('設定の「ゆっくり」（ボタンでない読み上げ）は、短い単語でもくり返さない', async () => {
     const { player, log } = fakeDevice()
     await run(player.speak('불', 'slow'))

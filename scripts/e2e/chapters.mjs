@@ -497,7 +497,18 @@ for (const [W, H, mobile] of [
   check(`${P} アルバム → 自宅`, (await heading()) === '自宅')
 }
 
-// ---------- BGM：最初の操作で鳴り始め、場面の曲を読み込む。設定で音量を変えられる ----------
+// ---------- BGM：最初の操作で鳴り始め、場面の曲を読み込む。画面が見えなくなったら止め、戻ったら続きから。設定で音量を変えられる ----------
+// BGM の audio 要素と AudioContext は画面に出ないので、作られたものを記録しておく
+await send('Page.addScriptToEvaluateOnNewDocument', {
+  source: `(() => {
+    window.__audios = new Set()
+    const play = HTMLMediaElement.prototype.play
+    HTMLMediaElement.prototype.play = function () { window.__audios.add(this); return play.call(this) }
+    window.__contexts = []
+    const Base = window.AudioContext
+    if (Base) window.AudioContext = class extends Base { constructor(...a) { super(...a); window.__contexts.push(this) } }
+  })()`,
+})
 await viewport(375, 760, true)
 await freshStart()
 const clickByMouse = async (text) => {
@@ -510,6 +521,38 @@ const loaded = (name) => evaluate(`performance.getEntriesByType('resource').some
 check('BGM：操作の前は曲を読み込まない', !(await loaded('audio/bgm_')))
 await clickByMouse('はじめから')
 check('BGM：はじめからで、おはなしの曲（story）を読み込む', await loaded('audio/bgm_story'))
+
+// 画面が見えなくなったら（別のタブ・ホーム画面）、BGM を止め、音の出口（効果音）も止める。戻ったら BGM を続きから
+const audioState = () =>
+  evaluate(`({
+    playing: [...window.__audios].filter((a) => !a.paused).map((a) => ({ src: a.src.split('/').pop(), t: a.currentTime })),
+    paused: [...window.__audios].filter((a) => a.paused && a.currentTime > 0).map((a) => ({ src: a.src.split('/').pop(), t: a.currentTime })),
+    contexts: window.__contexts.map((c) => c.state),
+  })`)
+const setVisibility = async (state, event) => {
+  await evaluate(`(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => ${JSON.stringify(state)} })
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => ${JSON.stringify(state === 'hidden')} })
+    ${event === 'visibilitychange' ? `document.dispatchEvent(new Event('visibilitychange'))` : `window.dispatchEvent(new PageTransitionEvent(${JSON.stringify(event)}, { persisted: true }))`}
+  })()`)
+  await sleep(500)
+}
+const playingBefore = await audioState()
+check('BGM：はじめからで、曲が流れ始める', playingBefore.playing.length === 1 && playingBefore.contexts.includes('running'), JSON.stringify(playingBefore))
+for (const [hideEvent, showEvent] of [
+  ['visibilitychange', 'visibilitychange'],
+  ['pagehide', 'pageshow'],
+]) {
+  await setVisibility('hidden', hideEvent)
+  const hiddenState = await audioState()
+  check(`見えなくなったら（${hideEvent}）：BGM を止め、音の出口も止める`, hiddenState.playing.length === 0 && hiddenState.paused.length >= 1 && hiddenState.contexts.every((c) => c !== 'running'), JSON.stringify(hiddenState))
+  const stoppedAt = Math.max(...hiddenState.paused.map((a) => a.t))
+  await sleep(600)
+  check(`見えない間は、BGM を進めない（${hideEvent}）`, Math.max(...(await audioState()).paused.map((a) => a.t)) === stoppedAt)
+  await setVisibility('visible', showEvent)
+  const shown = await audioState()
+  check(`戻ったら（${showEvent}）：BGM を続きから流し、音の出口も動かす`, shown.playing.length === 1 && shown.playing[0].t >= stoppedAt && shown.contexts.includes('running'), JSON.stringify({ stoppedAt, shown }))
+}
 await click('設定')
 await click('オフ', { within: 'fieldset:has(input[name="bgm"])' }).catch(async () => evaluate(`document.querySelector('input[name="bgm"][type="radio"]:not(:checked)').click()`))
 await sleep(200)

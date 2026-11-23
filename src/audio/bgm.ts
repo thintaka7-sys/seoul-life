@@ -3,6 +3,7 @@
 //   iPhone の Safari は audio.volume が効かないため、音量はつまみで変える。
 // - 曲の終わり（フェードアウトの手前で切ってある。npm run audio）が近づいたら、同じ曲の始めをもう一方のデッキで重ねて始める。
 // - 場面が変わったら、新しい曲を重ねながら切り替える。読み上げの間は小さくする（iPhone など、マナーモードを区別できるブラウザでは消す。audioSession.ts）。
+// - 画面が見えなくなったら止め、戻ったら続きから流す（pageVisibility.ts）。
 // - ブラウザは操作の前に音を出させないので、最初の操作で AudioContext ができてから鳴らし始める。
 //   iPhone は、操作の中で一度 play() した audio 要素でないと後から鳴らせないことがあるため、最初の操作で両方のデッキを一度鳴らして止める。
 
@@ -18,7 +19,7 @@ interface Deck {
   track: BgmId | null
   /** フェードアウトの後に止めるタイマー */
   stopTimer: number | null
-  /** 再生を断られた（操作の前など）。次の操作で再び試す */
+  /** 再生を断られた（操作の前など）か、画面が見えない間に始めようとした。次の操作・画面に戻ったときに再び試す */
   pending: boolean
 }
 
@@ -40,6 +41,8 @@ let desired: Desired = { track: null, level: 1 }
 let enabled = true
 let ducked = false
 let primed = false
+/** 画面が見えない間（止めている） */
+let hidden = false
 
 function urlOf(track: BgmId): string | null {
   const entry = audioAssets.bgm[track]
@@ -55,6 +58,10 @@ function ramp(gain: GainNode, to: number, sec: number): void {
 }
 
 function play(deck: Deck): void {
+  if (hidden) {
+    deck.pending = true
+    return
+  }
   deck.el
     .play()
     .then(() => {
@@ -120,7 +127,7 @@ function apply(): void {
 
 /** 定期的に：曲の終わりが近ければ重ねて始め直す。読み上げの間は小さくする */
 function tick(): void {
-  if (decks === null || mix === null) return
+  if (decks === null || mix === null || hidden) return
   const current = decks[active]
   const track = current.track
   const entry = track === null ? undefined : audioAssets.bgm[track]
@@ -177,6 +184,35 @@ function setup(audio: AudioContext, output: AudioNode): void {
   window.setInterval(tick, 250)
   for (const type of UNLOCK_EVENTS) window.addEventListener(type, onGesture, { passive: true, capture: true })
   onGesture()
+  apply()
+}
+
+/** 画面が見えなくなったとき：流している曲を、いまの位置で止める。重ねて消している途中の曲は、そのまま止める */
+export function suspendBgm(): void {
+  hidden = true
+  if (decks === null) return
+  for (const deck of decks) {
+    if (deck.stopTimer !== null) {
+      window.clearTimeout(deck.stopTimer)
+      deck.stopTimer = null
+    }
+    if (!deck.el.paused) {
+      deck.el.pause()
+      // 流していた曲は、戻ったときに続きから流す（消している途中の曲は track が null）
+      deck.pending = deck.track !== null
+    }
+  }
+}
+
+/** 画面に戻ったとき：止めた曲を続きから流す（断られたら、次の操作のときに流す） */
+export function resumeBgm(): void {
+  if (!hidden) return
+  hidden = false
+  if (decks === null) return
+  for (const deck of decks) {
+    if (deck.pending && deck.track !== null) play(deck)
+    else deck.pending = false
+  }
   apply()
 }
 

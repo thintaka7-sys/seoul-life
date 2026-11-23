@@ -53,6 +53,16 @@ export function onAudioEngineReady(listener: (ctx: AudioContext) => void): void 
   if (engine !== null) listener(engine.ctx)
 }
 
+/** 音の出口を止める（画面が見えなくなったとき）。効果音は、鳴っている途中でも止まる */
+export function suspendAudioEngine(): void {
+  if (engine !== null && engine.ctx.state === 'running') void engine.ctx.suspend().catch(() => undefined)
+}
+
+/** 音の出口を再び動かす（画面に戻ったとき）。iPhone などで断られたら、次の操作のときに動かす（sfx.ts・bgm.ts） */
+export function resumeAudioEngine(): void {
+  if (engine !== null && engine.ctx.state !== 'running') void engine.ctx.resume().catch(() => undefined)
+}
+
 /** いまの音量を、つまみに伝える。読み上げのためにマナーモードでも鳴る扱いの間は 0 */
 function applyGains(): void {
   if (engine === null) return

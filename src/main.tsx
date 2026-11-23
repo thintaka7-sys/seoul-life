@@ -5,6 +5,7 @@ import { boot } from './app/boot'
 import { GameProvider } from './app/GameProvider'
 import { initAudioSession } from './audio/audioSession'
 import { initBgm } from './audio/bgm'
+import { initPageVisibility } from './audio/pageVisibility'
 import { initSfx } from './audio/sfx'
 import { initSpeech } from './audio/speech'
 import { getBrowserStorage } from './storage/browserStorage'
@@ -20,6 +21,7 @@ initAudioSession()
 initSpeech()
 initSfx()
 initBgm()
+initPageVisibility()
 
 createRoot(rootElement).render(
   <StrictMode>

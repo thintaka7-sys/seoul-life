@@ -112,6 +112,12 @@ export function speakKorean(text: string, rate: SpeechRate, options: SpeakOption
   void player.speak(text, rate, options).finally(release)
 }
 
+/** 読み上げを止める（画面が見えなくなったとき。pageVisibility.ts）。読み上げが使えない環境では何もしない */
+export function stopSpeaking(): void {
+  if (player !== null) player.stop()
+  else if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel()
+}
+
 /** 読み上げの確認（設定画面）：同じ文をふつう → 遅い速さの候補で読み、長さと選んだ速さを返す */
 export async function checkSpeech(text: string): Promise<SpeechCheckResult | null> {
   if (status.state !== 'available' || player === null) return null

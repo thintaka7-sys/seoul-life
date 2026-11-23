@@ -256,9 +256,16 @@ export function createSpeechPlayer(deps: SpeechPlayerDeps) {
     setState({ support: rate === null ? 'ignored' : 'works', rate, checked: true, noticePending: false })
   }
 
+  /** 読み上げ中のものと、その続き（くり返し・確認の残り）をやめる（画面が見えなくなったとき） */
+  function stop() {
+    token++
+    deps.cancel()
+  }
+
   return {
     speak,
     check,
+    stop,
     applySaved,
     getState: () => state,
     subscribe(listener: () => void) {
