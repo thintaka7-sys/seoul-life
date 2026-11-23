@@ -88,6 +88,7 @@ for (const [W, H, mobile] of [
   await click('ドリル・テスト')
   await click(figureDrill.titleJa, { exact: false })
   await sleep(400)
+  await waitImages()
   const figures = await evaluate(`({
     all: document.querySelectorAll('.figure').length,
     svg: document.querySelectorAll('.figure__svg').length,
