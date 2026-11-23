@@ -1,6 +1,6 @@
 // 効果音（ボタン・正解など）。Web Audio API で短い音を作って鳴らす（GAME_SPEC 10-4）。場面の効果音（ドアのベルなど）は sceneSounds.ts。
 // ブラウザは、利用者が画面を操作する前に音を出させないため、最初のタップ（またはキー操作）で準備する。
-// iPhone はマナーモード（消音スイッチ）のとき、この音は鳴らない（端末の仕様）。
+// iPhone はマナーモード（消音スイッチ）のとき、この音は鳴らない（audioSession.ts で ambient にしている）。
 
 import { ensureAudioEngine } from './engine'
 

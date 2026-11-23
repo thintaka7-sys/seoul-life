@@ -2753,14 +2753,21 @@ h2.step-heading {
   aspect-ratio: 1 / 1;
 }
 
-/* 立ち絵の顔と肩のあたりだけを見せる */
+/*
+ * 立ち絵の頭から肩のあたりまでを見せる。立ち絵（縦横比 約 0.54）のあごは上から約25%、肩は約37%の高さにあるので、
+ * 枠（4:3）の高さに立ち絵の上から約37%までが入る大きさにする（小さい枠（1:1）は同じ考えで 140%）
+ */
 .call-frame__portrait {
   position: absolute;
   left: 50%;
   top: 4%;
-  width: 150%;
+  width: 105%;
   max-width: none;
   translate: -50% 0;
+}
+
+.call-frame--mini .call-frame__portrait {
+  width: 140%;
 }
 
 .call-frame__portrait .portrait__img {

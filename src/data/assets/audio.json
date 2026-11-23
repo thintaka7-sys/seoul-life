@@ -38,8 +38,8 @@
     "page": {
       "src": "audio/sfx/page.mp3?v=53a2f0d535"
     },
-    "car": {
-      "src": "audio/sfx/car.mp3?v=a679575ae2"
+    "car_door": {
+      "src": "audio/sfx/car_door.mp3?v=b95eaa4f1c"
     },
     "call": {
       "src": "audio/sfx/call.mp3?v=f0a042241a"

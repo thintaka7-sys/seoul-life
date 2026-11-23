@@ -593,7 +593,7 @@ export const BGM_IDS = ['title', 'home', 'map', 'cafe', 'study', 'story'] as con
 export type BgmId = (typeof BGM_IDS)[number]
 
 /** おはなしで鳴らす場面の効果音のID */
-export const SCENE_SOUNDS = ['door_bell', 'cup', 'buzzer', 'page', 'airplane', 'car', 'call'] as const
+export const SCENE_SOUNDS = ['door_bell', 'cup', 'buzzer', 'page', 'car_door', 'call'] as const
 export type SceneSound = (typeof SCENE_SOUNDS)[number]
 
 /** おはなしの台詞（話者と表情は会話の台詞と同じ） */

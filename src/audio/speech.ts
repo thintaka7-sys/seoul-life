@@ -3,6 +3,7 @@
 // 音声の一覧は、ブラウザによっては後から（voiceschanged で）届くため、少し待ってから判断する。
 
 import type { SpeechRate } from '../storage/settings'
+import { holdAudioForSpeech } from './audioSession'
 import { INITIAL_SLOW_STATE, createSpeechPlayer, type SlowState, type SpeakOptions, type SpeechCheckResult, type SpeechPlayer } from './speechPlayer'
 
 export type SpeechStatus =
@@ -106,13 +107,20 @@ export function initSpeech(): void {
 /** 韓国語を読み上げる。読み上げ中のものは止めてから読む。使えない環境では何もしない */
 export function speakKorean(text: string, rate: SpeechRate, options: SpeakOptions = {}): void {
   if (status.state !== 'available' || player === null) return
-  void player.speak(text, rate, options)
+  // 読み上げはプレイヤーがボタンを押して始めるので、マナーモードでも鳴る扱いにする（終わったら戻す）
+  const release = holdAudioForSpeech()
+  void player.speak(text, rate, options).finally(release)
 }
 
 /** 読み上げの確認（設定画面）：同じ文をふつう → 遅い速さの候補で読み、長さと選んだ速さを返す */
 export async function checkSpeech(text: string): Promise<SpeechCheckResult | null> {
   if (status.state !== 'available' || player === null) return null
-  return player.check(text)
+  const release = holdAudioForSpeech()
+  try {
+    return await player.check(text)
+  } finally {
+    release()
+  }
 }
 
 /** 設定に保存してある、この端末の「ゆっくり」の速さ（null は2回くり返す。undefined はまだ確かめていない） */

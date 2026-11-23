@@ -126,6 +126,28 @@ for (const [W, H, mobile] of [
     check(`${P} 「覚える」で見かけた単語に入れ、翌日の復習に加える`, Object.keys(seen).length === 1 && (await saved()).learning.review[`word:${Object.keys(seen)[0]}`] !== undefined, JSON.stringify(seen))
   }
   await click('閉じる', { within: '.overlay' })
+  // 単語の教材にない語句（名前など）は「覚える」を出さず、理由を一言出す
+  let noteFound = false
+  for (let i = 0; i < 40 && !noteFound; i++) {
+    const opened = await evaluate(`(async () => {
+      for (const g of document.querySelectorAll('.dialogue .gloss')) {
+        g.click(); await new Promise(r => setTimeout(r, 120))
+        const p = document.querySelector('.gloss-popup'); if (!p) continue
+        if (![...p.querySelectorAll('button')].some(b => b.textContent.includes('覚える')) && !p.textContent.includes('図鑑で覚えた') && !p.textContent.includes('見かけた単語に入れました')) return p.textContent;
+        [...p.querySelectorAll('button')].find(b => b.textContent.trim() === '閉じる').click(); await new Promise(r => setTimeout(r, 80))
+      }
+      return '' })()`)
+    if (opened !== '') {
+      check(`${P} 図鑑に入らない語句（名前など）には、「覚える」の代わりに理由を出す`, opened.includes('図鑑には入りません'), opened)
+      await click('閉じる', { within: '.overlay' })
+      noteFound = true
+      break
+    }
+    if (await evaluate(`!!document.querySelector('.dialogue--sign')`)) break
+    await evaluate(`document.querySelector('.dialogue__next')?.click()`)
+    await sleep(120)
+  }
+  if (!noteFound) check(`${P} 図鑑に入らない語句（名前など）のある台詞が、看板の前にある`, false)
 
   // 看板とログ
   await advanceEvent(`!!document.querySelector('.dialogue--sign')`, '看板')

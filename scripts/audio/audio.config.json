@@ -46,8 +46,8 @@
       "file": "sfx/kenney-bookFlip2.ogg"
     },
     {
-      "id": "car",
-      "file": "sfx/car-engine-start.mp3"
+      "id": "car_door",
+      "file": "sfx/car-door-closing.wav"
     },
     {
       "id": "call",

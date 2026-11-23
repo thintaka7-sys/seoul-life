@@ -12,7 +12,7 @@ const story: Story = {
   reviewed: false,
   beats: [
     { type: 'scene', background: 'airport', image: 'arrival' },
-    { type: 'sfx', id: 'airplane' },
+    { type: 'sfx', id: 'door_bell' },
     { type: 'narration', textJa: '空港に着いた。' },
     line('airport_staff', '안녕하세요.', { expression: 'smile' }),
     {
@@ -41,7 +41,7 @@ describe('おはなしの進行', () => {
     const s = startStory(story, 'home')
     expect(currentShown(story, s)).toEqual({ kind: 'narration', textJa: '空港に着いた。' })
     expect(s.stage).toMatchObject({ background: 'airport', image: 'arrival', character: null, call: null })
-    expect(s.sfx).toEqual({ id: 'airplane', seq: 1 })
+    expect(s.sfx).toEqual({ id: 'door_bell', seq: 1 })
     expect(s.bgm).toBe('story')
     expect(s.log).toEqual([{ kind: 'narration', textJa: '空港に着いた。' }])
   })

@@ -63,7 +63,7 @@ const validStory = {
         { korean: '아니요.', pronunciation: 'アニヨ', japanese: 'いいえ。', reply: [line('네?', 'ネ')] },
       ],
     },
-    { type: 'sfx', id: 'airplane' },
+    { type: 'sfx', id: 'door_bell' },
     { type: 'bgm', id: 'none' },
     { type: 'scene', call: 'teacher', image: null },
   ],

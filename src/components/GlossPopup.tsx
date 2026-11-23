@@ -61,6 +61,7 @@ export function GlossPopup({ span, chapter, onClose }: { span: GlossSpan; chapte
       className="gloss-popup"
       actions={
         <>
+          {target.kind === 'note' && <p className="muted small gloss-popup__status">名前やその場だけの言い方なので、図鑑には入りません</p>}
           {vocab !== undefined &&
             (learned ? (
               <p className="muted small gloss-popup__status">図鑑で覚えた単語です</p>
