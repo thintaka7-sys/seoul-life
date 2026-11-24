@@ -33,6 +33,7 @@
         "type": "find",
         "questionJa": "「유자차」はどれ？メニューから探して押そう",
         "answer": "유자차",
+        "findIn": "menu",
         "explanationJa": "유자차（ゆず茶）は、유자（ゆず）＋차（お茶）です。"
       },
       {
@@ -89,6 +90,7 @@
         "type": "find",
         "questionJa": "「오늘의 추천 메뉴는 뭐예요?」本文から探して押そう",
         "answer": "크로플",
+        "findIn": "lines",
         "explanationJa": "오늘의 추천 메뉴（今日のおすすめメニュー）は 크로플 です。"
       }
     ],

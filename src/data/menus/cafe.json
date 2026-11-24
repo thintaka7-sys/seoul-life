@@ -10,10 +10,10 @@
     "items": [
       {
         "key": "americano",
+        "display": "board",
         "vocab": "vocab_013",
         "price": 4500,
         "pricePronunciation": "サチョノベグォン",
-        "image": "americano",
         "counter": "잔",
         "reply": [
           {
@@ -27,10 +27,10 @@
       },
       {
         "key": "cafe_latte",
+        "display": "board",
         "vocab": "vocab_014",
         "price": 5000,
         "pricePronunciation": "オチョヌォン",
-        "image": "cafe_latte",
         "counter": "잔",
         "reply": [
           {
@@ -44,10 +44,10 @@
       },
       {
         "key": "vanilla_latte",
+        "display": "board",
         "vocab": "vocab_051",
         "price": 5500,
         "pricePronunciation": "オチョノベグォン",
-        "image": "vanilla_latte",
         "counter": "잔",
         "reply": [
           {
@@ -61,10 +61,10 @@
       },
       {
         "key": "green_tea_latte",
+        "display": "board",
         "vocab": "vocab_052",
         "price": 5500,
         "pricePronunciation": "オチョノベグォン",
-        "image": "green_tea_latte",
         "counter": "잔",
         "reply": [
           {
@@ -78,10 +78,10 @@
       },
       {
         "key": "strawberry_latte",
+        "display": "board",
         "vocab": "vocab_053",
         "price": 6000,
         "pricePronunciation": "ユクチョヌォン",
-        "image": "strawberry_latte",
         "counter": "잔",
         "reply": [
           {
@@ -95,10 +95,10 @@
       },
       {
         "key": "yuzu_tea",
+        "display": "board",
         "vocab": "vocab_054",
         "price": 5000,
         "pricePronunciation": "オチョヌォン",
-        "image": "yuzu_tea",
         "counter": "잔",
         "reply": [
           {
@@ -111,10 +111,10 @@
       },
       {
         "key": "lemonade",
+        "display": "board",
         "vocab": "vocab_055",
         "price": 5500,
         "pricePronunciation": "オチョノベグォン",
-        "image": "lemonade",
         "counter": "잔",
         "reply": [
           {
@@ -128,6 +128,7 @@
       },
       {
         "key": "cheesecake",
+        "display": "showcase",
         "vocab": "vocab_056",
         "price": 6500,
         "pricePronunciation": "ユクチョノベグォン",
@@ -145,6 +146,7 @@
       },
       {
         "key": "croffle",
+        "display": "showcase",
         "vocab": "vocab_057",
         "price": 4500,
         "pricePronunciation": "サチョノベグォン",
@@ -162,6 +164,7 @@
       },
       {
         "key": "macaron",
+        "display": "showcase",
         "vocab": "vocab_058",
         "price": 2500,
         "pricePronunciation": "イチョノベグォン",
@@ -179,6 +182,7 @@
       },
       {
         "key": "croissant",
+        "display": "showcase",
         "vocab": "vocab_059",
         "price": 4000,
         "pricePronunciation": "サチョヌォン",
@@ -196,6 +200,7 @@
       },
       {
         "key": "cookie",
+        "display": "showcase",
         "vocab": "vocab_060",
         "price": 3000,
         "pricePronunciation": "サムチョヌォン",

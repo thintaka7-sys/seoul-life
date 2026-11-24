@@ -15,8 +15,8 @@ const menu: Menu = {
   titleJa: 'カフェのメニュー',
   currency: { korean: '원', pronunciation: 'ウォン' },
   items: [
-    { key: 'americano', vocab: 'v_americano', price: 4500, pricePronunciation: 'サチョノベグォン', counter: '잔', reply: [line('아메리카노 좋아요')] },
-    { key: 'cheesecake', vocab: 'v_cheesecake', price: 5500, pricePronunciation: 'オチョノベグォン', counter: '개', reply: [line('치즈케이크 맛있어요')] },
+    { key: 'americano', display: 'board', vocab: 'v_americano', price: 4500, pricePronunciation: 'サチョノベグォン', counter: '잔', reply: [line('아메리카노 좋아요')] },
+    { key: 'cheesecake', display: 'showcase', vocab: 'v_cheesecake', price: 5500, pricePronunciation: 'オチョノベグォン', counter: '개', reply: [line('치즈케이크 맛있어요')] },
   ],
   reviewed: false,
 }

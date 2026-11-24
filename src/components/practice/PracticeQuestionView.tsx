@@ -197,10 +197,12 @@ interface PracticeQuestionViewProps {
   onAnswered: (correct: boolean, given: string) => void
   onNext: () => void
   nextLabel: string
+  /** 問題文の後に添えるもの（読み物の問題文の韓国語） */
+  promptExtra?: ReactNode
 }
 
-/** 復習・練習・ドリル・章末テストの1問 */
-export function PracticeQuestionView({ q, position, onAnswered, onNext, nextLabel }: PracticeQuestionViewProps) {
+/** 復習・練習・ドリル・章末テストの1問。promptExtra は、問題文の後に添えるもの（読み物の問題文の韓国語など） */
+export function PracticeQuestionView({ q, position, onAnswered, onNext, nextLabel, promptExtra }: PracticeQuestionViewProps) {
   const display = useFuriganaDisplay(q.chapter)
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -228,6 +230,7 @@ export function PracticeQuestionView({ q, position, onAnswered, onNext, nextLabe
       <p className="muted small">{position}</p>
       <p className="step-heading">{q.heading}</p>
       <PromptView prompt={q.prompt} display={display} answered={answered} />
+      {promptExtra}
 
       {q.body.type === 'choose' && (
         <ChooseBody

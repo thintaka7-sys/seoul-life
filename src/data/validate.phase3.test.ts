@@ -24,8 +24,8 @@ const validMenu = {
   titleJa: 'メニュー',
   currency: { korean: '원', pronunciation: 'ウォン' },
   items: [
-    { key: 'americano', vocab: 'vocab_002', price: 4500, pricePronunciation: 'サチョノベグォン', image: 'americano', counter: '잔', reply: [line('좋아요.', 'チョアヨ')] },
-    { key: 'cheesecake', vocab: 'vocab_003', price: 5500, pricePronunciation: 'オチョノベグォン', counter: '개', reply: [line('맛있어요.', 'マシッソヨ')] },
+    { key: 'americano', display: 'board', vocab: 'vocab_002', price: 4500, pricePronunciation: 'サチョノベグォン', counter: '잔', reply: [line('좋아요.', 'チョアヨ')] },
+    { key: 'cheesecake', display: 'showcase', vocab: 'vocab_003', price: 5500, pricePronunciation: 'オチョノベグォン', image: 'cheesecake', counter: '개', reply: [line('맛있어요.', 'マシッソヨ')] },
   ],
   reviewed: false,
 }
@@ -327,14 +327,32 @@ describe('メニュー（26章）', () => {
 
   it('品物の誤りを見つける', () => {
     const item0 = validMenu.items[0] as (typeof validMenu.items)[number]
-    const withItem = (patch: Record<string, unknown>) => load({ ...validMenu, items: [{ ...item0, ...patch }] }).menus
+    const item1 = validMenu.items[1] as (typeof validMenu.items)[number]
+    const withItem = (patch: Record<string, unknown>, base: Record<string, unknown> = item0) => load({ ...validMenu, items: [{ ...base, ...patch }] }).menus
     expect(withItem({ vocab: 'vocab_999' })).toEqual([])
-    expect(withItem({ image: 'pizza' })).toEqual([])
+    expect(withItem({ image: 'pizza' }, item1)).toEqual([])
     expect(withItem({ counter: 'cup' })).toEqual([])
     expect(withItem({ pricePronunciation: 'サチョノベ グォン' })).toEqual([])
     expect(withItem({ price: '4500' })).toEqual([])
-    expect(load({ ...validMenu, items: [item0, { ...item0, vocab: 'vocab_003', image: 'cheesecake' }] }).menus).toEqual([])
-    expect(load({ ...validMenu, items: Array.from({ length: 13 }, (_, i) => ({ ...item0, key: `k${i}`, image: undefined })) }).menus).toEqual([])
+    expect(load({ ...validMenu, items: [item1, { ...item1, key: 'cake2', vocab: 'vocab_002' }] }).menus).toEqual([])
+    expect(load({ ...validMenu, items: Array.from({ length: 13 }, (_, i) => ({ ...item0, key: `k${i}` })) }).menus).toEqual([])
+  })
+
+  it('品物ごとに、文字のメニュー（board）かショーケース（showcase）かを書く。board は絵なし、showcase は絵が必須', () => {
+    const r = load(validMenu)
+    expect(r.menus[0]?.items.map((i) => [i.display, i.image])).toEqual([
+      ['board', undefined],
+      ['showcase', 'cheesecake'],
+    ])
+    const item0 = validMenu.items[0] as (typeof validMenu.items)[number]
+    const item1 = validMenu.items[1] as (typeof validMenu.items)[number]
+    const { display: _d, ...noDisplay } = item0
+    const { image: _i, ...noImage } = item1
+    const errors = (items: unknown[]) => load({ ...validMenu, items }).issues.map((i) => `${i.path} ${i.message}`)
+    expect(errors([noDisplay, item1]).join('\n')).toContain('items[0].display')
+    expect(errors([{ ...item0, display: 'shelf' }, item1]).join('\n')).toContain('items[0].display')
+    expect(errors([{ ...item0, image: 'americano' }, item1]).join('\n')).toContain('絵（image）を書きません')
+    expect(errors([item0, noImage]).join('\n')).toContain('絵（image）が必須です')
   })
 })
 
@@ -386,6 +404,49 @@ describe('読み物（25章）', () => {
     expect(r.readings[0]?.lines).toEqual([])
     expect(load({ ...menuReading, menu: undefined }).readings).toEqual([])
     expect(load({ ...menuReading, questions: [{ type: 'find', questionJa: '探そう', answer: '라테' }] }).readings).toEqual([])
+  })
+
+  it('「探して押す」問題の答えの場所（findIn）：メニューと本文の両方があれば必須。片方だけならその場所になる', () => {
+    const both = {
+      ...validReading,
+      style: 'menu',
+      menu: 'menu_001',
+      lines: [{ korean: '추천 치즈케이크', pronunciation: 'チュチョン チジュケイク', japanese: 'おすすめ チーズケーキ' }],
+    }
+    const find = (patch: Record<string, unknown>) => ({ type: 'find', questionJa: '探そう', answer: '아메리카노', ...patch })
+    const withQ = (reading: Record<string, unknown>, q: unknown) => load({ ...reading, questions: [q] })
+    // 両方ある：書かないとエラー。書いた場所に答えがなければエラー
+    expect(withQ(both, find({})).issues.map((i) => i.path)).toContain('questions[0].findIn')
+    expect(withQ(both, find({ findIn: 'menu' })).readings[0]?.questions[0]).toMatchObject({ type: 'find', answer: '아메리카노', findIn: 'menu' })
+    expect(withQ(both, find({ findIn: 'lines' })).readings).toEqual([])
+    expect(withQ(both, find({ findIn: 'lines', answer: '치즈케이크' })).readings[0]?.questions[0]).toMatchObject({ findIn: 'lines' })
+    expect(withQ(both, find({ findIn: 'shelf' })).readings).toEqual([])
+    // 片方だけ：書かなければその場所。ない場所は書けない
+    expect(load(validReading).readings[0]?.questions[3]).toMatchObject({ type: 'find', findIn: 'lines' })
+    const menuOnly = { ...validReading, style: 'menu', menu: 'menu_001', lines: undefined }
+    expect(withQ(menuOnly, find({})).readings[0]?.questions[0]).toMatchObject({ findIn: 'menu' })
+    expect(withQ(menuOnly, find({ findIn: 'lines' })).readings).toEqual([])
+    expect(withQ(validReading, find({ findIn: 'menu', answer: '좋아요' })).readings).toEqual([])
+  })
+
+  it('問題文の韓国語（questionKorean）を、本文の1文と同じ形で書ける', () => {
+    const questionKorean = {
+      korean: '뭐가 좋아요?',
+      pronunciation: 'ムォガ ジョアヨ',
+      japanese: '何が好きですか？',
+      glosses: [{ text: '뭐가', pronunciation: 'ムォガ', japanese: '何が' }],
+    }
+    const withQ = (q: unknown) => load({ ...validReading, questions: [q] })
+    const choice = { type: 'choice', questionJa: '答えを選ぼう', choices: [{ textJa: 'コーヒー', correct: true }, { textJa: 'ケーキ', correct: false }] }
+    const r = withQ({ ...choice, questionKorean })
+    expect(r.issues).toEqual([])
+    expect(r.readings[0]?.questions[0]?.questionKorean).toEqual(questionKorean)
+    expect(withQ({ type: 'find', questionJa: '探そう', answer: '좋아요', questionKorean }).readings[0]?.questions[0]?.questionKorean?.korean).toBe('뭐가 좋아요?')
+    // 訳がない・オブジェクトでない・文の中にない語句
+    const { japanese: _j, ...noJapanese } = questionKorean
+    expect(withQ({ ...choice, questionKorean: noJapanese }).readings).toEqual([])
+    expect(withQ({ ...choice, questionKorean: '뭐가 좋아요?' }).readings).toEqual([])
+    expect(withQ({ ...choice, questionKorean: { ...questionKorean, glosses: [{ text: '커피', pronunciation: 'コピ', japanese: 'コーヒー' }] } }).readings).toEqual([])
   })
 
   it('メニューでない読み物は本文が必須で、menu は書けない', () => {

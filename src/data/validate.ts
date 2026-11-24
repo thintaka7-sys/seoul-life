@@ -9,6 +9,8 @@ import {
   FIGURE_TYPES,
   FORM_KINDS,
   FIGURE_IMAGES,
+  FIND_PLACES,
+  MENU_DISPLAYS,
   MENU_IMAGES,
   READING_QUESTION_TYPES,
   READING_STYLES,
@@ -42,6 +44,7 @@ import {
   type OrderModifier,
   type Reading,
   type ReadingChoice,
+  type FindPlace,
   type ReadingLine,
   type ReadingQuestion,
   type Story,
@@ -1726,7 +1729,7 @@ function parseStory(o: Obj, ctx: ReferenceContext, errs: FieldError[]): Story | 
 
 const MENU_KEYS = ['id', 'location', 'titleJa', 'currency', 'items', 'reviewed', 'notes'] as const
 const MENU_CURRENCY_KEYS = ['korean', 'pronunciation'] as const
-const MENU_ITEM_KEYS = ['key', 'vocab', 'price', 'pricePronunciation', 'image', 'counter', 'reply'] as const
+const MENU_ITEM_KEYS = ['key', 'display', 'vocab', 'price', 'pricePronunciation', 'image', 'counter', 'reply'] as const
 export const MENU_ITEMS_MAX = 12
 
 function parseMenu(o: Obj, ctx: ReferenceContext, errs: FieldError[]): Menu | undefined {
@@ -1750,6 +1753,10 @@ function parseMenu(o: Obj, ctx: ReferenceContext, errs: FieldError[]): Menu | un
   for (const { value, path } of objArray(o, 'items', '', errs, 1) ?? []) {
     checkKnownKeys(value, MENU_ITEM_KEYS, path, errs)
     const key = keyField(value, 'key', path, errs)
+    // 文字のメニュー（board）は絵を出さない。ショーケース（showcase）は絵と札で見せる
+    const display = oneOf(value, 'display', path, errs, MENU_DISPLAYS)
+    if (display === 'board' && value['image'] !== undefined) errs.push({ path: joinPath(path, 'image'), message: '文字のメニュー（"display": "board"）の品物には、絵（image）を書きません' })
+    if (display === 'showcase' && value['image'] === undefined) errs.push({ path: joinPath(path, 'image'), message: 'ショーケース（"display": "showcase"）の品物には、絵（image）が必須です' })
     const vocab = reference(value, 'vocab', path, errs, ctx.vocabularyIds, '単語ID')
     const price = integer(value, 'price', path, errs, 0)
     // 値段の読みは「4,500원」のように1つのまとまりなので、区切りのない読みにする
@@ -1758,8 +1765,8 @@ function parseMenu(o: Obj, ctx: ReferenceContext, errs: FieldError[]): Menu | un
     const counter = koreanText(value, 'counter', path, errs)
     if (counter !== undefined && !HANGUL.test(counter)) errs.push({ path: joinPath(path, 'counter'), message: '数え方の単位は韓国語（例：잔、개）で書いてください' })
     const reply = parseLines(value, 'reply', path, ctx, errs, 1)
-    if (key === undefined || vocab === undefined || price === undefined || pricePronunciation === undefined || counter === undefined || reply === undefined) continue
-    const item: MenuItem = { key, vocab, price, pricePronunciation, counter, reply }
+    if (key === undefined || display === undefined || vocab === undefined || price === undefined || pricePronunciation === undefined || counter === undefined || reply === undefined) continue
+    const item: MenuItem = { key, display, vocab, price, pricePronunciation, counter, reply }
     if (image !== undefined) item.image = image
     items.push(item)
   }
@@ -1892,21 +1899,48 @@ function parseOrder(o: Obj, ctx: ReferenceContext, errs: FieldError[]): Order | 
 const READING_KEYS = ['id', 'chapter', 'titleJa', 'style', 'lines', 'menu', 'questions', 'reviewed', 'notes'] as const
 const READING_LINE_KEYS = ['korean', 'pronunciation', 'japanese', 'glosses'] as const
 const READING_QUESTION_KEYS: Record<ReadingQuestion['type'], readonly string[]> = {
-  choice: ['type', 'questionJa', 'choices', 'explanationJa'],
-  number: ['type', 'questionJa', 'digits', 'explanationJa'],
-  write: ['type', 'questionJa', 'answers', 'explanationJa'],
-  find: ['type', 'questionJa', 'answer', 'explanationJa'],
+  choice: ['type', 'questionJa', 'questionKorean', 'choices', 'explanationJa'],
+  number: ['type', 'questionJa', 'questionKorean', 'digits', 'explanationJa'],
+  write: ['type', 'questionJa', 'questionKorean', 'answers', 'explanationJa'],
+  find: ['type', 'questionJa', 'questionKorean', 'answer', 'findIn', 'explanationJa'],
+}
+
+/** 本文の1文（lines の各要素・問題文の韓国語 questionKorean） */
+function parseReadingLine(value: Obj, path: string, ctx: ReferenceContext, errs: FieldError[]): ReadingLine | undefined {
+  checkKnownKeys(value, READING_LINE_KEYS, path, errs)
+  const korean = text(value, 'korean', path, errs)
+  const pronunciation = reading(value, 'pronunciation', path, errs, korean)
+  const japanese = text(value, 'japanese', path, errs)
+  const glosses = parseGlosses(value, path, korean, ctx, errs)
+  if (korean === undefined || pronunciation === undefined || japanese === undefined) return undefined
+  const line: ReadingLine = { korean, pronunciation, japanese }
+  if (glosses !== undefined) line.glosses = glosses
+  return line
+}
+
+/** 「探して押す」問題の答えを探す文。読み物にない場所は null */
+interface FindPassages {
+  /** メニューの品名 */
+  menu: readonly string[] | null
+  /** 本文の韓国語 */
+  lines: readonly string[] | null
 }
 const READING_CHOICE_KEYS = ['textJa', 'korean', 'pronunciation', 'japanese', 'correct'] as const
 
-/** passage：「探して押す」問題の答えを探す文（本文の韓国語、メニューなら品名） */
-function parseReadingQuestion(value: Obj, path: string, passage: readonly string[], errs: FieldError[]): ReadingQuestion | undefined {
+function parseReadingQuestion(value: Obj, path: string, passages: FindPassages, ctx: ReferenceContext, errs: FieldError[]): ReadingQuestion | undefined {
   const type = oneOf(value, 'type', path, errs, READING_QUESTION_TYPES)
   if (type === undefined) return undefined
   checkKnownKeys(value, READING_QUESTION_KEYS[type], path, errs)
   // 問題文と解説は、本文の語句を示すためにハングルを入れてよい
   const questionJa = text(value, 'questionJa', path, errs)
   const explanationJa = optionalText(value, 'explanationJa', path, errs)
+  let questionKorean: ReadingLine | undefined
+  const rawQuestionKorean = value['questionKorean']
+  if (rawQuestionKorean !== undefined) {
+    const qkPath = joinPath(path, 'questionKorean')
+    if (isObj(rawQuestionKorean)) questionKorean = parseReadingLine(rawQuestionKorean, qkPath, ctx, errs)
+    else errs.push({ path: qkPath, message: 'オブジェクト（{ }）にしてください' })
+  }
   let question: ReadingQuestion | undefined
   switch (type) {
     case 'choice': {
@@ -1957,14 +1991,31 @@ function parseReadingQuestion(value: Obj, path: string, passage: readonly string
     }
     case 'find': {
       const answer = text(value, 'answer', path, errs)
-      if (answer !== undefined && !passage.some((p) => findChunkSequence(p, answer) >= 0)) {
-        errs.push({ path: joinPath(path, 'answer'), message: `「${answer}」が本文の中に、空白で区切ったまとまりのままありません` })
-      } else if (answer !== undefined && questionJa !== undefined) {
-        question = { type, questionJa, answer }
+      // 答えがある場所：書いてあればそこ。書いていなければ、読み物にある場所が1つだけのときはそこ（両方あるときは必須）
+      let findIn: FindPlace | undefined
+      if (value['findIn'] !== undefined) {
+        findIn = oneOf(value, 'findIn', path, errs, FIND_PLACES)
+        if (findIn !== undefined && passages[findIn] === null) {
+          errs.push({ path: joinPath(path, 'findIn'), message: findIn === 'menu' ? 'この読み物にはメニューがありません' : 'この読み物には本文（lines）がありません' })
+          findIn = undefined
+        }
+      } else if (passages.menu !== null && passages.lines !== null) {
+        errs.push({ path: joinPath(path, 'findIn'), message: 'メニューと本文の両方がある読み物では、答えがある場所（"menu" か "lines"）を書いてください' })
+      } else {
+        findIn = passages.menu !== null ? 'menu' : 'lines'
+      }
+      if (answer === undefined || findIn === undefined) break
+      const passage = passages[findIn] ?? []
+      if (!passage.some((p) => findChunkSequence(p, answer) >= 0)) {
+        const where = findIn === 'menu' ? 'メニューの品名' : '本文'
+        errs.push({ path: joinPath(path, 'answer'), message: `「${answer}」が${where}の中に、空白で区切ったまとまりのままありません` })
+      } else if (questionJa !== undefined) {
+        question = { type, questionJa, answer, findIn }
       }
       break
     }
   }
+  if (question !== undefined && questionKorean !== undefined) question.questionKorean = questionKorean
   if (question !== undefined && explanationJa !== undefined) question.explanationJa = explanationJa
   return question
 }
@@ -1988,25 +2039,21 @@ function parseReading(o: Obj, ctx: ReferenceContext, errs: FieldError[]): Readin
   const lines: ReadingLine[] = []
   if (o['lines'] !== undefined || style !== 'menu') {
     for (const { value, path } of objArray(o, 'lines', '', errs, 1) ?? []) {
-      checkKnownKeys(value, READING_LINE_KEYS, path, errs)
-      const korean = text(value, 'korean', path, errs)
-      const pronunciation = reading(value, 'pronunciation', path, errs, korean)
-      const japanese = text(value, 'japanese', path, errs)
-      const glosses = parseGlosses(value, path, korean, ctx, errs)
-      if (korean === undefined || pronunciation === undefined || japanese === undefined) continue
-      const line: ReadingLine = { korean, pronunciation, japanese }
-      if (glosses !== undefined) line.glosses = glosses
-      lines.push(line)
+      const line = parseReadingLine(value, path, ctx, errs)
+      if (line !== undefined) lines.push(line)
     }
   }
   const menuNames = (menu?.items ?? []).flatMap((i) => {
     const k = ctx.vocabKorean.get(i.vocab)
     return k === undefined ? [] : [k]
   })
-  const passage = [...lines.map((l) => l.korean), ...menuNames]
+  const passages: FindPassages = {
+    menu: style === 'menu' ? menuNames : null,
+    lines: o['lines'] !== undefined || style !== 'menu' ? lines.map((l) => l.korean) : null,
+  }
   const questions: ReadingQuestion[] = []
   for (const { value, path } of objArray(o, 'questions', '', errs, 1) ?? []) {
-    const q = parseReadingQuestion(value, path, passage, errs)
+    const q = parseReadingQuestion(value, path, passages, ctx, errs)
     if (q !== undefined) questions.push(q)
   }
   if (errs.length > 0 || id === undefined || chapter === undefined || titleJa === undefined || style === undefined || reviewed === undefined) return undefined

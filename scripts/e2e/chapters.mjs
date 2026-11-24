@@ -47,10 +47,19 @@ const plainText = (selector) =>
 async function answerReading(id, P) {
   const reading = readings.get(id)
   let correct = 0
-  check(`${P} ${id}：答える前は日本語訳を出さない`, !(await evaluate(`!!document.querySelector('.reading__ja, .menu-item__ja')`)))
+  check(`${P} ${id}：答える前は日本語訳を出さない`, !(await evaluate(`!!document.querySelector('.reading__ja, .menu-row__ja, .showcase-item__ja')`)))
   for (const [i, q] of reading.questions.entries()) {
     await sleep(150)
     if (q.type === 'find') {
+      // 答えがある場所（findIn）の言葉だけを押せる
+      const place = q.findIn ?? 'menu'
+      const chips = await evaluate(`({ menu: document.querySelectorAll('.shop-menu .find-chip').length, lines: document.querySelectorAll('.reading__lines .find-chip').length })`)
+      const other = place === 'menu' ? 'lines' : 'menu'
+      check(`${P} ${id}：「${q.answer}」を探す問題では、${place === 'menu' ? 'メニュー' : '本文'}だけを押せる`, chips[place] > 0 && chips[other] === 0, JSON.stringify(chips))
+      if (q.questionKorean !== undefined) {
+        const ko = await plainText('.quiz .reading-question-ko')
+        check(`${P} ${id}：問題文の韓国語（${q.questionKorean.korean}）に、読み上げと「日本語訳を見る」がある`, ko.includes(q.questionKorean.korean.replace(/\s+/g, ' ')) && (await evaluate(`!!document.querySelector('.quiz .reading-question-ko button[aria-label^="読み上げ"]')`)) && (await evaluate(`!!document.querySelector('.quiz .reading-question-ko .translation-tap')`)), ko)
+      }
       const ok = await evaluate(`(() => { const plain = (el) => { const c = el.cloneNode(true); c.querySelectorAll('rt').forEach(r => r.remove()); return c.textContent.replace(/[\\s.,?!]/g, '') }; const b = [...document.querySelectorAll('.find-chip')].find(b => plain(b) === ${JSON.stringify(q.answer)}); if (!b) return false; b.click(); return true })()`)
       check(`${P} ${id}：本文から「${q.answer}」を探して押せる`, ok)
     } else if (q.type === 'choice') {
@@ -67,7 +76,7 @@ async function answerReading(id, P) {
     if ((await mainText()).includes('正解！')) correct++
     await click(i === reading.questions.length - 1 ? '答え合わせを終える' : '次の問題へ')
   }
-  check(`${P} ${id}：すべて正解し、答え終わったら日本語訳を出す`, correct === reading.questions.length && (await evaluate(`!!document.querySelector('.reading__ja, .menu-item__ja')`)), String(correct))
+  check(`${P} ${id}：すべて正解し、答え終わったら日本語訳を出す`, correct === reading.questions.length && (await evaluate(`!!document.querySelector('.reading__ja, .menu-row__ja, .showcase-item__ja')`)), String(correct))
   await click('読み終える')
   return correct
 }
@@ -432,7 +441,11 @@ for (const [W, H, mobile] of [
   check(`${P} 飲み物の単語カード（7枚）に、形が変わる言葉（따뜻한）の図がある`, cards3.total === 7 && cards3.forms > 0, JSON.stringify(cards3))
   await advanceEvent(`!!document.querySelector('.reading-step')`, 'メニューの読み物')
   const menu = readDir('menus').find((m) => m.id === 'menu_001')
-  check(`${P} メニューの読み物：品物の絵（${menu.items.length}品）・品名・値段`, (await evaluate(`document.querySelectorAll('.menu-item .menu-item__img').length`)) === menu.items.length && (await plainText('.menu-board')).includes('4,500원'), await plainText('.menu-board'))
+  const boardItems = menu.items.filter((i) => i.display === 'board').length
+  const showcaseItems = menu.items.filter((i) => i.display === 'showcase').length
+  const menuShape = await evaluate(`({ rows: document.querySelectorAll('.menu-board .menu-row').length, boardImages: document.querySelectorAll('.menu-board img').length, cases: document.querySelectorAll('.showcase .showcase-item').length, caseImages: document.querySelectorAll('.showcase .showcase-item__img').length })`)
+  check(`${P} メニューの読み物：文字のメニュー（${boardItems}品。絵なし）とショーケース（${showcaseItems}品。絵と札）`, menuShape.rows === boardItems && menuShape.boardImages === 0 && menuShape.cases === showcaseItems && menuShape.caseImages === showcaseItems && (await plainText('.menu-board')).includes('4,500원'), JSON.stringify(menuShape))
+  check(`${P} メニューの読み物：注意書き（日本語訳は答えると出る）は、題のすぐ下（メニューより上）`, await evaluate(`(() => { const title = document.querySelector('.reading__title'); const note = title?.nextElementSibling; return !!note && note.textContent.includes('日本語訳は、問題にすべて答えると出ます') && !!(note.compareDocumentPosition(document.querySelector('.shop-menu')) & Node.DOCUMENT_POSITION_FOLLOWING) })()`))
   if (W === 375) await shot('375-07-menu')
   await layoutCheck(`${P} メニューの読み物`)
   readingCorrect += await answerReading('reading_001', P)
@@ -441,6 +454,14 @@ for (const [W, H, mobile] of [
   check(`${P} 食べ物の単語カード（9枚）に、形が変わる言葉（맛있어요）の図がある`, cards4.total === 9 && cards4.forms > 0, JSON.stringify(cards4))
   await sleep(150)
   check(`${P} 注文の画面：店員の台詞・メニュー・言うこと`, (await plainText('.order-step')).includes('주문하시겠어요') && (await evaluate(`!!document.querySelector('.order-step .menu-board') && !!document.querySelector('.order-step .task-label, .order-step .task')`)), (await plainText('.order-step')).slice(0, 200))
+  check(`${P} 注文の画面：品名の日本語は出さない`, !(await evaluate(`!!document.querySelector('.order-step .menu-row__ja, .order-step .showcase-item__ja')`)))
+  await evaluate(`document.querySelector('.order-step .shop-menu .gloss').click()`)
+  await sleep(150)
+  const menuPopup = await evaluate(`document.querySelector('.gloss-popup')?.textContent ?? ''`)
+  const firstVocab = readDir('vocabulary').find((v) => v.id === menu.items[0].vocab)
+  check(`${P} 注文の画面：品名を押すと、意味が出る`, menuPopup.includes(firstVocab.japanese), menuPopup)
+  if (W === 375) await shot('375-08-order-gloss')
+  await click('閉じる', { within: '.overlay' })
   if (W === 375) await shot('375-08-order')
   await layoutCheck(`${P} 注文`)
   await fillInput('.answer-input__field', '아메리카노 한 잔 주세요')

@@ -13,7 +13,7 @@ const reading: Reading = {
     { type: 'choice', questionJa: 'だれが書いた？', choices: [{ textJa: '隣の人', correct: true }, { textJa: '店員', correct: false }] },
     { type: 'number', questionJa: 'いくら？', digits: '5500', explanationJa: '오천오백 원' },
     { type: 'write', questionJa: 'もらったものは？', answers: ['떡'] },
-    { type: 'find', questionJa: '「おいしく」を探そう', answer: '맛있게' },
+    { type: 'find', questionJa: '「おいしく」を探そう', answer: '맛있게', findIn: 'lines' },
     { type: 'choice', questionJa: '安いのは？', choices: [{ korean: '아메리카노', pronunciation: 'アメリカノ', japanese: 'アメリカーノ', correct: true }, { korean: '치즈케이크', pronunciation: 'チジュケイク', japanese: 'チーズケーキ', correct: false }] },
   ],
   reviewed: false,

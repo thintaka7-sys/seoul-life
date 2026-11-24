@@ -664,15 +664,31 @@ export interface ReadingLine {
 /** 選ぶ問題の選択肢：日本語（textJa）か韓国語（korean・pronunciation・japanese） */
 export type ReadingChoice = ({ textJa: string } | { korean: string; pronunciation: string; japanese: string }) & { correct: boolean }
 
+/** 「探して押す」問題の答えがある場所：メニュー（品名）か本文（lines） */
+export const FIND_PLACES = ['menu', 'lines'] as const
+export type FindPlace = (typeof FIND_PLACES)[number]
+
+/** どの問題にも書ける項目 */
+interface ReadingQuestionBase {
+  /** 何をするか（日本語）。本文の語句を示すためにハングルを入れてよい */
+  questionJa: string
+  /** 問題文の韓国語（読み上げ・単語のタップができる。訳は設定にかかわらず「タップで表示」） */
+  questionKorean?: ReadingLine
+  explanationJa?: string
+}
+
 export type ReadingQuestion =
   /** 選ぶ（正解はちょうど1つ） */
-  | { type: 'choice'; questionJa: string; choices: ReadingChoice[]; explanationJa?: string }
+  | (ReadingQuestionBase & { type: 'choice'; choices: ReadingChoice[] })
   /** 数字を入れる（値段など。選択肢は出さない） */
-  | { type: 'number'; questionJa: string; digits: string; explanationJa?: string }
+  | (ReadingQuestionBase & { type: 'number'; digits: string })
   /** 韓国語で書く */
-  | { type: 'write'; questionJa: string; answers: string[]; explanationJa?: string }
-  /** 本文の中から探して押す（answer は本文の中の語句） */
-  | { type: 'find'; questionJa: string; answer: string; explanationJa?: string }
+  | (ReadingQuestionBase & { type: 'write'; answers: string[] })
+  /**
+   * 本文の中から探して押す（answer は本文の中の語句）。
+   * findIn は答えがある場所で、そこだけを押せるようにする（メニューと本文の両方がある読み物では必須。片方だけなら、その場所）
+   */
+  | (ReadingQuestionBase & { type: 'find'; answer: string; findIn: FindPlace })
 
 export const READING_QUESTION_TYPES = ['choice', 'number', 'write', 'find'] as const
 
@@ -705,16 +721,25 @@ export const MENU_IMAGES = [
   'cookie',
 ] as const
 
+/**
+ * 品物をどこに出すか（GAME_SPEC 4-4。実際の店に合わせる）。
+ * board：文字だけのメニュー（메뉴판。品名と値段だけで絵は出さない）／showcase：絵つきのショーケース（쇼케이스。絵と、品名・値段の札）
+ */
+export const MENU_DISPLAYS = ['board', 'showcase'] as const
+export type MenuDisplay = (typeof MENU_DISPLAYS)[number]
+
 export interface MenuItem {
   /** 品物のキー（メニューの中で一意。注文の記録に使う） */
   key: string
+  /** 文字のメニュー（board）か、ショーケース（showcase）か */
+  display: MenuDisplay
   /** 品名の単語のID（品名・読み・意味は単語の教材から出す。注文では別表記も正解） */
   vocab: string
   /** 値段（ウォン。半角の整数） */
   price: number
   /** 値段の読み（例：4,500원 → サチョノベグォン） */
   pricePronunciation: string
-  /** 絵のキー（MENU_IMAGES） */
+  /** 絵のキー（MENU_IMAGES）。showcase の品物だけに書く（必須） */
   image?: string
   /** 数え方の単位（例：잔、개）。注文の counts の counter と合わせる */
   counter: string

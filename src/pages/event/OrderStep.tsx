@@ -49,6 +49,8 @@ export function OrderStep({ order, onDone, doneLabel = '次へ' }: { order: Orde
   const { dispatch } = useGame()
   const canSpeak = useCanSpeak()
   const display = useFuriganaDisplay(order.chapter)
+  // メニューの品名は日本語を出さず、押すと意味を出す（韓国語を読んで選ぶ練習にするため。GAME_SPEC 4-4 v2.9）
+  const menuGloss = useGlossPopup(order.chapter)
   const [mode, setMode] = useState<Mode>('write')
   const [attempt, setAttempt] = useState(0)
   const [judge, setJudge] = useState<OrderJudge | null>(null)
@@ -98,7 +100,7 @@ export function OrderStep({ order, onDone, doneLabel = '次へ' }: { order: Orde
         </section>
       ) : (
         <>
-          <MenuBoard menu={ctx.menu} display={display} showJapanese={true} />
+          <MenuBoard menu={ctx.menu} display={display} showJapanese={false} onGloss={menuGloss.onGloss} />
           <section className="answer panel" aria-label="注文する">
             {canSpeak && (
               <div className="mode-tabs mode-tabs--2" role="group" aria-label="答え方">
@@ -139,6 +141,7 @@ export function OrderStep({ order, onDone, doneLabel = '次へ' }: { order: Orde
           </section>
         </>
       )}
+      {menuGloss.popup}
     </div>
   )
 }
