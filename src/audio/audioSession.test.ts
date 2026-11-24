@@ -1,5 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { SPEECH_HOLD_MAX_MS, SPEECH_HOLD_TIMEOUT_MS, createAudioSessionController, type AudioSessionLike } from './audioSession'
+import { AFTER_CAPTURE_MS, SPEECH_HOLD_MAX_MS, SPEECH_HOLD_TIMEOUT_MS, createAudioSessionController, type AudioSessionLike, type AudioSessionType } from './audioSession'
+
+/** 入れた値をすべて記録する audioSession と、手で進めるタイマー */
+function setupWithLog(initial: AudioSessionType = 'auto') {
+  const log: AudioSessionType[] = []
+  let type = initial
+  const session: AudioSessionLike = {
+    get type() {
+      return type
+    },
+    set type(v: AudioSessionType) {
+      type = v
+      log.push(v)
+    },
+  }
+  const timers: { fn: () => void; at: number }[] = []
+  let t = 0
+  const c = createAudioSessionController(
+    session,
+    () => t,
+    (fn, ms) => void timers.push({ fn, at: t + ms }),
+  )
+  const advance = (ms: number) => {
+    t += ms
+    for (const timer of timers.filter((x) => x.at <= t)) {
+      timers.splice(timers.indexOf(timer), 1)
+      timer.fn()
+    }
+  }
+  return { session, c, log, advance }
+}
 
 function setup() {
   const session: AudioSessionLike = { type: 'auto' }
@@ -63,6 +93,58 @@ describe('マナーモードへの対応（audioSession）', () => {
     advance(2)
     c.check(true)
     expect(session.type).toBe('ambient')
+  })
+
+  it('起動時は、すでに ambient でも、一度 auto にしてから ambient にかけ直す（前のページのマイクの扱いを解くため）', () => {
+    const { session, c, log } = setupWithLog('ambient')
+    c.start()
+    expect(log).toEqual(['auto', 'ambient'])
+    expect(session.type).toBe('ambient')
+  })
+
+  it('マイクで聞いている間は止めておき、閉じたら ambient をかけ直して、少し待ってから音を戻す', () => {
+    const { c, log, advance } = setupWithLog('ambient')
+    let changes = 0
+    c.subscribe(() => (changes += 1))
+    c.setCapturing(true)
+    expect(c.unsafe()).toBe(true)
+    expect(changes).toBe(1)
+    c.setCapturing(false)
+    // 閉じた直後にかけ直す。まだ音は戻さない
+    expect(log).toEqual(['auto', 'ambient'])
+    expect(c.unsafe()).toBe(true)
+    advance(AFTER_CAPTURE_MS - 1)
+    expect(c.unsafe()).toBe(true)
+    advance(1)
+    // 待った後にもう一度かけ直してから、音を戻す
+    expect(log).toEqual(['auto', 'ambient', 'auto', 'ambient'])
+    expect(c.unsafe()).toBe(false)
+    expect(changes).toBe(2)
+  })
+
+  it('かけ直しの途中でまたマイクを使い始めたら、前のかけ直しでは音を戻さない', () => {
+    const { c, advance } = setupWithLog('ambient')
+    c.setCapturing(true)
+    c.setCapturing(false)
+    c.setCapturing(true)
+    advance(AFTER_CAPTURE_MS)
+    expect(c.unsafe()).toBe(true)
+    c.setCapturing(false)
+    advance(AFTER_CAPTURE_MS)
+    expect(c.unsafe()).toBe(false)
+  })
+
+  it('読み上げの間にマイクを閉じたら、playback のまま。読み上げが終わったら ambient に戻す', () => {
+    const { session, c, advance } = setupWithLog('ambient')
+    c.setCapturing(true)
+    const release = c.hold()
+    c.setCapturing(false)
+    advance(AFTER_CAPTURE_MS)
+    expect(session.type).toBe('playback')
+    expect(c.unsafe()).toBe(true)
+    release()
+    expect(session.type).toBe('ambient')
+    expect(c.unsafe()).toBe(false)
   })
 
   it('audioSession がないブラウザでは何もしない', () => {

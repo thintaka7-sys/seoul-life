@@ -107,6 +107,11 @@ export type RecognitionOutcome = { kind: 'heard'; alternatives: string[] } | { k
 
 export interface RecognitionSession {
   result: Promise<RecognitionOutcome>
+  /**
+   * ブラウザが聞き取りを終えた（マイクを閉じた）。結果が出た後に来ることがある。
+   * 来ないブラウザのために、結果が出てから CLOSE_WAIT_MS 経ったら、閉じたことにする
+   */
+  closed: Promise<void>
   /** 話し終えたことにして、ここまでの声を文字にする */
   stop: () => void
   /** 聞き取りをやめる（結果は aborted） */
@@ -122,6 +127,8 @@ export interface RecognitionCallbacks {
 
 /** 最後の結果が確定してから、ブラウザが聞き取りを終えるまで待つ時間（終わらないブラウザがあるため） */
 export const FINAL_GRACE_MS = 1500
+/** 結果が出てから、ブラウザが聞き取りを終えた知らせ（onend）を待つ最長の時間 */
+export const CLOSE_WAIT_MS = 2000
 
 /**
  * 認識結果（区切りごとの候補）を、文全体の候補の一覧にする（確からしい順・重複なし）。
@@ -165,6 +172,10 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
   rec.maxAlternatives = MAX_ALTERNATIVES
 
   let aborted = false
+  /** ブラウザが聞き取りを終えた（onend が来た） */
+  let ended = false
+  let markClosed: () => void = () => {}
+  const closed = new Promise<void>((r) => (markClosed = r))
   const result = new Promise<RecognitionOutcome>((resolve) => {
     let settled = false
     let latest: string[] = []
@@ -176,6 +187,15 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
       if (graceTimer !== undefined) clearTimeout(graceTimer)
       if (outcome.kind === 'error' && outcome.error.fatal) markUnavailable(outcome.error.message)
       resolve(outcome)
+      if (!ended) {
+        // ブラウザがまだ聞き取りを終えていない（確定から時間が経って、こちらで判定した）：マイクを閉じさせる
+        try {
+          rec.abort()
+        } catch {
+          // 終えている途中など
+        }
+        setTimeout(markClosed, CLOSE_WAIT_MS)
+      }
     }
     const finishWithLatest = (fallback: RecognitionError) => finish(latest.length > 0 ? { kind: 'heard', alternatives: latest } : { kind: 'error', error: fallback })
     const markReady = () => {
@@ -209,15 +229,24 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
       else finish({ kind: 'error', error })
     }
     // 聞き取りが終わった（話し終えた・ボタンで止めた）。何も聞き取れていなければ「声が聞き取れない」
-    rec.onend = () => (aborted ? finish({ kind: 'error', error: describeRecognitionError('aborted') }) : finishWithLatest(describeRecognitionError('no-speech')))
+    rec.onend = () => {
+      ended = true
+      if (aborted) finish({ kind: 'error', error: describeRecognitionError('aborted') })
+      else finishWithLatest(describeRecognitionError('no-speech'))
+      markClosed()
+    }
     try {
       rec.start()
     } catch (e) {
+      // 始められなかった：マイクは開いていない
+      ended = true
+      markClosed()
       finish({ kind: 'error', error: { ...describeRecognitionError('other'), message: `音声認識を始められませんでした（${String(e)}）。` } })
     }
   })
   return {
     result,
+    closed,
     stop: () => rec.stop(),
     abort: () => {
       aborted = true
@@ -229,6 +258,7 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
 /**
  * 聞き取り中のマイク（スマホ確認：話して答えるとき BGM が鳴ったままで話しにくい）。
  * 聞いている間は BGM を消し（bgm.ts）、画面が見えなくなったら聞き取りをやめる（pageVisibility.ts）。
+ * 「聞いている間」は、ブラウザがマイクを閉じるまで（closed）。閉じた後に、マナーモードの扱いをかけ直す（audioSession.ts）。
  */
 export function createListeningTracker() {
   const active = new Set<RecognitionSession>()
@@ -237,11 +267,11 @@ export function createListeningTracker() {
     for (const l of listeners) l()
   }
   return {
-    /** 聞き取りを始めた。結果が出たら（止めた・やめたを含む）自動で外す */
+    /** 聞き取りを始めた。マイクを閉じたら（結果が出た・止めた・やめた・エラーのすべて）自動で外す */
     track(session: RecognitionSession): RecognitionSession {
       active.add(session)
       if (active.size === 1) changed()
-      void session.result.finally(() => {
+      void session.closed.finally(() => {
         if (active.delete(session) && active.size === 0) changed()
       })
       return session
@@ -274,7 +304,7 @@ export function recognizeKorean(callbacks: RecognitionCallbacks = {}): Recogniti
   const Ctor = recognitionConstructor()
   if (Ctor === null || getRecognitionStatus().state !== 'available') {
     const error = describeRecognitionError('language-not-supported')
-    return { result: Promise.resolve({ kind: 'error', error }), stop: () => {}, abort: () => {} }
+    return { result: Promise.resolve({ kind: 'error', error }), closed: Promise.resolve(), stop: () => {}, abort: () => {} }
   }
   return tracker.track(runRecognition(new Ctor(), callbacks))
 }

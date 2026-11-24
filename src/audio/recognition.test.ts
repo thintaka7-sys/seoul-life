@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  CLOSE_WAIT_MS,
   FINAL_GRACE_MS,
   collectAlternatives,
   createListeningTracker,
@@ -118,13 +119,40 @@ describe('聞き取った結果のまとめ方（BUG-004）', () => {
     expect(await s.result).toEqual({ kind: 'heard', alternatives: ['고마워요'] })
   })
 
-  it('確定した後にブラウザが終わらなくても、少し待って判定する', async () => {
+  it('確定した後にブラウザが終わらなくても、少し待って判定する。そのときはマイクを閉じさせる', async () => {
     vi.useFakeTimers()
     const rec = fakeRecognition()
+    let aborts = 0
+    rec.abort = () => {
+      aborts += 1
+    }
     const s = runRecognition(rec)
+    let closed = false
+    void s.closed.then(() => (closed = true))
     rec.onresult?.({ results: results({ alts: ['네'], final: true }) })
     vi.advanceTimersByTime(FINAL_GRACE_MS)
     expect(await s.result).toEqual({ kind: 'heard', alternatives: ['네'] })
+    expect(aborts).toBe(1)
+    // ブラウザが終わった知らせを出さなくても、少し待ったら閉じたことにする
+    await Promise.resolve()
+    expect(closed).toBe(false)
+    vi.advanceTimersByTime(CLOSE_WAIT_MS)
+    await Promise.resolve()
+    expect(closed).toBe(true)
+  })
+
+  it('ブラウザが聞き取りを終えたら（onend）閉じたことにし、マイクを閉じさせる操作はしない', async () => {
+    const rec = fakeRecognition()
+    let aborts = 0
+    rec.abort = () => {
+      aborts += 1
+    }
+    const s = runRecognition(rec)
+    rec.onresult?.({ results: results({ alts: ['네'], final: false }) })
+    rec.onend?.()
+    await s.closed
+    expect(await s.result).toEqual({ kind: 'heard', alternatives: ['네'] })
+    expect(aborts).toBe(0)
   })
 
   it('ボタンで止めたら、そこまでの声で判定する', async () => {
@@ -173,6 +201,23 @@ describe('聞き取り中のマイク（BGM を消す・画面が見えなくな
     await Promise.resolve()
     expect(tracker.listening()).toBe(false)
     expect(changes).toBe(2)
+  })
+
+  it('結果が出ても、ブラウザがマイクを閉じるまでは listening のまま', async () => {
+    const tracker = createListeningTracker()
+    const rec = fakeRecognition()
+    rec.abort = () => {}
+    vi.useFakeTimers()
+    const s = tracker.track(runRecognition(rec))
+    rec.onresult?.({ results: results({ alts: ['네'], final: true }) })
+    vi.advanceTimersByTime(FINAL_GRACE_MS)
+    await s.result
+    await Promise.resolve()
+    expect(tracker.listening()).toBe(true)
+    rec.onend?.()
+    await s.closed
+    await Promise.resolve()
+    expect(tracker.listening()).toBe(false)
   })
 
   it('abortAll で、聞き取り中のものをすべてやめる（結果は aborted）', async () => {

@@ -3,28 +3,32 @@
 // 'playback' の間に流し始めた音は、'ambient' に戻した後もマナーモードで鳴ってしまうため、どの道筋でも 'playback' の間は流し始めない（audioSession.ts）。
 // ヘッドレスのブラウザには navigator.audioSession がないので、偽物を入れ、audio 要素の play() と AudioContext の resume() が呼ばれたときの扱いを記録する。
 // 読み上げも偽物にして、終わる時刻をこちらで決める（終わりの知らせが来ない端末もまねる）。
+// マイク（話して答える）：iPhone はマイクを使うと play-and-record になり、聞き終わっても・ページを開き直してもマナーモードが効かなかった。
+// 偽の音声認識で、聞いている間は BGM・音の出口を止め、マイクを閉じたら 'auto' → 'ambient' とかけ直してから音を戻すこと、
+// 起動時（開き直したとき）も最初の音の前にかけ直すことを確かめる。
 
-import { openBrowser, sleep } from './browser.mjs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { FAST_SETTINGS, openBrowser, saveAtHome, sleep } from './browser.mjs'
 
 const b = await openBrowser('silent-mode')
 const { send, evaluate, check, freshStart, viewport } = b
 
 await send('Page.addScriptToEvaluateOnNewDocument', {
   source: `(() => {
-    // 偽の audioSession：type を変えた記録を残す
+    // 偽の audioSession：type を変えた記録を残す。e2e:sessionType で、開いたときの値を決める（前のページの値が残っている端末をまねる）
     window.__sessionLog = []
-    const session = { _type: 'auto', get type() { return this._type }, set type(v) { this._type = v; window.__sessionLog.push({ type: v, t: performance.now() }) } }
+    const session = { _type: localStorage.getItem('e2e:sessionType') ?? 'auto', get type() { return this._type }, set type(v) { this._type = v; window.__sessionLog.push({ type: v, t: performance.now() }) } }
     Object.defineProperty(navigator, 'audioSession', { value: session, configurable: true })
     // BGM の audio 要素と AudioContext：流し始めたときの扱いを記録する
     window.__audios = new Set()
     window.__starts = []
     const play = HTMLMediaElement.prototype.play
-    HTMLMediaElement.prototype.play = function () { window.__audios.add(this); window.__starts.push({ what: 'play', type: navigator.audioSession.type, src: (this.src || '').split('/').pop() }); return play.call(this) }
+    HTMLMediaElement.prototype.play = function () { window.__audios.add(this); window.__starts.push({ what: 'play', type: navigator.audioSession.type, mic: window.__micOpen === true, t: performance.now(), src: (this.src || '').split('/').pop() }); return play.call(this) }
     window.__contexts = []
     const Base = window.AudioContext
     if (Base) {
       const resume = Base.prototype.resume
-      Base.prototype.resume = function () { window.__starts.push({ what: 'resume', type: navigator.audioSession.type, state: this.state }); return resume.call(this) }
+      Base.prototype.resume = function () { window.__starts.push({ what: 'resume', type: navigator.audioSession.type, mic: window.__micOpen === true, t: performance.now(), state: this.state }); return resume.call(this) }
       window.AudioContext = class extends Base { constructor(...a) { super(...a); window.__contexts.push(this) } }
     }
     // 偽の読み上げ：window.__endSpeech() で終わる。cancel() では終わりの知らせを出さない（iPhone で来ないことがあるため）
@@ -41,6 +45,23 @@ await send('Page.addScriptToEvaluateOnNewDocument', {
     class Utterance { constructor(text) { this.text = text; this.lang = ''; this.voice = null; this.rate = 1; this.pitch = 1; this.volume = 1 } }
     Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true })
     window.SpeechSynthesisUtterance = Utterance
+    // 偽の音声認識：window.__fakeSpeech の先頭を使う。noEnd なら、確定した結果を出した後もブラウザが終わらない（マイクを開いたまま）
+    // マイクを開いている間は window.__micOpen が true。閉じた時刻を window.__micClosedAt に残す
+    const ev = (t, final) => ({ results: [Object.assign([{ transcript: t }], { isFinal: final })] })
+    const close = () => { window.__micOpen = false; window.__micClosedAt = performance.now() }
+    class FakeRecognition {
+      start() {
+        window.__micOpen = true
+        const step = (window.__fakeSpeech ?? []).shift()
+        this.timers = [setTimeout(() => this.onstart?.(), 300)]
+        if (!step) return
+        this.timers.push(setTimeout(() => { this.onresult?.(ev(step.final, true)); if (!step.noEnd) { close(); this.onend?.() } }, 1500))
+      }
+      stop() { this.timers?.forEach(clearTimeout); close(); this.onend?.() }
+      abort() { this.timers?.forEach(clearTimeout); close(); this.onerror?.({ error: 'aborted' }); this.onend?.() }
+    }
+    window.SpeechRecognition = FakeRecognition
+    window.webkitSpeechRecognition = FakeRecognition
   })()`,
 })
 
@@ -150,5 +171,66 @@ if (speakable) {
 const bad = await startsWhilePlayback()
 check('playback の間に、BGM の play()・AudioContext の resume() を一度も呼ばない', bad.length === 0, JSON.stringify(bad))
 check('記録：BGM・音の出口を流し始めた回数（ambient の間）', (await evaluate(`window.__starts.length`)) > 0, JSON.stringify(await evaluate(`window.__sessionLog`)))
+
+// ---------- マイク（話して注文）：聞いている間は止め、マイクを閉じたらかけ直してから音を戻す ----------
+const allEvents = readdirSync('src/data/events').filter((n) => n.endsWith('.json')).flatMap((n) => JSON.parse(readFileSync(`src/data/events/${n}`, 'utf8'))).map((e) => e.id)
+const vocab = readdirSync('src/data/vocabulary').filter((n) => n.endsWith('.json')).flatMap((n) => JSON.parse(readFileSync(`src/data/vocabulary/${n}`, 'utf8')))
+const T = '2026-11-20T10:00:00.000Z'
+const SAVE = saveAtHome({ progress: { completedEvents: allEvents, currentLocationId: 'home' }, learning: { words: Object.fromEntries(vocab.map((v) => [v.id, { learnedAt: T, chapter: 3 }])) } })
+await freshStart({ settings: { ...FAST_SETTINGS, voiceInputNoticeSeen: true }, save: SAVE })
+await mouseClickText('つづきから')
+await sleep(800)
+if (await evaluate(`!!document.querySelector('.event-header')`)) await mouseClickText('やめる')
+await mouseClickText('外に出る（マップへ）')
+await sleep(300)
+await evaluate(`[...document.querySelectorAll('.town-map button')].find((b) => b.textContent.includes('カフェ'))?.setAttribute('data-e2e-target', '1')`)
+await mouseClick('[data-e2e-target="1"]')
+await sleep(300)
+await mouseClickText('注文する（メニューを見る）')
+await sleep(300)
+await mouseClickText('話す')
+check('カフェ：BGM が流れている（マイクの前）', await waitFor(bgmPlaying), JSON.stringify(await state()))
+await waitFor(async () => (await state()).playing[0]?.t > 0.3)
+
+/** 話して注文し、マイクを閉じるまで待つ。閉じた後の扱いのかけ直しと、BGM が戻ることを確かめる */
+async function speakAndCheck(label, step) {
+  await evaluate(`window.__fakeSpeech = [${JSON.stringify(step)}]; window.__sessionLog = []`)
+  await mouseClick('.mic__button')
+  await sleep(700)
+  const listening = await state()
+  check(`${label}：聞いている間は、BGM を止め、音の出口も止める`, (await evaluate(`window.__micOpen`)) && listening.playing.length === 0 && listening.contexts.every((c) => c !== 'running'), JSON.stringify(listening))
+  const closed = await waitFor(async () => (await evaluate(`window.__micOpen`)) === false, 5000)
+  check(`${label}：マイクを閉じる（ブラウザが終わらないときは、こちらで閉じさせる）`, closed)
+  check(`${label}：マイクを閉じたら、BGM を続きから流し、音の出口も動かす`, await waitFor(bgmPlaying), JSON.stringify(await state()))
+  const r = await evaluate(`(() => {
+    const closedAt = window.__micClosedAt
+    const log = window.__sessionLog.filter((e) => e.t >= closedAt)
+    const autoAt = log.findIndex((e) => e.type === 'auto')
+    const ambientAfter = autoAt >= 0 ? log.slice(autoAt + 1).find((e) => e.type === 'ambient') : undefined
+    const firstStart = window.__starts.find((s) => s.t >= closedAt)
+    return { log: log.map((e) => e.type), reapplied: ambientAfter !== undefined, lastAmbient: Math.max(...log.filter((e) => e.type === 'ambient').map((e) => e.t)), firstStart: firstStart?.t ?? null, whileMic: window.__starts.filter((s) => s.mic) }
+  })()`)
+  check(`${label}：マイクを閉じた後、auto → ambient とかけ直してから、BGM・音の出口を流し始める`, r.reapplied && r.firstStart !== null && r.firstStart > r.lastAmbient, JSON.stringify(r))
+  check(`${label}：マイクを開いている間は、BGM の play()・AudioContext の resume() を呼ばない`, r.whileMic.length === 0, JSON.stringify(r.whileMic))
+}
+await speakAndCheck('話して注文', { final: '아메리카노 한 잔 주세요' })
+check('話して注文：注文できる', (await b.mainText()).includes('注文できました'))
+await mouseClickText('店を出る')
+await sleep(300)
+await mouseClickText('注文する（メニューを見る）')
+await sleep(300)
+await mouseClickText('話す')
+await speakAndCheck('ブラウザが聞き取りを終えない端末', { final: '아메리카노 한 잔 주세요', noEnd: true })
+
+// ---------- ページを開き直したとき：前のページの値（ambient）が残っていても、最初の音の前にかけ直す ----------
+await evaluate(`localStorage.setItem('e2e:sessionType', 'ambient')`)
+await b.reload()
+const boot = await evaluate(`window.__sessionLog.map((e) => e.type)`)
+check('開き直したとき：すでに ambient でも、起動時に auto → ambient とかけ直す', JSON.stringify(boot.slice(0, 2)) === JSON.stringify(['auto', 'ambient']), JSON.stringify(boot))
+await mouseClickText('つづきから')
+check('開き直したとき：最初の操作で、ambient のまま BGM が流れる', await waitFor(bgmPlaying), JSON.stringify(await state()))
+const firstPlay = await evaluate(`(() => { const p = window.__starts[0]; const reapplied = window.__sessionLog.find((e) => e.type === 'ambient'); return { p, reappliedAt: reapplied?.t ?? null } })()`)
+check('開き直したとき：かけ直しの後に、最初の音を流す', firstPlay.p !== undefined && firstPlay.reappliedAt !== null && firstPlay.p.t > firstPlay.reappliedAt && firstPlay.p.type === 'ambient', JSON.stringify(firstPlay))
+await evaluate(`localStorage.removeItem('e2e:sessionType')`)
 
 b.finish()
