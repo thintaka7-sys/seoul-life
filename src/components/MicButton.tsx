@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../app/GameContext'
 import { useCanSpeak } from '../app/hooks'
 import { recognizeKorean, type RecognitionSession } from '../audio/recognition'
+import { stopSpeaking } from '../audio/speech'
 import { Notice } from './Notice'
 import { VoiceInputNotice } from './VoiceInputNotice'
 
@@ -48,7 +49,8 @@ export function MicButton({ onHeard, label = '話す', retryLabel = 'もう一�
     setPartial('')
     setPhase('preparing')
     // 読み上げ中の声をマイクが拾わないように止める
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
+    // （止めたことを読み上げの部品にも伝え、マナーモードでも鳴る扱いをすぐ戻す。audioSession.ts）
+    stopSpeaking()
     const current = recognizeKorean({
       onReady: () => {
         if (session.current === current) setPhase('listening')

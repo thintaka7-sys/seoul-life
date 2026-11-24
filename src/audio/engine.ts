@@ -1,9 +1,11 @@
 // 音の出口（Web Audio の AudioContext）を1つにまとめる。効果音と BGM は、それぞれの音量のつまみ（GainNode）を通して出す。
 // iPhone の Safari は音の大きさの指定（audio.volume）が効かないため、音量はここのつまみで変える（Phase 3 計画）。
 // ブラウザは、利用者が画面を操作する前に音を出させないので、AudioContext は操作の最中に作る（sfx.ts の UNLOCK_EVENTS）。
-// 読み上げの間、マナーモードでも鳴る扱い（audioSession.ts）にしているときは、BGM・効果音の音量を 0 にする（マナーモードで鳴らさないため）。
+// 読み上げの間、マナーモードでも鳴る扱い（audioSession.ts）にしているときは、BGM・効果音の音量を 0 にし、音の出口も止める。
+// その間は、操作があっても音の出口を動かさない（動かした音は、ふだんの扱いに戻した後もマナーモードで鳴ってしまうため）。
+// 音の出口を動かすのは、すべて resumeAudioEngineIfAllowed を通す（効果音の sfx.ts は canStartAudio を確かめる）。
 
-import { isSilentModeUnsafe, subscribeAudioSession } from './audioSession'
+import { RESUME_AFTER_SPEECH_MS, isSilentModeUnsafe, subscribeAudioSession } from './audioSession'
 
 interface Engine {
   ctx: AudioContext
@@ -12,6 +14,8 @@ interface Engine {
 }
 
 let engine: Engine | null = null
+/** 画面が見えない間（pageVisibility.ts） */
+let pageHidden = false
 let sfxVolume = 0.8
 let bgmVolume = 0.6
 const listeners = new Set<(ctx: AudioContext) => void>()
@@ -35,6 +39,8 @@ export function ensureAudioEngine(): Engine | null {
     sfx.connect(ctx.destination)
     bgm.connect(ctx.destination)
     engine = { ctx, sfx, bgm }
+    // 読み上げのための扱いの最中に作ったときは、戻るまで止めておく
+    if (!canStartAudio()) suspendContext()
     for (const l of listeners) l(ctx)
     return engine
   } catch {
@@ -53,14 +59,31 @@ export function onAudioEngineReady(listener: (ctx: AudioContext) => void): void 
   if (engine !== null) listener(engine.ctx)
 }
 
+/** BGM・効果音を流し始めてよいか：画面が見えていて、読み上げのためにマナーモードでも鳴る扱いにしていない */
+export function canStartAudio(): boolean {
+  return !pageHidden && !isSilentModeUnsafe()
+}
+
+function suspendContext(): void {
+  if (engine !== null && engine.ctx.state === 'running') void engine.ctx.suspend().catch(() => undefined)
+}
+
+/** 音の出口を動かす（止まっていれば）。流し始めてよくないときは動かさない。断られても（iPhone の操作の外など）、次の操作で試す */
+export function resumeAudioEngineIfAllowed(): Promise<void> {
+  if (engine === null || engine.ctx.state === 'running' || !canStartAudio()) return Promise.resolve()
+  return engine.ctx.resume().catch(() => undefined)
+}
+
 /** 音の出口を止める（画面が見えなくなったとき）。効果音は、鳴っている途中でも止まる */
 export function suspendAudioEngine(): void {
-  if (engine !== null && engine.ctx.state === 'running') void engine.ctx.suspend().catch(() => undefined)
+  pageHidden = true
+  suspendContext()
 }
 
 /** 音の出口を再び動かす（画面に戻ったとき）。iPhone などで断られたら、次の操作のときに動かす（sfx.ts・bgm.ts） */
 export function resumeAudioEngine(): void {
-  if (engine !== null && engine.ctx.state !== 'running') void engine.ctx.resume().catch(() => undefined)
+  pageHidden = false
+  void resumeAudioEngineIfAllowed()
 }
 
 /** いまの音量を、つまみに伝える。読み上げのためにマナーモードでも鳴る扱いの間は 0 */
@@ -71,7 +94,14 @@ function applyGains(): void {
   engine.sfx.gain.setTargetAtTime(mute ? 0 : sfxVolume, now, 0.02)
   engine.bgm.gain.setTargetAtTime(mute ? 0 : bgmVolume, now, mute ? 0.02 : 0.2)
 }
-subscribeAudioSession(applyGains)
+
+/** 読み上げのための扱いになったら音の出口を止め、ふだんの扱いに戻ったら少し待って動かす */
+function onAudioSessionChange(): void {
+  applyGains()
+  if (isSilentModeUnsafe()) suspendContext()
+  else if (typeof window !== 'undefined') window.setTimeout(() => void resumeAudioEngineIfAllowed(), RESUME_AFTER_SPEECH_MS)
+}
+subscribeAudioSession(onAudioSessionChange)
 
 /** 効果音の音量（0〜1） */
 export function setSfxVolume(v: number): void {

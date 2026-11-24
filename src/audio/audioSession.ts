@@ -1,7 +1,9 @@
 // iPhone のマナーモード（消音スイッチ）への対応（Phase 3 区切り2 のスマホ確認）。
 // - ふだんは音の扱いを「ambient」にする：BGM・効果音は、マナーモードでは鳴らない（ほかのアプリの音とも混ざる）
 // - 読み上げ（すべてプレイヤーがボタンを押して始める）の間だけ「playback」にする：学習に必要なので、マナーモードでも鳴らす
-//   「playback」の間は BGM・効果音もマナーモードで鳴ってしまうため、その間は BGM・効果音の音量を 0 にする（engine.ts）
+//   「playback」の間に流し始めた音は、「ambient」に戻した後もマナーモードで鳴ってしまう（スマホ確認：おはなしの早送りの後の BGM）。
+//   そのため「playback」の間は、BGM を止め（bgm.ts）、音の出口（効果音）も止めて（engine.ts）、どの道筋でも流し始めない。
+//   「ambient」に戻してから少し待って（RESUME_AFTER_SPEECH_MS）、止めた BGM を続きから流し、音の出口を動かす
 // navigator.audioSession（Safari 16.4 以降）がないブラウザでは何もしない（マナーモードの区別がないため）。
 
 export type AudioSessionType = 'auto' | 'playback' | 'transient' | 'transient-solo' | 'ambient' | 'play-and-record'
@@ -14,6 +16,8 @@ export interface AudioSessionLike {
 export const SPEECH_HOLD_TIMEOUT_MS = 5000
 /** 「読み上げ中」のまま知らせが変わらない端末（iPhone で speaking が true のまま残ることがある）でも、ここまで経ったら戻す */
 export const SPEECH_HOLD_MAX_MS = 60000
+/** ふだんの扱い（ambient）に戻してから、BGM・効果音を流し直すまでの間（切り替えが端末に届くのを待つ） */
+export const RESUME_AFTER_SPEECH_MS = 200
 
 /** 音の扱いを切り替える部品（テストできるように、audioSession と時計を外から渡す） */
 export function createAudioSessionController(session: AudioSessionLike | undefined, now: () => number) {
@@ -104,7 +108,7 @@ export function holdAudioForSpeech(): () => void {
   return release
 }
 
-/** BGM・効果音を消しておくべきか（マナーモードを区別できるブラウザで、読み上げのための扱いにしている間） */
+/** BGM・効果音を止めておくべきか（マナーモードを区別できるブラウザで、読み上げのための扱いにしている間。この間は流し始めない） */
 export function isSilentModeUnsafe(): boolean {
   return controller.supported && controller.held()
 }

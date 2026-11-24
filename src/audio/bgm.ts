@@ -2,7 +2,10 @@
 // - 曲は2つの audio 要素（デッキ）を交互に使い、Web Audio の音量のつまみ（GainNode）を通して鳴らす。
 //   iPhone の Safari は audio.volume が効かないため、音量はつまみで変える。
 // - 曲の終わり（フェードアウトの手前で切ってある。npm run audio）が近づいたら、同じ曲の始めをもう一方のデッキで重ねて始める。
-// - 場面が変わったら、新しい曲を重ねながら切り替える。読み上げの間は小さくする（iPhone など、マナーモードを区別できるブラウザでは消す。audioSession.ts）。
+// - 場面が変わったら、新しい曲を重ねながら切り替える。読み上げの間は小さくする。
+//   iPhone など、マナーモードを区別できるブラウザでは、読み上げの間は止めて、どの道筋（場面の切り替え・流し直し・操作）でも流し始めない。
+//   マナーモードでも鳴る扱いの間に流し始めた曲は、ふだんの扱いに戻した後もマナーモードで鳴ってしまうため（audioSession.ts）。
+//   読み上げが終わって、ふだんの扱いに戻ってから、止めた曲を続きから流す。
 // - マイクで聞いている間（話して答える）は消す（声を聞き取りやすく、話しやすくするため。recognition.ts）。
 // - 画面が見えなくなったら止め、戻ったら続きから流す（pageVisibility.ts）。
 // - 流しているはずの曲が、こちらの操作なしに止まっていたら（iPhone で、ほかの音・マイクに止められたなど）、続きから流し直す。
@@ -11,7 +14,8 @@
 
 import { audioAssets } from '../data'
 import type { BgmId } from '../data/types'
-import { currentAudioEngine, onAudioEngineReady } from './engine'
+import { RESUME_AFTER_SPEECH_MS, isSilentModeUnsafe, subscribeAudioSession } from './audioSession'
+import { canStartAudio, currentAudioEngine, onAudioEngineReady, resumeAudioEngineIfAllowed } from './engine'
 import { isListening, subscribeListening } from './recognition'
 import { DUCK_VOLUME, LOOP_CROSSFADE_SEC, SWITCH_FADE_SEC, loopDue } from './bgmTiming'
 import { UNLOCK_EVENTS } from './sfx'
@@ -22,7 +26,7 @@ interface Deck {
   track: BgmId | null
   /** フェードアウトの後に止めるタイマー */
   stopTimer: number | null
-  /** 再生を断られた（操作の前など）か、画面が見えない間に始めようとした。次の操作・画面に戻ったときに再び試す */
+  /** 再生を断られた（操作の前など）か、画面が見えない間・読み上げの間に始めようとした（止めた）。次の操作・画面に戻ったとき・読み上げの後に再び試す */
   pending: boolean
   /** play() の返事を待っている */
   starting: boolean
@@ -63,8 +67,13 @@ function ramp(gain: GainNode, to: number, sec: number): void {
   gain.gain.linearRampToValueAtTime(to, now + Math.max(0.01, sec))
 }
 
+/** 流し始めてよいか：画面が見えていて、読み上げのためにマナーモードでも鳴る扱いにしていない */
+function mayPlay(): boolean {
+  return !hidden && canStartAudio()
+}
+
 function play(deck: Deck): void {
-  if (hidden) {
+  if (!mayPlay()) {
     deck.pending = true
     return
   }
@@ -74,6 +83,11 @@ function play(deck: Deck): void {
     .then(() => {
       deck.starting = false
       deck.pending = false
+      // 返事を待つ間に、見えなくなった・読み上げが始まったときは止める（後で続きから流す）
+      if (!mayPlay()) {
+        deck.el.pause()
+        deck.pending = deck.track !== null
+      }
     })
     .catch(() => {
       deck.starting = false
@@ -146,7 +160,7 @@ function updateMix(): void {
 
 /** 定期的に：曲の終わりが近ければ重ねて始め直す。止められていた曲は流し直す。読み上げ・マイクの間は小さくする */
 function tick(): void {
-  if (decks === null || mix === null || hidden) return
+  if (decks === null || mix === null || !mayPlay()) return
   const current = decks[active]
   const track = current.track
   const entry = track === null ? undefined : audioAssets.bgm[track]
@@ -166,8 +180,8 @@ function tick(): void {
 
 /** 操作のたびに：断られた再生をもう一度試す。最初の操作では、両方のデッキを一度鳴らして止める（iPhone） */
 function onGesture(): void {
-  if (decks === null) return
-  if (ctx !== null && ctx.state !== 'running') void ctx.resume().catch(() => undefined)
+  if (decks === null || !mayPlay()) return
+  void resumeAudioEngineIfAllowed()
   for (const deck of decks) if (deck.pending) play(deck)
   if (!primed) {
     primed = true
@@ -202,14 +216,14 @@ function setup(audio: AudioContext, output: AudioNode): void {
   decks = [make(), make()]
   window.setInterval(tick, 250)
   subscribeListening(updateMix)
+  subscribeAudioSession(onAudioSessionChange)
   for (const type of UNLOCK_EVENTS) window.addEventListener(type, onGesture, { passive: true, capture: true })
   onGesture()
   apply()
 }
 
-/** 画面が見えなくなったとき：流している曲を、いまの位置で止める。重ねて消している途中の曲は、そのまま止める */
-export function suspendBgm(): void {
-  hidden = true
+/** 流している曲を、いまの位置で止める。重ねて消している途中の曲は、そのまま止める */
+function pauseDecks(): void {
   if (decks === null) return
   for (const deck of decks) {
     if (deck.stopTimer !== null) {
@@ -218,22 +232,39 @@ export function suspendBgm(): void {
     }
     if (!deck.el.paused) {
       deck.el.pause()
-      // 流していた曲は、戻ったときに続きから流す（消している途中の曲は track が null）
+      // 流していた曲は、後で続きから流す（消している途中の曲は track が null）
       deck.pending = deck.track !== null
     }
   }
+}
+
+/** 止めた曲を続きから流し、望む曲に合わせる（流し始めてよくなったとき） */
+function resumeDecks(): void {
+  if (decks === null || !mayPlay()) return
+  for (const deck of decks) {
+    if (deck.pending && deck.track !== null) play(deck)
+    else deck.pending = false
+  }
+  apply()
+}
+
+/** 読み上げのためにマナーモードでも鳴る扱いになったら止め、ふだんの扱いに戻ったら少し待って続きから流す */
+function onAudioSessionChange(): void {
+  if (isSilentModeUnsafe()) pauseDecks()
+  else window.setTimeout(resumeDecks, RESUME_AFTER_SPEECH_MS)
+}
+
+/** 画面が見えなくなったとき：流している曲を、いまの位置で止める */
+export function suspendBgm(): void {
+  hidden = true
+  pauseDecks()
 }
 
 /** 画面に戻ったとき：止めた曲を続きから流す（断られたら、次の操作のときに流す） */
 export function resumeBgm(): void {
   if (!hidden) return
   hidden = false
-  if (decks === null) return
-  for (const deck of decks) {
-    if (deck.pending && deck.track !== null) play(deck)
-    else deck.pending = false
-  }
-  apply()
+  resumeDecks()
 }
 
 /** 起動時に1回呼ぶ。最初の操作で AudioContext ができたら準備する */

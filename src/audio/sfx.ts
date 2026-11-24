@@ -2,7 +2,7 @@
 // ブラウザは、利用者が画面を操作する前に音を出させないため、最初のタップ（またはキー操作）で準備する。
 // iPhone はマナーモード（消音スイッチ）のとき、この音は鳴らない（audioSession.ts で ambient にしている）。
 
-import { ensureAudioEngine } from './engine'
+import { canStartAudio, ensureAudioEngine } from './engine'
 
 export const SFX_NAMES = ['button', 'correct', 'wrong', 'xp', 'fanfare'] as const
 export type SfxName = (typeof SFX_NAMES)[number]
@@ -143,7 +143,8 @@ function wrapAudioContext(ctx: AudioContext, out: AudioNode): SfxContext {
     get state() {
       return ctx.state
     },
-    resume: () => ctx.resume(),
+    // 読み上げのためにマナーモードでも鳴る扱いの間は、音の出口を動かさない（engine.ts）
+    resume: () => (canStartAudio() ? ctx.resume() : Promise.resolve()),
     warmUp() {
       try {
         const source = ctx.createBufferSource()

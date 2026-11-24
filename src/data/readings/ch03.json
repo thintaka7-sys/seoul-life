@@ -31,19 +31,38 @@
     "questions": [
       {
         "type": "find",
-        "questionJa": "ゆず茶はどれ？メニューから探して押そう",
+        "questionJa": "「유자차」はどれ？メニューから探して押そう",
         "answer": "유자차",
-        "explanationJa": "유자차 は、유자（ゆず）＋차（お茶）です。"
-      },
-      {
-        "type": "number",
-        "questionJa": "크로플（クロッフル）はいくらですか？",
-        "digits": "4500",
-        "explanationJa": "4,500원 は 사천오백 원 と読みます。"
+        "explanationJa": "유자차（ゆず茶）は、유자（ゆず）＋차（お茶）です。"
       },
       {
         "type": "choice",
-        "questionJa": "いちばん高い飲み物はどれ？",
+        "questionJa": "店員さんに「크로플은 얼마예요?（クロッフルはいくらですか？）」と聞きました。店員さんの答えはどれ？",
+        "choices": [
+          {
+            "korean": "사천오백 원이에요.",
+            "pronunciation": "サチョノベ グォニエヨ",
+            "japanese": "4,500ウォンです。",
+            "correct": true
+          },
+          {
+            "korean": "오천오백 원이에요.",
+            "pronunciation": "オチョノベ グォニエヨ",
+            "japanese": "5,500ウォンです。",
+            "correct": false
+          },
+          {
+            "korean": "사천 원이에요.",
+            "pronunciation": "サチョ ヌォニエヨ",
+            "japanese": "4,000ウォンです。",
+            "correct": false
+          }
+        ],
+        "explanationJa": "크로플 は 4,500원。사천（4,000）＋오백（500）で 사천오백 원 です。"
+      },
+      {
+        "type": "choice",
+        "questionJa": "「육천 원」のものはどれ？",
         "choices": [
           {
             "korean": "딸기 라테",
@@ -52,28 +71,28 @@
             "correct": true
           },
           {
-            "korean": "아메리카노",
-            "pronunciation": "アメリカノ",
-            "japanese": "アメリカーノ",
-            "correct": false
-          },
-          {
             "korean": "유자차",
             "pronunciation": "ユジャチャ",
             "japanese": "ゆず茶",
             "correct": false
+          },
+          {
+            "korean": "치즈케이크",
+            "pronunciation": "チジュケイク",
+            "japanese": "チーズケーキ",
+            "correct": false
           }
         ],
-        "explanationJa": "딸기 라테 は 6,000원（육천 원）で、飲み物の中でいちばん高いです。"
+        "explanationJa": "육천 원 は 6,000원 です。유자차 は 5,000원（오천 원）、치즈케이크 は 6,500원（육천오백 원）です。"
       },
       {
         "type": "find",
-        "questionJa": "今日のおすすめは？本文から探して押そう",
+        "questionJa": "「오늘의 추천 메뉴는 뭐예요?」本文から探して押そう",
         "answer": "크로플",
-        "explanationJa": "오늘의 추천 메뉴 は「今日のおすすめメニュー」です。"
+        "explanationJa": "오늘의 추천 메뉴（今日のおすすめメニュー）は 크로플 です。"
       }
     ],
     "reviewed": true,
-    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）"
+    "notes": "教材側で作成（2026-11-24）／確認：ChatGPT（2026-11-24）。2026-11-24：開発者の指摘（日本語の品名・数字・絵だけで答えられてしまう）を受けて、問題を作り直した。品名は日本語を出さずハングルで探す、値段は韓国語の読み方で答える。作り直した問題の確認：教材担当（2026-11-24。新しい韓国語は 크로플은 얼마예요? と値段の言い方だけ）"
   }
 ]
