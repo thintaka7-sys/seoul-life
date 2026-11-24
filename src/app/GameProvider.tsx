@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useRef, type ReactNode } from 'react'
+import { setQuietAfterVoiceInput } from '../audio/audioSession'
 import { setBgmEnabled } from '../audio/bgm'
 import { setBgmMasterVolume, setSfxVolume } from '../audio/engine'
 import { setSfxEnabled } from '../audio/sfx'
@@ -55,6 +56,9 @@ export function GameProvider({ boot, children }: { boot: BootResult; children: R
   useEffect(() => {
     setBgmMasterVolume(state.settings.bgmVolume / 100)
   }, [state.settings.bgmVolume])
+  useEffect(() => {
+    setQuietAfterVoiceInput(state.settings.quietAfterVoiceInput)
+  }, [state.settings.quietAfterVoiceInput])
 
   // この端末の「ゆっくり」の速さ（読み上げの確認で保存したもの）を読み上げに反映する（BUG-010）
   const slowRate = state.settings.slowSpeech === null ? undefined : state.settings.slowSpeech.rate

@@ -176,6 +176,23 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
   let ended = false
   let markClosed: () => void = () => {}
   const closed = new Promise<void>((r) => (markClosed = r))
+  /**
+   * 聞き取りが終わった後の片付け：知らせを受け取るのをやめ、念のためもう一度 abort() してマイクを手放させる。
+   * Safari は onend の後もマイクを開いたままにすることがある（スマホ確認 2026-11-25：オレンジの点が残る）。
+   * 終わった後の abort() は、仕様では何もしない呼び出しなので、ほかのブラウザに影響はない。部品はこの後どこからも使わない（毎回作って捨てる）
+   */
+  const release = () => {
+    rec.onresult = null
+    rec.onerror = null
+    rec.onend = null
+    rec.onstart = null
+    rec.onaudiostart = null
+    try {
+      rec.abort()
+    } catch {
+      // 終えている部品では、例外になるブラウザがある
+    }
+  }
   const result = new Promise<RecognitionOutcome>((resolve) => {
     let settled = false
     let latest: string[] = []
@@ -194,7 +211,12 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
         } catch {
           // 終えている途中など
         }
-        setTimeout(markClosed, CLOSE_WAIT_MS)
+        setTimeout(() => {
+          if (ended) return
+          // 終わった知らせが来ないまま：閉じたことにして片付ける
+          markClosed()
+          release()
+        }, CLOSE_WAIT_MS)
       }
     }
     const finishWithLatest = (fallback: RecognitionError) => finish(latest.length > 0 ? { kind: 'heard', alternatives: latest } : { kind: 'error', error: fallback })
@@ -234,6 +256,7 @@ export function runRecognition(rec: RecognitionLike, callbacks: RecognitionCallb
       if (aborted) finish({ kind: 'error', error: describeRecognitionError('aborted') })
       else finishWithLatest(describeRecognitionError('no-speech'))
       markClosed()
+      release()
     }
     try {
       rec.start()

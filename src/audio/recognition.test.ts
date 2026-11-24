@@ -141,7 +141,7 @@ describe('聞き取った結果のまとめ方（BUG-004）', () => {
     expect(closed).toBe(true)
   })
 
-  it('ブラウザが聞き取りを終えたら（onend）閉じたことにし、マイクを閉じさせる操作はしない', async () => {
+  it('ブラウザが聞き取りを終えたら（onend）閉じたことにし、知らせを外してから念のため abort する（Safari がマイクを開いたままにするため）', async () => {
     const rec = fakeRecognition()
     let aborts = 0
     rec.abort = () => {
@@ -152,7 +152,8 @@ describe('聞き取った結果のまとめ方（BUG-004）', () => {
     rec.onend?.()
     await s.closed
     expect(await s.result).toEqual({ kind: 'heard', alternatives: ['네'] })
-    expect(aborts).toBe(0)
+    expect(aborts).toBe(1)
+    expect([rec.onresult, rec.onerror, rec.onend, rec.onstart, rec.onaudiostart]).toEqual([null, null, null, null, null])
   })
 
   it('ボタンで止めたら、そこまでの声で判定する', async () => {

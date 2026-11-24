@@ -18,7 +18,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** 設定を「文字送りなし」にして、操作を速く・確実にする（文字送りの確認をするときは使わない） */
 export const FAST_SETTINGS = {
-  version: 5,
+  version: 6,
   furigana: 'recommended',
   translation: 'always',
   speechRate: 'normal',
@@ -31,6 +31,7 @@ export const FAST_SETTINGS = {
   bgm: true,
   bgmVolume: 60,
   sfxVolume: 80,
+  quietAfterVoiceInput: false,
 }
 
 /** いまのセーブデータの版（src/storage/saveData.ts の CURRENT_SAVE_VERSION） */

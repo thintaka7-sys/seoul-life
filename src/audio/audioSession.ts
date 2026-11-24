@@ -6,6 +6,10 @@
 //   ・マイクで聞いている間は、BGM・効果音を止める（流し続けない）
 //   ・マイクを閉じたら、音を止めたまま、扱いを 'auto' → 'ambient' と入れ直して（かけ直し）、少し待ってから音を戻す
 //   ・起動時も、最初の音の前に同じかけ直しをする
+//   それでも実機では、マイクの後にマナーモードが効かず、マイク使用中の表示（オレンジの点）も残った（スマホ確認 2026-11-25）。
+//   Safari がマイクを開いたままにしていると考えられ、ページからは閉じきれない。そこで設定「話して答えたあと、BGM・効果音を止める」
+//   （quietAfterVoiceInput。iPhone では最初からオン）がオンなら、一度マイクを使った後は、ページを開き直すまで BGM・効果音を止めておく
+//   （読み上げの間と同じ止め方。BGM を止め、音の出口も止める）。読み上げ（ボタンを押して聞く）は鳴らす
 // - 読み上げ（すべてプレイヤーがボタンを押して始める）の間だけ「playback」にする：学習に必要なので、マナーモードでも鳴らす
 //   「playback」の間に流し始めた音は、「ambient」に戻した後もマナーモードで鳴ってしまう（スマホ確認：おはなしの早送りの後の BGM）。
 //   そのため「playback」の間は、BGM を止め（bgm.ts）、音の出口（効果音）も止めて（engine.ts）、どの道筋でも流し始めない。
@@ -43,6 +47,10 @@ export function createAudioSessionController(
   let settling = false
   /** かけ直しの順番（マイクをまた使い始めたら、前のかけ直しの終わりは無視する） */
   let captureSeq = 0
+  /** このページでマイクを使った */
+  let micUsed = false
+  /** 設定：話して答えたあと、BGM・効果音を止める */
+  let quietAfterMic = false
   const listeners = new Set<() => void>()
 
   function set(type: AudioSessionType) {
@@ -88,6 +96,7 @@ export function createAudioSessionController(
       capturing = value
       const seq = ++captureSeq
       if (value) {
+        micUsed = true
         settling = false
         changed()
         return
@@ -115,6 +124,14 @@ export function createAudioSessionController(
         if (holds === 0) releaseAll()
       }
     },
+    /** 設定「話して答えたあと、BGM・効果音を止める」を反映する */
+    setQuietAfterMic(value: boolean) {
+      if (value === quietAfterMic) return
+      quietAfterMic = value
+      if (micUsed) changed()
+    },
+    /** マイクを使った後で、設定により BGM・効果音を止めている（ページを開き直すまで） */
+    quiet: () => quietAfterMic && micUsed,
     /** 読み上げのための扱いにしている間 */
     held: () => holds > 0,
     /** BGM・効果音を止めておく間：読み上げの間、マイクで聞いている間、マイクを閉じた後のかけ直しの間 */
@@ -140,6 +157,16 @@ function browserSession(): AudioSessionLike | undefined {
 
 const controller = createAudioSessionController(browserSession(), () => (typeof performance === 'undefined' ? Date.now() : performance.now()))
 
+/** マナーモードを区別できるブラウザか（navigator.audioSession がある。iPhone の Safari など。設定の初期値に使う） */
+export function hasAudioSession(): boolean {
+  return browserSession() !== undefined
+}
+
+/** 設定「話して答えたあと、BGM・効果音を止める」 */
+export function setQuietAfterVoiceInput(value: boolean): void {
+  controller.setQuietAfterMic(value)
+}
+
 /** 起動時に1回呼ぶ */
 export function initAudioSession(): void {
   controller.start()
@@ -164,11 +191,12 @@ export function holdAudioForSpeech(): () => void {
 }
 
 /**
- * BGM・効果音を止めておくべきか（マナーモードを区別できるブラウザで、読み上げの間・マイクで聞いている間・マイクの後のかけ直しの間）。
- * この間は流し始めない
+ * BGM・効果音を止めておくべきか。この間は流し始めない。
+ * - マナーモードを区別できるブラウザで、読み上げの間・マイクで聞いている間・マイクの後のかけ直しの間
+ * - 設定「話して答えたあと、BGM・効果音を止める」がオンで、このページでマイクを使った後（どのブラウザでも）
  */
 export function isSilentModeUnsafe(): boolean {
-  return controller.supported && controller.unsafe()
+  return controller.quiet() || (controller.supported && controller.unsafe())
 }
 
 export function subscribeAudioSession(listener: () => void): () => void {

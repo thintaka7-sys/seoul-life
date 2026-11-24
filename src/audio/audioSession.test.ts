@@ -147,6 +147,38 @@ describe('マナーモードへの対応（audioSession）', () => {
     expect(c.unsafe()).toBe(false)
   })
 
+  it('設定「話して答えたあと止める」がオンなら、マイクを使った後はずっと止めておく。オフにしたら戻す', () => {
+    const { c, advance } = setupWithLog('ambient')
+    let changes = 0
+    c.subscribe(() => (changes += 1))
+    c.setQuietAfterMic(true)
+    // まだマイクを使っていない：止めない
+    expect(c.quiet()).toBe(false)
+    expect(changes).toBe(0)
+    c.setCapturing(true)
+    c.setCapturing(false)
+    advance(AFTER_CAPTURE_MS)
+    expect(c.unsafe()).toBe(false)
+    expect(c.quiet()).toBe(true)
+    // 読み上げの後も止めたまま
+    c.hold()()
+    expect(c.quiet()).toBe(true)
+    const before = changes
+    c.setQuietAfterMic(false)
+    expect(c.quiet()).toBe(false)
+    expect(changes).toBe(before + 1)
+    c.setQuietAfterMic(true)
+    expect(c.quiet()).toBe(true)
+  })
+
+  it('audioSession がないブラウザでも、設定「話して答えたあと止める」は効く', () => {
+    const c = createAudioSessionController(undefined, () => 0, () => {})
+    c.setQuietAfterMic(true)
+    c.setCapturing(true)
+    c.setCapturing(false)
+    expect(c.quiet()).toBe(true)
+  })
+
   it('audioSession がないブラウザでは何もしない', () => {
     const c = createAudioSessionController(undefined, () => 0)
     expect(c.supported).toBe(false)

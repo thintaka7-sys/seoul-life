@@ -592,7 +592,7 @@ await click('設定')
 await click('オフ', { within: 'fieldset:has(input[name="bgm"])' }).catch(async () => evaluate(`document.querySelector('input[name="bgm"][type="radio"]:not(:checked)').click()`))
 await sleep(200)
 const settings = await evaluate(`JSON.parse(localStorage.getItem('seoul-life:settings'))`)
-check('BGM：設定でオフにでき、設定（v5）に保存する', settings.version === 5 && settings.bgm === false, JSON.stringify(settings))
+check('BGM：設定でオフにでき、設定（v6）に保存する', settings.version === 6 && settings.bgm === false, JSON.stringify(settings))
 await layoutCheck('設定（BGM・音量）')
 await shot('375-06-settings')
 

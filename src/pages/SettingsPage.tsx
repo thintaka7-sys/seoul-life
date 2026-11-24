@@ -233,6 +233,19 @@ export function SettingsPage() {
       </fieldset>
 
       <fieldset className="field">
+        <legend>話して答えたあと、BGM・効果音を止める</legend>
+        {([true, false] as const).map((on) => (
+          <label key={String(on)} className="radio">
+            <input type="radio" name="quietAfterVoiceInput" checked={settings.quietAfterVoiceInput === on} onChange={() => change({ quietAfterVoiceInput: on })} />
+            <span>{on ? 'オン' : 'オフ'}</span>
+          </label>
+        ))}
+        <p className="muted small">
+          iPhone でマイクを使うと、マナーモードでも音が鳴ることがあるため。オンにすると、話して答えた後は、ページを開き直すまで BGM・効果音を止めます。読み上げは鳴ります。
+        </p>
+      </fieldset>
+
+      <fieldset className="field">
         <legend>台詞の文字送り</legend>
         {TEXT_SPEEDS.map((speed) => (
           <label key={speed} className="radio">
