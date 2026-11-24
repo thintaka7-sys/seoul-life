@@ -113,12 +113,16 @@ const balance = {
   testPassPercent: 80,
   earQuestions: 10,
   stampActivities: ['review'],
+  levels: { thresholds: [0, 100, 250], stepAfter: 200 },
+  coins: { eventComplete: 20, chapterClear: 50, chapterTest: 50 },
+  stampMilestones: [{ days: 3, coins: 30 }],
 }
 
 const base: ContentInput = {
   locations: { 'l.json': [{ id: 'cafe', nameJa: 'カフェ', bgm: 'cafe' }, { id: 'home', nameJa: '自宅' }] },
   characters: { 'c.json': [{ id: 'cafe_staff', roleJa: '店員' }, { id: 'teacher', roleJa: '先生' }] },
   chapters: { 'ch.json': [1, 2, 3].map((chapter) => ({ chapter, titleJa: `第${chapter}章`, goalJa: 'できること' })) },
+  achievements: {},
   vocabulary: { 'v.json': [vocab('vocab_001', '커피', 'コピ'), vocab('vocab_002', '아메리카노', 'アメリカノ'), vocab('vocab_003', '치즈케이크', 'チジュケイク')] },
   grammar: {},
   conversations: {},

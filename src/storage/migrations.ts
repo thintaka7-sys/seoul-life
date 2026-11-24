@@ -85,6 +85,27 @@ export const MIGRATIONS: MigrationTable = {
       learning: { ...learning, seen: {}, readings: {}, orders: {}, forms: {} },
     }
   },
+  // v6（Phase 3）→ v7（Phase 4）：コイン・実績・自宅の家具・スタンプの節目のごほうびを空で足す。
+  // これまでの学習の分（終えたイベント・章・章末テスト・実績・節目）のコインは、読み込んだ後にゲームが教材を見て数えて付ける
+  // （levelShown を 0 にして印にする。game/progression/growth.ts）。遊んでいたデータには、一度だけお知らせを出す
+  6: (d) => {
+    const stats = isObj(d['stats']) ? d['stats'] : {}
+    const daily = isObj(d['daily']) ? d['daily'] : {}
+    const progress = isObj(d['progress']) ? d['progress'] : {}
+    const completed = progress['completedEvents']
+    const notices = progress['notices']
+    const played = (Array.isArray(completed) && completed.length > 0) || (typeof stats['xp'] === 'number' && stats['xp'] > 0)
+    const nextNotices = Array.isArray(notices) && played ? [...notices, 'progressionIntroduced'] : notices
+    return {
+      ...d,
+      version: 7,
+      progress: { ...progress, notices: nextNotices },
+      stats: { ...stats, coins: 0, levelShown: 0 },
+      achievements: {},
+      home: { owned: {}, placement: {} },
+      daily: { ...daily, rewards: {} },
+    }
+  },
 }
 
 export type MigrateResult =

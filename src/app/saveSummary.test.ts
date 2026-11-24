@@ -18,8 +18,8 @@ describe('読み込む前の要約', () => {
       ...save,
       progress: { ...save.progress, completedEvents: ['a', 'b'] },
       learning: { ...save.learning, words: { v1: { learnedAt: save.createdAt, chapter: 1 }, v2: { learnedAt: save.createdAt, chapter: 1 } } },
-      stats: { xp: 90 },
-      daily: { stamps: ['2026-11-20'] },
+      stats: { xp: 90, coins: 0, levelShown: 1 },
+      daily: { stamps: ['2026-11-20'], rewards: {} },
     }
     expect(summarizeSave(played, chapters, events)).toEqual({ lastChapter: chapters[0], words: 2, xp: 90, stamps: 1, updatedAt: save.updatedAt })
   })

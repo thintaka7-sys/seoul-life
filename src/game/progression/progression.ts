@@ -16,6 +16,14 @@ export interface Reward {
   stamp?: boolean
   /** 新しく行けるようになった施設のID */
   unlocked?: string[]
+  /** もらったコイン（Phase 4。GAME_SPEC 7-3） */
+  coins?: number
+  /** 上がったレベル */
+  levelUp?: number
+  /** 新しく達成した実績のID */
+  achievements?: string[]
+  /** 届いたスタンプの節目（日数） */
+  milestones?: number[]
 }
 
 export interface Updated {
@@ -27,6 +35,10 @@ const NO_REWARD: Reward = { xp: 0, newWords: 0 }
 
 function addXp(save: SaveData, xp: number, now: string): SaveData {
   return { ...save, updatedAt: now, stats: { ...save.stats, xp: save.stats.xp + xp } }
+}
+
+function addCoins(save: SaveData, coins: number): SaveData {
+  return coins === 0 ? save : { ...save, stats: { ...save.stats, coins: save.stats.coins + coins } }
 }
 
 function withReview(save: SaveData, review: Record<string, ReviewRecord>): SaveData {
@@ -147,7 +159,9 @@ export function advanceEvent(save: SaveData, event: GameEvent, balance: Balance,
   const completedEvents = alreadyDone ? save.progress.completedEvents : [...save.progress.completedEvents, event.id]
   const next: SaveData = { ...save, updatedAt: now, progress: { ...save.progress, completedEvents, activeEvent: null } }
   const xp = alreadyDone ? 0 : balance.xp.eventComplete
-  return { save: addXp(next, xp, now), reward: { xp, newWords: 0 }, finished: true }
+  // コイン：初めて終えたイベントごとに。章の終わりの段階があるイベント（章を終えた）は、さらに足す
+  const coins = alreadyDone ? 0 : balance.coins.eventComplete + (event.steps.some((s) => s.type === 'chapterEnd') ? balance.coins.chapterClear : 0)
+  return { save: addCoins(addXp(next, xp, now), coins), reward: { xp, newWords: 0, ...(coins > 0 ? { coins } : {}) }, finished: true }
 }
 
 /**
@@ -189,7 +203,8 @@ export function finishChapterTest(save: SaveData, testId: string, score: number,
   if (prev !== undefined && prev.passedAt === record.passedAt && prev.bestScore === record.bestScore) return { save, reward: NO_REWARD }
   const next: SaveData = { ...save, updatedAt: now, learning: { ...save.learning, tests: { ...save.learning.tests, [testId]: record } } }
   if (!firstPass) return { save: next, reward: NO_REWARD }
-  return { save: addXp(next, balance.xp.chapterTest, now), reward: { xp: balance.xp.chapterTest, newWords: 0 } }
+  const coins = balance.coins.chapterTest
+  return { save: addCoins(addXp(next, balance.xp.chapterTest, now), coins), reward: { xp: balance.xp.chapterTest, newWords: 0, ...(coins > 0 ? { coins } : {}) } }
 }
 
 /** その日の学習を終えたら、スタンプを押す（balance の stampActivities にある学習だけ。1日1つ） */

@@ -3,6 +3,7 @@
 // 問題のあるデータは除外し、問題の一覧（ValidationIssue）を返す。例外は投げない。
 
 import {
+  ACHIEVEMENT_CONDITIONS,
   BGM_IDS,
   COLUMN_BLOCK_TYPES,
   FIGURE_ARROWS,
@@ -28,6 +29,7 @@ import {
   PLAYER_SPEAKER_ID,
   STAMP_ACTIVITIES,
   VOCAB_GENRES,
+  type Achievement,
   type Balance,
   type Chapter,
   type ChapterTest,
@@ -2094,6 +2096,58 @@ function loadChapters(files: FileMap, issues: ValidationIssue[]): Chapter[] {
   return chapters.sort((a, b) => a.chapter - b.chapter)
 }
 
+// ---------- 実績（GAME_SPEC 7-2・7-3。Phase 4） ----------
+
+const ACHIEVEMENT_KEYS = ['id', 'titleJa', 'descriptionJa', 'condition', 'coins', 'reviewed', 'notes'] as const
+const ACHIEVEMENT_CONDITION_KEYS = ['type', 'target'] as const
+const ACHIEVEMENT_ID = /^achievement_\d{3}$/
+
+/** 実績の一覧（src/data/achievements/）。ID は achievement_001 の形で重ねない。ファイルの名前順・ファイル内の順 */
+function loadAchievements(files: FileMap, chapters: readonly Chapter[], issues: ValidationIssue[]): Achievement[] {
+  const achievements: Achievement[] = []
+  const chapterNumbers = new Set(chapters.map((c) => c.chapter))
+  for (const file of Object.keys(files).sort()) {
+    const raw = files[file]
+    if (!Array.isArray(raw)) {
+      issues.push({ file, index: null, id: null, path: '', message: 'ファイル全体を配列（[ ]）にしてください' })
+      continue
+    }
+    raw.forEach((entry: unknown, index) => {
+      if (!isObj(entry)) {
+        issues.push({ file, index, id: null, path: '', message: 'オブジェクト（{ }）にしてください' })
+        return
+      }
+      const errs: FieldError[] = []
+      checkKnownKeys(entry, ACHIEVEMENT_KEYS, '', errs)
+      const id = text(entry, 'id', '', errs)
+      if (id !== undefined && !ACHIEVEMENT_ID.test(id)) errs.push({ path: 'id', message: 'achievement_001 の形にしてください' })
+      if (id !== undefined && achievements.some((a) => a.id === id)) errs.push({ path: 'id', message: `${id} が2回あります。後から出てきた方を除外しました` })
+      const titleJa = japaneseText(entry, 'titleJa', '', errs)
+      const descriptionJa = japaneseText(entry, 'descriptionJa', '', errs)
+      const coins = integer(entry, 'coins', '', errs, 0)
+      const reviewed = bool(entry, 'reviewed', '', errs)
+      const notes = optionalText(entry, 'notes', '', errs)
+      const rawCondition = entry['condition']
+      let condition: Achievement['condition'] | undefined
+      if (!isObj(rawCondition)) {
+        errs.push({ path: 'condition', message: 'オブジェクト（{ "type": …, "target": … }）にしてください' })
+      } else {
+        checkKnownKeys(rawCondition, ACHIEVEMENT_CONDITION_KEYS, 'condition', errs)
+        const type = oneOf(rawCondition, 'type', 'condition', errs, ACHIEVEMENT_CONDITIONS)
+        const target = integer(rawCondition, 'target', 'condition', errs, 1)
+        if (type === 'chapterCleared' && target !== undefined && !chapterNumbers.has(target)) {
+          errs.push({ path: 'condition.target', message: `第${target}章が、章の一覧（src/data/chapters/）にありません` })
+        }
+        if (type !== undefined && target !== undefined) condition = { type, target }
+      }
+      for (const e of errs) issues.push({ file, index, id: id ?? null, path: e.path, message: e.message })
+      if (errs.length > 0 || id === undefined || titleJa === undefined || descriptionJa === undefined || coins === undefined || reviewed === undefined || condition === undefined) return
+      achievements.push({ id, titleJa, descriptionJa, condition, coins, reviewed, ...(notes === undefined ? {} : { notes }) })
+    })
+  }
+  return achievements
+}
+
 // ---------- ファイル単位の検証 ----------
 
 type ItemParser<T> = (o: Obj, ctx: ReferenceContext, errs: FieldError[]) => T | undefined
@@ -2192,6 +2246,8 @@ export interface ContentInput {
   orders: FileMap
   /** 章の一覧（ゲームデータ） */
   chapters: FileMap
+  /** 実績（ゲームデータ） */
+  achievements: FileMap
   /** ゲームの調整用の数値。ファイルは1つだけ置く */
   balance: FileMap
 }
@@ -2220,6 +2276,8 @@ export interface LoadedContent {
   orders: Order[]
   /** 章の順 */
   chapters: Chapter[]
+  /** ファイルの名前順・ファイル内の順 */
+  achievements: Achievement[]
   balance: Balance
   issues: ValidationIssue[]
 }
@@ -2241,6 +2299,16 @@ export const DEFAULT_BALANCE: Balance = {
   testPassPercent: 80,
   earQuestions: 10,
   stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event', 'ear'],
+  levels: { thresholds: [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250, 3850, 4500, 5200, 5950], stepAfter: 800 },
+  coins: { eventComplete: 20, chapterClear: 50, chapterTest: 50 },
+  stampMilestones: [
+    { days: 3, coins: 30 },
+    { days: 7, coins: 50 },
+    { days: 14, coins: 80 },
+    { days: 30, coins: 120 },
+    { days: 50, coins: 150 },
+    { days: 100, coins: 300 },
+  ],
 }
 
 const BALANCE_KEYS = [
@@ -2259,7 +2327,13 @@ const BALANCE_KEYS = [
   'testPassPercent',
   'earQuestions',
   'stampActivities',
+  'levels',
+  'coins',
+  'stampMilestones',
 ] as const
+const LEVEL_KEYS = ['thresholds', 'stepAfter'] as const
+const COIN_KEYS = ['eventComplete', 'chapterClear', 'chapterTest'] as const
+const MILESTONE_KEYS = ['days', 'coins'] as const
 const XP_KEYS = ['learnWord', 'conversationChoice', 'conversationWrite', 'eventComplete', 'hangulLesson', 'listening', 'review', 'drillItem', 'chapterTest', 'readingQuestion', 'order'] as const
 const REVIEW_KEYS = ['intervalsDays', 'masteredDays', 'dailyLimit'] as const
 
@@ -2287,6 +2361,69 @@ function parseReviewBalance(raw: unknown, errs: FieldError[]): Balance['review']
   }
   if (errs.length > before || intervalsDays === undefined || masteredDays === undefined || dailyLimit === undefined) return undefined
   return { intervalsDays, masteredDays, dailyLimit }
+}
+
+/** レベル（balance.json の levels）。thresholds は 0 から始まり、だんだん大きくする */
+function parseLevels(raw: unknown, errs: FieldError[]): Balance['levels'] | undefined {
+  if (!isObj(raw)) {
+    errs.push({ path: 'levels', message: 'オブジェクト（{ }）にしてください' })
+    return undefined
+  }
+  checkKnownKeys(raw, LEVEL_KEYS, 'levels', errs)
+  const before = errs.length
+  const t = raw['thresholds']
+  let thresholds: number[] | undefined
+  if (!Array.isArray(t) || t.length < 2 || !t.every((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0)) {
+    errs.push({ path: 'levels.thresholds', message: '0以上の整数（経験値）を2個以上並べた配列にしてください（例：[0, 100, 250]）' })
+  } else if (t[0] !== 0) {
+    errs.push({ path: 'levels.thresholds', message: '最初（レベル1）は 0 にしてください' })
+  } else if (t.some((n, i) => i > 0 && n <= (t[i - 1] ?? 0))) {
+    errs.push({ path: 'levels.thresholds', message: 'だんだん大きくなるように並べてください' })
+  } else {
+    thresholds = t
+  }
+  const stepAfter = integer(raw, 'stepAfter', 'levels', errs, 1)
+  if (errs.length > before || thresholds === undefined || stepAfter === undefined) return undefined
+  return { thresholds, stepAfter }
+}
+
+/** コイン（balance.json の coins） */
+function parseCoins(raw: unknown, errs: FieldError[]): Balance['coins'] | undefined {
+  if (!isObj(raw)) {
+    errs.push({ path: 'coins', message: 'オブジェクト（{ }）にしてください' })
+    return undefined
+  }
+  checkKnownKeys(raw, COIN_KEYS, 'coins', errs)
+  const eventComplete = integer(raw, 'eventComplete', 'coins', errs, 0)
+  const chapterClear = integer(raw, 'chapterClear', 'coins', errs, 0)
+  const chapterTest = integer(raw, 'chapterTest', 'coins', errs, 0)
+  if (eventComplete === undefined || chapterClear === undefined || chapterTest === undefined) return undefined
+  return { eventComplete, chapterClear, chapterTest }
+}
+
+/** スタンプの節目（balance.json の stampMilestones）。日数の少ない順に、重ねずに並べる */
+function parseStampMilestones(raw: unknown, errs: FieldError[]): Balance['stampMilestones'] | undefined {
+  const path = 'stampMilestones'
+  if (!Array.isArray(raw)) {
+    errs.push({ path, message: '配列（[ ]）にしてください（節目がなければ [ ]）' })
+    return undefined
+  }
+  const before = errs.length
+  const result: Balance['stampMilestones'] = []
+  raw.forEach((m: unknown, i) => {
+    const base = `${path}[${i}]`
+    if (!isObj(m)) {
+      errs.push({ path: base, message: 'オブジェクト（{ }）にしてください' })
+      return
+    }
+    checkKnownKeys(m, MILESTONE_KEYS, base, errs)
+    const days = integer(m, 'days', base, errs, 1)
+    const coins = integer(m, 'coins', base, errs, 0)
+    const last = result.at(-1)
+    if (days !== undefined && last !== undefined && days <= last.days) errs.push({ path: `${base}.days`, message: '日数の少ない順に、同じ日数を重ねずに並べてください' })
+    if (days !== undefined && coins !== undefined) result.push({ days, coins })
+  })
+  return errs.length > before ? undefined : result
 }
 
 function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Balance | undefined {
@@ -2317,6 +2454,9 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
   const testPassPercent = integer(raw, 'testPassPercent', '', errs, 0, 100)
   const earQuestions = integer(raw, 'earQuestions', '', errs, 1, 50)
   const stampActivities = stampActivityList(raw['stampActivities'], errs)
+  const levels = parseLevels(raw['levels'], errs)
+  const coins = parseCoins(raw['coins'], errs)
+  const stampMilestones = parseStampMilestones(raw['stampMilestones'], errs)
   if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
     errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
   }
@@ -2348,7 +2488,10 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     testQuestions === undefined ||
     testPassPercent === undefined ||
     earQuestions === undefined ||
-    stampActivities === undefined
+    stampActivities === undefined ||
+    levels === undefined ||
+    coins === undefined ||
+    stampMilestones === undefined
   ) {
     return undefined
   }
@@ -2368,6 +2511,9 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     testPassPercent,
     earQuestions,
     stampActivities,
+    levels,
+    coins,
+    stampMilestones,
   }
 }
 
@@ -2657,6 +2803,7 @@ export function loadContent(input: ContentInput): LoadedContent {
   const chapterTests = checkOneTestPerChapter(checkDrillItemIds(parsedTests, contentIds, issues), contentIds, issues).sort((a, b) => a.chapter - b.chapter)
   const earSets = validateKind('earSets', input.earSets, ctx, contentIds, issues)
   const balance = loadBalance(input.balance, ctx, issues)
+  const achievements = loadAchievements(input.achievements, chapters, issues)
 
   return {
     vocabulary,
@@ -2676,6 +2823,7 @@ export function loadContent(input: ContentInput): LoadedContent {
     menus,
     orders,
     chapters,
+    achievements,
     balance,
     issues,
   }

@@ -21,6 +21,7 @@ const gameReducer = createGameReducer({
   firstHangulLessonId: content.hangulLessons[0]?.id ?? null,
   storyIds: new Set(content.stories.map((s) => s.id)),
   formKeysOf: (vocabId) => formKeysOf(findVocab(vocabId)),
+  growth: { achievements: content.achievements, chapters: content.chapters },
 })
 
 function initState(boot: BootResult) {

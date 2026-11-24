@@ -60,7 +60,7 @@ const dayAfter = (n) => {
 // ---------- セーブデータ：すべてのイベントを終え、単語3つ・文法1つを覚えた ----------
 
 const NOW = new Date().toISOString()
-// いまの版（v6）で、すべてのイベントを終えた形（会話の記録はない）
+// いまの版で、すべてのイベントを終えた形（会話の記録はない）
 const allEventIds = readdirSync('src/data/events').filter((n) => n.endsWith('.json')).sort().flatMap((n) => JSON.parse(readFileSync(`src/data/events/${n}`, 'utf8'))).map((e) => e.id)
 const SAVE = saveAtHome({
   progress: { completedEvents: allEventIds },

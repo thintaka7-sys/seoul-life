@@ -1,10 +1,11 @@
 // ゲーム全体の状態と、画面遷移の reducer。
 // reducer は純粋な関数にする（日時は action で受け取る）ので、画面なしでテストできる。
 
-import type { Balance, Conversation, GameEvent, StampActivity } from '../data/types'
+import type { Achievement, Balance, Chapter, Conversation, GameEvent, StampActivity } from '../data/types'
 import type { AnswerMode } from '../learning/conversation/session'
 import { isReplayable } from '../game/conversations/replayList'
 import { autoStartEvent, findEvent, newlyUnlocked, nextEvent, playableStep, resumeStep, unlockedLocations } from '../game/events/events'
+import { settleGrowth } from '../game/progression/growth'
 import {
   advanceEvent,
   answerDrillItem,
@@ -57,6 +58,8 @@ export type Scene =
   | { name: 'chapterTest'; testId: string; back: Scene }
   /** スタンプカード（GAME_SPEC 7-6）。自宅から開く */
   | { name: 'stamps'; back: Scene }
+  /** 実績の一覧（GAME_SPEC 7-2。Phase 4）。自宅から開く */
+  | { name: 'achievements'; back: Scene }
   /** 聞き分け練習：組の一覧（GAME_SPEC 4-10） */
   | { name: 'ear'; back: Scene }
   /** 聞き分け練習：1つの組（試しに聞く・練習）。setId が null なら全部の組からまぜて練習 */
@@ -153,6 +156,7 @@ export type GameAction =
   | { type: 'openDrill'; drillId: string }
   | { type: 'openChapterTest'; testId: string }
   | { type: 'openStamps' }
+  | { type: 'openAchievements' }
   | { type: 'openConversations' }
   | { type: 'openEar' }
   /** 聞き分けの組を開く（null なら全部の組からまぜて練習） */
@@ -195,6 +199,10 @@ export interface GameDeps {
   conversations?: readonly Conversation[]
   /** 単語の、形が変わる言葉の問題のキー（覚えたら復習に入れる。省略したら入れない） */
   formKeysOf?: (vocabId: string) => string[]
+  /**
+   * 成長の精算（実績・スタンプの節目・レベルアップ。Phase 4）に使う。省略したら精算しない（テストで、ほかの動きだけを確かめるため）
+   */
+  growth?: { achievements: readonly Achievement[]; chapters: readonly Chapter[] }
 }
 
 export function createInitialState(load: LoadResult, backupKey: string | null, settings: Settings): GameState {
@@ -215,13 +223,39 @@ function withLocation(save: SaveData, locationId: string | null, now: string): S
   return { ...save, updatedAt: now, progress: { ...save.progress, currentLocationId: locationId } }
 }
 
+/** 知らせることがあるか */
+function hasNews(r: Reward): boolean {
+  return (
+    r.xp > 0 ||
+    r.newWords > 0 ||
+    r.stamp === true ||
+    (r.unlocked?.length ?? 0) > 0 ||
+    (r.coins ?? 0) > 0 ||
+    r.levelUp !== undefined ||
+    (r.achievements?.length ?? 0) > 0 ||
+    (r.milestones?.length ?? 0) > 0
+  )
+}
+
 function addReward(state: GameState, reward: Reward): RewardNotice | null {
-  if (reward.xp === 0 && reward.newWords === 0 && reward.stamp !== true && (reward.unlocked?.length ?? 0) === 0) return state.reward
+  if (!hasNews(reward)) return state.reward
   return { ...reward, seq: (state.reward?.seq ?? 0) + 1 }
 }
 
+/** 2つの知らせをまとめる（コイン・実績・節目・開いた施設も足し合わせる。レベルは高いほう） */
 function sumRewards(a: Reward, b: Reward): Reward {
-  return { xp: a.xp + b.xp, newWords: a.newWords + b.newWords, stamp: a.stamp === true || b.stamp === true }
+  const sum: Reward = { xp: a.xp + b.xp, newWords: a.newWords + b.newWords, stamp: a.stamp === true || b.stamp === true }
+  const coins = (a.coins ?? 0) + (b.coins ?? 0)
+  if (coins > 0) sum.coins = coins
+  const unlocked = [...(a.unlocked ?? []), ...(b.unlocked ?? [])]
+  if (unlocked.length > 0) sum.unlocked = unlocked
+  const achievements = [...(a.achievements ?? []), ...(b.achievements ?? [])]
+  if (achievements.length > 0) sum.achievements = achievements
+  const milestones = [...(a.milestones ?? []), ...(b.milestones ?? [])]
+  if (milestones.length > 0) sum.milestones = milestones
+  const levelUp = Math.max(a.levelUp ?? 0, b.levelUp ?? 0)
+  if (levelUp > 0) sum.levelUp = levelUp
+  return sum
 }
 
 /** 学習を終えたらスタンプを押し、知らせ（reward）に足す */
@@ -249,6 +283,7 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'drill':
     case 'chapterTest':
     case 'stamps':
+    case 'achievements':
     case 'conversations':
     case 'conversationReplay':
     case 'ear':
@@ -281,6 +316,7 @@ type StudyScene = Extract<
       | 'drill'
       | 'chapterTest'
       | 'stamps'
+      | 'achievements'
       | 'conversations'
       | 'conversationReplay'
       | 'ear'
@@ -302,6 +338,7 @@ const STUDY_SCENES: readonly Scene['name'][] = [
   'drill',
   'chapterTest',
   'stamps',
+  'achievements',
   'conversations',
   'conversationReplay',
   'ear',
@@ -317,6 +354,29 @@ function isStudyScene(scene: Scene): scene is StudyScene {
 
 export function createGameReducer(deps: GameDeps) {
   const { events, balance, locationIds } = deps
+  const growth = deps.growth
+
+  /**
+   * 成長を精算する（セーブデータが変わったとき、「つづきから」のとき、または v6 から移したばかりのデータのとき）。
+   * 実績・節目のコイン、レベルアップを、この操作の知らせにまとめる。v6 から移したデータは知らせず、お知らせ（progressionIntroduced）に任せる
+   */
+  function settle(prev: GameState, next: GameState, always: boolean): GameState {
+    const save = next.save
+    if (growth === undefined || save === null) return next
+    if (save === prev.save && save.stats.levelShown !== 0 && !always) return next
+    const g = settleGrowth(save, { balance, events, achievements: growth.achievements, chapters: growth.chapters })
+    if (g.save === save) return next
+    if (g.retroactive) return { ...next, save: g.save }
+    const gained: Reward = { xp: 0, newWords: 0 }
+    if (g.coins > 0) gained.coins = g.coins
+    if (g.achievements.length > 0) gained.achievements = g.achievements
+    if (g.milestones.length > 0) gained.milestones = g.milestones
+    if (g.levelUp !== null) gained.levelUp = g.levelUp
+    // この操作で出した知らせがあれば、そこに足す（なければ新しく出す）
+    const own = next.reward !== prev.reward ? next.reward : null
+    const reward = own === null ? addReward(next, gained) : { ...sumRewards(own, gained), seq: own.seq }
+    return { ...next, save: g.save, reward }
+  }
   const firstHangulLessonId = deps.firstHangulLessonId ?? null
 
   /** いま行ける施設 */
@@ -379,7 +439,11 @@ export function createGameReducer(deps: GameDeps) {
     return findEvent(events, state.run.eventId)?.steps[state.run.step]
   }
 
-  return function gameReducer(state: GameState, action: GameAction): GameState {
+  return function reducer(state: GameState, action: GameAction): GameState {
+    return settle(state, gameReducer(state, action), action.type === 'continue')
+  }
+
+  function gameReducer(state: GameState, action: GameAction): GameState {
     switch (action.type) {
       case 'startNew': {
         // 「ハングルは読めますか？」は、第1章の先生の授業の中で聞く（hangulIntro の段階。計画 Q3）
@@ -511,6 +575,10 @@ export function createGameReducer(deps: GameDeps) {
       case 'openStamps':
         if (state.save === null || isStudyScene(state.scene)) return state
         return { ...state, scene: { name: 'stamps', back: state.scene } }
+
+      case 'openAchievements':
+        if (state.save === null || isStudyScene(state.scene)) return state
+        return { ...state, scene: { name: 'achievements', back: state.scene } }
 
       case 'drillAnswered': {
         if (state.save === null) return state

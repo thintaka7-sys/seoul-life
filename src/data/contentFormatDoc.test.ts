@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { content } from './index'
 import {
+  ACHIEVEMENT_CONDITIONS,
   BGM_IDS,
   EAR_THEME_LABELS,
   EAR_THEMES,
@@ -80,9 +81,9 @@ function labelsInSection(markdown: string, headingPrefix: string): Record<string
 
 describe('docs/CONTENT_FORMAT.md の見本', () => {
   const samples = extractSamples(doc)
-  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests', 'earSets', 'stories', 'readings', 'menus', 'orders'] as const
+  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests', 'earSets', 'stories', 'readings', 'menus', 'orders', 'achievements'] as const
 
-  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テスト・聞き分けの組・おはなし・読み物・メニュー・注文の見本がそろっている', () => {
+  it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テスト・聞き分けの組・おはなし・読み物・メニュー・注文・実績の見本がそろっている', () => {
     expect(sorted(samples.keys())).toEqual(sorted(kinds))
   })
 
@@ -106,6 +107,7 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
       locations: { 'locations.json': content.locations },
       characters: { 'characters.json': content.characters },
       chapters: { 'chapters.json': content.chapters },
+      achievements: { 'sample-achievements': samples.get('achievements') },
       balance: { 'balance.json': content.balance },
     })
     expect(result.issues.map(formatIssue)).toEqual([])
@@ -128,6 +130,7 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
     expect(items.some((i) => i.digits !== undefined)).toBe(true)
     expect(items.some((i) => i.digits === undefined)).toBe(true)
     expect(result.chapterTests.length).toBeGreaterThan(0)
+    expect(result.achievements.length).toBe(2)
     // 見本の聞き分けの組は、3つの音の組と2つの音の組を含む
     expect([...new Set(result.earSets.map((e) => e.items.length))].sort((a, b) => a - b)).toEqual([2, 3])
     // Phase 3 の見本：おはなしの段階・読み物の問題・図の種類をすべて含み、注文・メニュー・形が変わる言葉・glosses がある
@@ -235,5 +238,14 @@ describe('docs/CONTENT_FORMAT.md のキー一覧', () => {
       const row = doc.split('\n').find((l) => l.startsWith('| `' + c.id + '` |'))
       expect(row, c.id).toContain(`${c.name?.korean}（${c.name?.pronunciation}）`)
     }
+  })
+})
+
+describe('docs/CONTENT_FORMAT.md 28章（実績）', () => {
+  it('条件の種類の表が、プログラムの条件の種類と一致する', () => {
+    expect(sorted(keysInSection(doc, '### 28-1.').filter((k) => k !== 'type'))).toEqual(sorted(ACHIEVEMENT_CONDITIONS))
+  })
+  it('項目の表が、使える項目と一致する', () => {
+    expect(sorted(keysInSection(doc, '## 28.'))).toEqual(sorted(['id', 'titleJa', 'descriptionJa', 'condition', 'coins', 'reviewed', 'notes']))
   })
 })

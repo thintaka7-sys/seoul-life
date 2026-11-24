@@ -1978,3 +1978,49 @@ Phase 3 から、物語は「1日目」ではなく**章**で進みます。章�
   }
 ]
 ```
+
+---
+
+## 28. 実績（GAME_SPEC 7-2・7-3。Phase 4）
+
+実績は開発側のデータ（`src/data/achievements/`）です。韓国語は入れません。案は Claude Code が作り、教材担当が文と数値を確かめて `reviewed: true` にします（直したいときは、開発者に伝えてください）。
+
+| 項目 | 必須 | 型 | 意味 |
+|---|---|---|---|
+| `id` | 必須 | 文字列 | `achievement_001` の形。後から変えない（セーブデータが達成した記録に使う） |
+| `titleJa` | 必須 | 文字列 | 実績の名前（例：「はじめの一歩」）。ハングルは入れない |
+| `descriptionJa` | 必須 | 文字列 | 達成の条件の説明（例：「単語を5語覚える」）。ハングルは入れない |
+| `condition` | 必須 | オブジェクト | `{ "type": 条件の種類, "target": 数 }`。数が `target` 以上になったら達成（28-1） |
+| `coins` | 必須 | 整数（0以上） | 達成したときにもらえるコイン |
+| `reviewed` | 必須 | 真偽値 | 教材担当が確かめたか |
+| `notes` | 任意 | 文字列 | メモ |
+
+### 28-1. 条件の種類（`condition.type`）
+
+| type | 数えるもの |
+|---|---|
+| `wordsLearned` | 覚えた単語の数（図鑑の「覚えた」） |
+| `wordsSeen` | 見かけた単語の数（言葉を押して「覚える」を押したもの） |
+| `chapterCleared` | その章のイベントをすべて終えた（`target` は章の番号） |
+| `chapterTestsPassed` | 合格した章末テストの数 |
+| `hangulLessonsPassed` | 合格したハングルのレッスンの数 |
+| `reviewCorrect` | 今日の復習で正解した回数 |
+| `drillItemsCorrect` | 正解した基礎ドリルの問題の数 |
+| `listeningCorrect` | 正解したリスニングの問題の数 |
+| `readingsCorrect` | 正解した読み物の問題の数 |
+| `itemsOrdered` | 注文できた品物の種類の数 |
+| `storiesSeen` | 見たおはなしの数 |
+| `level` | レベル |
+
+- 達成は一度だけで、取り消されません。新しい実績を足すと、すでに条件を満たしているプレイヤーは、次に遊んだときに達成します。
+- 実績のほかのコイン（イベント・章・章末テスト）と、レベルの表・スタンプの節目は `src/data/game/balance.json` の `coins`・`levels`・`stampMilestones` です（開発側のデータ）。
+
+### 見本（`src/data/achievements/achievements.json` など）
+
+<!-- sample: achievements -->
+```json
+[
+  { "id": "achievement_001", "titleJa": "はじめの一歩", "descriptionJa": "単語を5語覚える", "condition": { "type": "wordsLearned", "target": 5 }, "coins": 20, "reviewed": false },
+  { "id": "achievement_007", "titleJa": "カフェデビュー", "descriptionJa": "第3章をクリアする", "condition": { "type": "chapterCleared", "target": 3 }, "coins": 30, "reviewed": false, "notes": "見本" }
+]
+```

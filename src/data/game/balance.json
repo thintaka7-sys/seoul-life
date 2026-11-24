@@ -25,5 +25,15 @@
   "testQuestions": 10,
   "testPassPercent": 80,
   "earQuestions": 10,
-  "stampActivities": ["review", "drill", "chapterTest", "hangulLesson", "listening", "event", "ear"]
+  "stampActivities": ["review", "drill", "chapterTest", "hangulLesson", "listening", "event", "ear"],
+  "levels": { "thresholds": [0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250, 3850, 4500, 5200, 5950], "stepAfter": 800 },
+  "coins": { "eventComplete": 20, "chapterClear": 50, "chapterTest": 50 },
+  "stampMilestones": [
+    { "days": 3, "coins": 30 },
+    { "days": 7, "coins": 50 },
+    { "days": 14, "coins": 80 },
+    { "days": 30, "coins": 120 },
+    { "days": 50, "coins": 150 },
+    { "days": 100, "coins": 300 }
+  ]
 }

@@ -4,7 +4,7 @@
 // - PWA：manifest・Service Worker の登録、オフラインで開き直してもタイトルが出ること、iPhone の案内
 // 新しい版の知らせ（「更新する」）は、新しい版を公開しないと出ないので、ここでは確かめない（単体テストと実機）
 
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FAST_SETTINGS, SAVE_VERSION, openBrowser, saveAtHome, sleep } from './browser.mjs'
 
@@ -147,6 +147,65 @@ for (const [W, H] of [
   await click('このデータで始める')
   await sleep(400)
   check(`${P} 壊れたデータの画面から読み込んで、つづきから遊べる`, (await b.saved())?.stats.xp === 345 && (await mainText()).includes('セーブデータを読み込みました'))
+}
+
+// ---------- 区切り2：レベル・コイン・実績・スタンプの節目 ----------
+const balance = JSON.parse(readFileSync('src/data/game/balance.json', 'utf8'))
+const achievementData = JSON.parse(readFileSync('src/data/achievements/achievements.json', 'utf8'))
+for (const [W, H] of [
+  [375, 800],
+  [1280, 900],
+]) {
+  const P = `[${W}px]`
+  await viewport(W, H, W < 600)
+
+  // v6 のセーブデータ（第1章を終えた・スタンプ3個）：これまでの分をさかのぼって付け、お知らせを一度だけ出す
+  const { achievements: _a, home: _h, ...rest } = PLAYED
+  const v6 = { ...rest, version: 6, stats: { xp: 345 }, daily: { stamps: ['2026-11-20', '2026-11-21', '2026-11-22'] } }
+  await freshStart({ settings: { ...FAST_SETTINGS, lastExportAt: new Date().toISOString() }, save: v6 })
+  await b.continueToHome()
+  await sleep(300)
+  const s7 = await b.saved()
+  check(`${P} v6 → v7：これまでの分のコイン（イベント・章・実績・節目）を付ける`, s7?.version === 7 && s7.stats.coins > 0 && s7.stats.levelShown === 3 && s7.achievements.achievement_005 !== undefined && s7.daily.rewards['3'] !== undefined, JSON.stringify(s7?.stats))
+  const intro = await evaluate(`[...document.querySelectorAll('.notice')].map((n) => n.textContent).find((t) => t.includes('レベル・コイン・実績が加わりました')) ?? ''`)
+  check(`${P} v6 → v7：自宅に「レベル・コイン・実績が加わりました」と、達成した実績の数・コインを出す`, intro.includes(`実績を${Object.keys(s7?.achievements ?? {}).length}個`) && intro.includes(`コインを${s7?.stats.coins}枚`), intro)
+  check(`${P} v6 → v7：さかのぼった分は、レベルアップ・実績の知らせ（トースト）を出さない`, !(await evaluate(`!!document.querySelector('.toast')`)))
+  const hud = await evaluate(`document.querySelector('.hud__xp')?.textContent ?? ''`)
+  check(`${P} 上部：Lv.3・経験値 345 / 次のレベル・コイン`, hud.includes('Lv.3') && hud.includes('345') && hud.includes(`/ ${balance.levels.thresholds[3]}`) && hud.includes(`コイン ${s7?.stats.coins}`), hud)
+  check(`${P} 上部：次のレベルまでの棒`, await evaluate(`(() => { const b = document.querySelector('.hud__bar'); return !!b && Number(b.getAttribute('aria-valuenow')) === 345 - ${balance.levels.thresholds[2]} })()`))
+  if (W === 375) await shot('375-06-home-progression')
+  await click('わかりました', { within: '.notice' })
+  await sleep(200)
+  check(`${P} お知らせは「わかりました」で消え、保存する`, (await b.saved())?.progress.notices.includes('progressionIntroduced') === false)
+
+  // 実績の画面
+  await click('実績')
+  await sleep(300)
+  const list = await evaluate(`[...document.querySelectorAll('.achievement')].map((li) => ({ id: li.dataset.id, done: li.classList.contains('achievement--done'), text: li.innerText }))`)
+  const done = list.filter((x) => x.done).length
+  check(`${P} 実績：${achievementData.length}個を並べ、達成した数を出す`, list.length === achievementData.length && (await mainText()).includes(`達成した実績：${done} / ${achievementData.length}`), `${list.length} ${done}`)
+  check(`${P} 実績：第1章のクリアは達成、まだの実績は進み具合（いま n / m）`, list.find((x) => x.id === 'achievement_005')?.done === true && (list.find((x) => x.id === 'achievement_004')?.text ?? '').includes('いま 2 / 100'), JSON.stringify(list.slice(0, 5)))
+  if (W === 375) await shot('375-07-achievements')
+  await layoutCheck(`${P} 実績の画面`)
+  await click('戻る')
+  await sleep(200)
+
+  // スタンプカードの節目
+  await click('スタンプカード')
+  await sleep(300)
+  const ms = await evaluate(`document.querySelector('section[aria-label="節目のごほうび"]')?.innerText ?? ''`)
+  check(`${P} スタンプカード：受け取った節目（3個）と、次の節目までの数（7個まであと4個）`, ms.includes('7個）まで、あと4個') && (await evaluate(`document.querySelector('.milestone--done')?.textContent ?? ''`)).includes('3個'), ms)
+  if (W === 375) await shot('375-08-stamp-milestones')
+  await click('戻る')
+  await sleep(200)
+
+  // レベルアップの知らせ：知らせ済みのレベルより経験値が上がっていたら、次の操作で知らせる
+  await freshStart({ settings: { ...FAST_SETTINGS, lastExportAt: new Date().toISOString() }, save: saveAtHome({ stats: { xp: 260, coins: 0, levelShown: 1 } }) })
+  await click('つづきから')
+  await sleep(200)
+  const toast = await evaluate(`document.querySelector('.toast')?.textContent ?? ''`)
+  check(`${P} レベルが上がったら「レベル3になりました！」と出す`, toast.includes('レベル3になりました！'), toast)
+  check(`${P} レベルアップの後は、知らせ済みのレベルを保存する`, (await b.saved())?.stats.levelShown === 3)
 }
 
 // ---------- PWA：manifest と Service Worker ----------

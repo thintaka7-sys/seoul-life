@@ -4,7 +4,7 @@
 // 問題の正解は、教材の JSON から求める。使い方は scripts/e2e/README.md。
 
 import { readdirSync, readFileSync } from 'node:fs'
-import { openBrowser, saveAtHome, sleep } from './browser.mjs'
+import { SAVE_VERSION, openBrowser, saveAtHome, sleep } from './browser.mjs'
 import { practiceAnswers } from './practice-answers.mjs'
 
 const b = await openBrowser('phase25')
@@ -183,7 +183,7 @@ async function runWidth(W, H, mobile) {
 
   // --- 移行と、今日（覚えた日）---
   let s = await saved()
-  check(`${P} v4 のセーブデータを v6 に移行し、覚えたもの5つを翌日の復習に入れる`, s.version === 6 && KEYS.every((k) => s.learning.review[k]?.due === dayAfter(1)), JSON.stringify(s.learning.review))
+  check(`${P} v4 のセーブデータを v${SAVE_VERSION} に移行し、覚えたもの5つを翌日の復習に入れる`, s.version === SAVE_VERSION && KEYS.every((k) => s.learning.review[k]?.due === dayAfter(1)), JSON.stringify(s.learning.review))
   check(`${P} 学習画面：今日の復習（0問）と練習`, (await studyButton('今日の復習')) === '今日の復習（0問）' && (await studyButton('練習')) === '練習')
   await layoutCheck(`${P} 学習画面`)
   await click('今日の復習（0問）')

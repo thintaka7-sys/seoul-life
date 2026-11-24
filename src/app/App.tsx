@@ -18,6 +18,7 @@ import { EarListPage } from '../pages/study/EarListPage'
 import { EarSetPage } from '../pages/study/EarSetPage'
 import { DrillsPage } from '../pages/study/DrillsPage'
 import { StampCardPage } from '../pages/StampCardPage'
+import { AchievementsPage } from '../pages/AchievementsPage'
 import { ConversationListPage } from '../pages/study/ConversationListPage'
 import { ConversationReplayPage } from '../pages/study/ConversationReplayPage'
 import { ReviewPage } from '../pages/study/ReviewPage'
@@ -69,6 +70,8 @@ function SceneView({ scene }: { scene: Scene }) {
       return <ChapterTestPage testId={scene.testId} />
     case 'stamps':
       return <StampCardPage />
+    case 'achievements':
+      return <AchievementsPage />
     case 'ear':
       return <EarListPage />
     case 'earSet':

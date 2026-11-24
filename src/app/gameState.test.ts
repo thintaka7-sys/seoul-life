@@ -20,6 +20,7 @@ const reducer = createGameReducer({
   locationIds: new Set(content.locations.map((l) => l.id)),
   storyIds: new Set(content.stories.map((s) => s.id)),
   formKeysOf: (vocabId) => formKeysOf(content.vocabulary.find((v) => v.id === vocabId)),
+  growth: { achievements: content.achievements, chapters: content.chapters },
 })
 
 function run(state: GameState, ...actions: GameAction[]): GameState {
@@ -240,7 +241,7 @@ describe('途中で閉じて再開する', () => {
         words: { vocab_001: { learnedAt: T0, chapter: 1 } },
         conversations: { 'home_001#0': { choice: true, write: false }, 'cafe_001#0': { choice: true, write: true } },
       },
-      stats: { xp: 50 },
+      stats: { xp: 50, coins: 0, levelShown: 1 },
     }
     const storage = new MemoryStorage()
     storage.setItem(SAVE_KEY, JSON.stringify(old))
@@ -627,7 +628,7 @@ describe('ファイルから読み込む（GAME_SPEC 10-2）', () => {
   it('セーブデータと設定を置き換え、進めていたイベントをやめて、タイトルに「読み込みました」を出す', () => {
     const playing = run(titleWithoutSave(), { type: 'startNew', now: T0 })
     expect(playing.run).not.toBeNull()
-    const imported = { ...createNewSave(T1), stats: { xp: 300 } }
+    const imported = { ...createNewSave(T1), stats: { xp: 300, coins: 0, levelShown: 3 } }
     const settings = { ...DEFAULT_SETTINGS, furigana: 'off' as const }
     const s = run(playing, { type: 'openSettings' }, { type: 'importSave', save: imported, settings, exportedAt: T1 })
     expect(s.save).toBe(imported)
@@ -641,5 +642,46 @@ describe('ファイルから読み込む（GAME_SPEC 10-2）', () => {
     const s = run(titleWithoutSave(), { type: 'importSave', save: imported, settings: DEFAULT_SETTINGS, exportedAt: T1 })
     expect(s.save).toBe(imported)
     expect(run(s, { type: 'continue', now: T1 }).scene.name).not.toBe('title')
+  })
+})
+
+describe('成長（レベル・コイン・実績。Phase 4）', () => {
+  it('イベントを初めて終えるとコインが付き、知らせに出る。章を終えると、さらに足す', () => {
+    let s = reducer(titleWithoutSave(), { type: 'startNew', now: T0 })
+    s = finishRun(s)
+    expect(s.save?.progress.completedEvents).toEqual([ALL_EVENTS[0]])
+    const first = s.save?.stats.coins ?? 0
+    expect(first).toBeGreaterThanOrEqual(content.balance.coins.eventComplete)
+    expect(s.reward?.coins).toBeGreaterThanOrEqual(content.balance.coins.eventComplete)
+    // 第1章の最後（章の終わりの段階がある）まで遊ぶ
+    for (const id of ALL_EVENTS.slice(1, ALL_EVENTS.indexOf('event_006') + 1)) {
+      if (s.run === null) s = playWholeEvent(s, id)
+      else s = finishRun(s)
+    }
+    expect(s.save?.achievements['achievement_005']).toBeDefined()
+    expect(s.save?.stats.coins).toBeGreaterThan(first + content.balance.coins.chapterClear)
+  })
+
+  it('経験値でレベルが上がると、知らせ（levelUp）に出し、知らせ済みのレベルを残す', () => {
+    const save = { ...createNewSave(T0), stats: { xp: 95, coins: 0, levelShown: 1 } }
+    let s: GameState = { ...titleWithoutSave(), save }
+    s = reducer(s, { type: 'continue', now: T1 })
+    s = finishRun(s)
+    expect(s.save?.stats.xp).toBeGreaterThanOrEqual(100)
+    expect(s.save?.stats.levelShown).toBeGreaterThanOrEqual(2)
+    expect(s.reward?.levelUp).toBeGreaterThanOrEqual(2)
+  })
+
+  it('v6 から移したデータ（levelShown 0）は、最初の操作でこれまでの分のコインを付け、知らせは出さない', () => {
+    const migrated = {
+      ...createNewSave(T0),
+      progress: { ...createNewSave(T0).progress, completedEvents: ALL_EVENTS.slice(0, 4), notices: ['progressionIntroduced' as const] },
+      stats: { xp: 400, coins: 0, levelShown: 0 },
+    }
+    const s = reducer({ ...titleWithoutSave(), save: migrated }, { type: 'openSettings' })
+    expect(s.save?.stats.levelShown).toBe(3)
+    expect(s.save?.stats.coins).toBeGreaterThanOrEqual(4 * content.balance.coins.eventComplete + content.balance.coins.chapterClear)
+    expect(s.reward).toBeNull()
+    expect(s.save?.progress.notices).toEqual(['progressionIntroduced'])
   })
 })

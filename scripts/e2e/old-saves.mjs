@@ -1,6 +1,6 @@
 // 教材が差し替わる前のセーブデータ（古い会話IDの記録・ずれた段階の番号・旧形式 v2）を読み込めることを確かめる。
 // Phase 3（セーブデータ v6）で物語を章立てに組み直したので、物語の進み具合は最初から（第1章の空港）になり、
-// 覚えた単語・会話の記録・経験値は残り、「物語が新しくなりました」を一度だけ知らせる（計画 Q5）。
+// 覚えた単語・会話の記録・経験値は残り、「物語が新しくなりました」と「レベル・コイン・実績が加わりました」を一度だけ知らせる（Phase 3 計画 Q5・Phase 4）。
 // 使い方: node scripts/e2e/old-saves.mjs <URL>
 
 import { SAVE_VERSION, openBrowser, sleep } from './browser.mjs'
@@ -50,7 +50,12 @@ for (const [label, save] of cases) {
   await click('やめる')
   check(`${label}：施設の画面で「物語が新しくなりました」を知らせる`, (await evaluate(`document.querySelector('main').textContent`)).includes('物語が新しくなりました'))
   await click('わかりました')
-  check(`${label}：お知らせは一度だけ（閉じたら消える）`, (await saved()).progress.notices.length === 0 && !(await evaluate(`document.querySelector('main').textContent`)).includes('物語が新しくなりました'))
+  const mainNow = () => evaluate(`document.querySelector('main').textContent`)
+  check(`${label}：お知らせは一度だけ（閉じたら消える）`, !(await saved()).progress.notices.includes('storyRestructured') && !(await mainNow()).includes('物語が新しくなりました'))
+  // Phase 4（v7）：レベル・コイン・実績が加わったお知らせも、一度だけ
+  check(`${label}：「レベル・コイン・実績が加わりました」も知らせる`, (await mainNow()).includes('レベル・コイン・実績が加わりました'))
+  await click('わかりました')
+  check(`${label}：お知らせをすべて閉じると、もう出さない`, (await saved()).progress.notices.length === 0 && !(await mainNow()).includes('レベル・コイン・実績が加わりました'))
 }
 
 // 古い会話（教材から消えた home_001・home_003・cafe_005）の往復も復習の記録に移すが、今日の復習には出さない

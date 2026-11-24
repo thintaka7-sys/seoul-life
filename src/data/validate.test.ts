@@ -107,6 +107,9 @@ const validBalance = {
   testPassPercent: 80,
   earQuestions: 10,
   stampActivities: ['review', 'drill', 'chapterTest', 'hangulLesson', 'listening', 'event'],
+  levels: { thresholds: [0, 100, 250], stepAfter: 200 },
+  coins: { eventComplete: 20, chapterClear: 50, chapterTest: 50 },
+  stampMilestones: [{ days: 3, coins: 30 }],
 }
 
 function issuesOf(kind: ContentKind, item: unknown) {
@@ -439,6 +442,7 @@ const base: ContentInput = {
   menus: {},
   orders: {},
   chapters: { 'ch.json': Array.from({ length: 10 }, (_, i) => ({ chapter: i + 1, titleJa: `第${i + 1}章`, goalJa: 'できること' })) },
+  achievements: {},
   balance: { 'balance.json': validBalance },
 }
 
@@ -1087,5 +1091,63 @@ describe('聞き分けの組（GAME_SPEC 4-10）', () => {
     const result = loadContent({ ...base, earSets: { 'a.json': [validEar], 'b.json': [{ ...validEar, id: 'ear_001' }] } })
     expect(result.earSets).toHaveLength(1)
     expect(result.issues[0]?.message).toContain('IDが重複')
+  })
+})
+
+describe('レベル・コイン・スタンプの節目（balance.json。Phase 4）', () => {
+  it('正しい値を読む', () => {
+    const result = loadContent({ ...base, balance: { 'balance.json': validBalance } })
+    expect(result.issues).toEqual([])
+    expect(result.balance.levels).toEqual({ thresholds: [0, 100, 250], stepAfter: 200 })
+    expect(result.balance.coins).toEqual({ eventComplete: 20, chapterClear: 50, chapterTest: 50 })
+    expect(result.balance.stampMilestones).toEqual([{ days: 3, coins: 30 }])
+  })
+
+  it.each([
+    [{ levels: { thresholds: [10, 100], stepAfter: 100 } }, 'levels.thresholds'],
+    [{ levels: { thresholds: [0, 100, 100], stepAfter: 100 } }, 'levels.thresholds'],
+    [{ levels: { thresholds: [0], stepAfter: 100 } }, 'levels.thresholds'],
+    [{ levels: { thresholds: [0, 100], stepAfter: 0 } }, 'levels.stepAfter'],
+    [{ coins: { eventComplete: 20, chapterClear: -1, chapterTest: 50 } }, 'coins.chapterClear'],
+    [{ coins: { eventComplete: 20, chapterTest: 50 } }, 'coins.chapterClear'],
+    [{ stampMilestones: [{ days: 7, coins: 50 }, { days: 3, coins: 30 }] }, 'stampMilestones[1].days'],
+    [{ stampMilestones: [{ days: 0, coins: 30 }] }, 'stampMilestones[0].days'],
+    [{ stampMilestones: {} }, 'stampMilestones'],
+  ])('誤りがあれば既定の値を使う %#', (patch, path) => {
+    const result = loadContent({ ...base, balance: { 'balance.json': { ...validBalance, ...patch } } })
+    expect(result.balance).toEqual(DEFAULT_BALANCE)
+    expect(result.issues[0]?.path).toBe(path)
+  })
+})
+
+describe('実績（src/data/achievements/。Phase 4）', () => {
+  const a = (patch: Record<string, unknown> = {}) => ({ id: 'achievement_001', titleJa: 'はじめの一歩', descriptionJa: '単語を5語覚える', condition: { type: 'wordsLearned', target: 5 }, coins: 20, reviewed: false, ...patch })
+
+  it('正しい実績を読む', () => {
+    const result = loadContent({ ...base, achievements: { 'a.json': [a(), a({ id: 'achievement_002', condition: { type: 'chapterCleared', target: 2 }, notes: 'メモ' })] } })
+    expect(result.issues).toEqual([])
+    expect(result.achievements.map((x) => x.id)).toEqual(['achievement_001', 'achievement_002'])
+    expect(result.achievements[1]?.notes).toBe('メモ')
+  })
+
+  it.each([
+    [a({ id: 'ach_1' }), 'id'],
+    [a({ titleJa: '첫걸음' }), 'titleJa'],
+    [a({ condition: { type: 'unknown', target: 5 } }), 'condition.type'],
+    [a({ condition: { type: 'wordsLearned', target: 0 } }), 'condition.target'],
+    [a({ condition: { type: 'chapterCleared', target: 11 } }), 'condition.target'],
+    [a({ coins: -5 }), 'coins'],
+    [a({ reviewed: 'yes' }), 'reviewed'],
+    [a({ extra: 1 }), 'extra'],
+  ])('誤りのある実績は除外する %#', (entry, path) => {
+    const result = loadContent({ ...base, achievements: { 'a.json': [entry] } })
+    expect(result.achievements).toEqual([])
+    expect(result.issues[0]?.path).toBe(path)
+  })
+
+  it('同じ ID の実績は、後のほうを除外する', () => {
+    const result = loadContent({ ...base, achievements: { 'a.json': [a(), a({ titleJa: '二つ目' })] } })
+    expect(result.achievements.map((x) => x.titleJa)).toEqual(['はじめの一歩'])
+    expect(result.issues[0]?.message).toContain('2回あります')
   })
 })

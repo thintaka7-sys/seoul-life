@@ -129,7 +129,7 @@ describe('v2 → v3', () => {
     expect(result.data.stats.xp).toBe(123)
     expect(result.data.learning.words['vocab_001']).toBeDefined()
     expect(result.data.progress.activeEvent).toBeNull()
-    expect(result.data.progress.notices).toEqual(['storyRestructured'])
+    expect(result.data.progress.notices).toEqual(['storyRestructured', 'progressionIntroduced'])
   })
 
   it('learning が壊れた v2 は、移行後の検証で壊れたデータとして扱う', () => {
@@ -263,7 +263,8 @@ describe('v5 → v6', () => {
       progress: { currentLocationId: null, completedEvents: [], activeEvent: null, storiesSeen: {}, notices: ['storyRestructured'] },
       learning: { ...v5.learning, seen: {}, readings: {}, orders: {}, forms: {} },
     })
-    expect(isSaveData(result.data)).toBe(true)
+    const latest = migrate(structuredClone(v5), MIGRATIONS, CURRENT_SAVE_VERSION)
+    expect(latest.ok && isSaveData(latest.data)).toBe(true)
   })
 
   it('物語を始めていなければ、お知らせは出さない', () => {
@@ -273,7 +274,7 @@ describe('v5 → v6', () => {
   })
 
   it('v6 の新しい記録の値が正しくなければ、壊れたデータとして扱う', () => {
-    const result = migrate(structuredClone(v5), MIGRATIONS, 6)
+    const result = migrate(structuredClone(v5), MIGRATIONS, CURRENT_SAVE_VERSION)
     if (!result.ok) throw new Error(result.detail)
     const v6 = result.data as unknown as SaveData
     expect(isSaveData({ ...v6, learning: { ...v6.learning, seen: { vocab_001: { seenAt: v5.createdAt, chapter: 1 } } } })).toBe(true)
@@ -282,5 +283,52 @@ describe('v5 → v6', () => {
     expect(isSaveData({ ...v6, learning: { ...v6.learning, orders: { order_001: { firstAt: v5.createdAt, items: [1] } } } })).toBe(false)
     expect(isSaveData({ ...v6, progress: { ...v6.progress, storiesSeen: { story_001: { seenAt: v5.createdAt } } } })).toBe(true)
     expect(isSaveData({ ...v6, progress: { ...v6.progress, notices: ['unknown'] } })).toBe(false)
+  })
+})
+
+describe('v6 → v7', () => {
+  const v6 = {
+    version: 6,
+    createdAt: '2026-11-18T10:00:00.000Z',
+    updatedAt: '2026-11-25T03:00:00.000Z',
+    progress: { currentLocationId: 'home', completedEvents: ['event_004', 'event_005'], activeEvent: null, storiesSeen: {}, notices: [] },
+    learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {}, review: {}, drills: {}, tests: {}, seen: {}, readings: {}, orders: {}, forms: {} },
+    stats: { xp: 230 },
+    daily: { stamps: ['2026-11-22', '2026-11-23'] },
+  }
+
+  it('コイン 0・レベルはまだ数えていない（0）・実績・家具・節目を空で足す。遊んでいたデータには一度だけお知らせを出す', () => {
+    const result = migrate(structuredClone(v6), MIGRATIONS, 7)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.data).toEqual({
+      ...v6,
+      version: 7,
+      progress: { ...v6.progress, notices: ['progressionIntroduced'] },
+      stats: { xp: 230, coins: 0, levelShown: 0 },
+      achievements: {},
+      home: { owned: {}, placement: {} },
+      daily: { stamps: v6.daily.stamps, rewards: {} },
+    })
+    expect(isSaveData(result.data)).toBe(true)
+  })
+
+  it('まだ遊んでいない（イベントも経験値もない）データには、お知らせを出さない', () => {
+    const fresh = { ...v6, progress: { ...v6.progress, completedEvents: [] }, stats: { xp: 0 } }
+    const result = migrate(structuredClone(fresh), MIGRATIONS, 7)
+    expect(result.ok && (result.data['progress'] as { notices: unknown }).notices).toEqual([])
+  })
+
+  it('v7 の新しい記録の値が正しくなければ、壊れたデータとして扱う', () => {
+    const result = migrate(structuredClone(v6), MIGRATIONS, 7)
+    if (!result.ok) throw new Error(result.detail)
+    const v7 = result.data as unknown as SaveData
+    const at = { at: v6.createdAt }
+    expect(isSaveData({ ...v7, achievements: { achievement_001: at }, home: { owned: { furniture_001: at }, placement: { wall_left: 'furniture_001' } }, daily: { ...v7.daily, rewards: { '3': at } } })).toBe(true)
+    expect(isSaveData({ ...v7, stats: { ...v7.stats, coins: -1 } })).toBe(false)
+    expect(isSaveData({ ...v7, stats: { xp: 1, coins: 0 } })).toBe(false)
+    expect(isSaveData({ ...v7, achievements: { achievement_001: { at: 'x' } } })).toBe(false)
+    expect(isSaveData({ ...v7, home: { owned: {}, placement: { wall_left: 1 } } })).toBe(false)
+    expect(isSaveData({ ...v7, daily: { stamps: [] } })).toBe(false)
   })
 })

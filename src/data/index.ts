@@ -24,6 +24,7 @@ export const content: LoadedContent = loadContent({
   menus: import.meta.glob<unknown>('./menus/*.json', { eager: true, import: 'default' }),
   orders: import.meta.glob<unknown>('./orders/*.json', { eager: true, import: 'default' }),
   chapters: import.meta.glob<unknown>('./chapters/*.json', { eager: true, import: 'default' }),
+  achievements: import.meta.glob<unknown>('./achievements/*.json', { eager: true, import: 'default' }),
   balance: import.meta.glob<unknown>('./game/balance.json', { eager: true, import: 'default' }),
 })
 

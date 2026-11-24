@@ -28,6 +28,8 @@ export function StampCardPage() {
   const streak = currentStreak([...stamps], today)
   const weeks = monthGrid(view.year, view.month)
   const close = () => dispatch({ type: 'closeStudyScene' })
+  const rewards = state.save?.daily.rewards ?? {}
+  const nextMilestone = content.balance.stampMilestones.find((m) => rewards[String(m.days)] === undefined && stamps.size < m.days)
 
   return (
     <ScreenLayout eyebrow="自宅" title="スタンプカード" footer={<Button onClick={close}>戻る</Button>}>
@@ -47,6 +49,29 @@ export function StampCardPage() {
             <li key={a}>{ACTIVITY_LABELS[a]}</li>
           ))}
         </ul>
+      </section>
+
+      <section className="panel" aria-label="節目のごほうび">
+        <h2 className="section-title">節目のごほうび（集めたスタンプの数）</h2>
+        {nextMilestone !== undefined ? (
+          <p>
+            次の節目（{nextMilestone.days}個）まで、あと<strong>{nextMilestone.days - stamps.size}</strong>個：コイン {nextMilestone.coins}
+          </p>
+        ) : (
+          <p>すべての節目のごほうびを受け取りました。</p>
+        )}
+        <ul className="milestone-list">
+          {content.balance.stampMilestones.map((m) => {
+            const got = rewards[String(m.days)]
+            return (
+              <li key={m.days} className={got === undefined ? 'milestone' : 'milestone milestone--done'}>
+                <span aria-hidden="true">{got === undefined ? '・' : '✓'}</span> {m.days}個：コイン {m.coins}
+                {got !== undefined && <span className="visually-hidden">（受け取りました）</span>}
+              </li>
+            )
+          })}
+        </ul>
+        <p className="muted small">続けた日数ではなく、集めたスタンプの合計で数えます。休んだ日があっても、節目は遠くなりません。</p>
       </section>
 
       <section className="panel" aria-label="カレンダー">

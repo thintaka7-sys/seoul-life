@@ -819,6 +819,59 @@ export interface Chapter {
   goalJa: string
 }
 
+// ---------- 実績（GAME_SPEC 7-2・7-3。Phase 4） ----------
+
+/**
+ * 実績の条件の種類。どれも「数が target 以上になったら達成」。
+ * - wordsLearned：覚えた単語の数（図鑑の「覚えた」）
+ * - wordsSeen：見かけた単語（タップして「覚える」を押した語句）の数
+ * - chapterCleared：その章のイベントをすべて終えた（target は章の番号）
+ * - chapterTestsPassed：合格した章末テストの数
+ * - hangulLessonsPassed：合格したハングルのレッスンの数
+ * - reviewCorrect：復習で正解した回数（今日の復習で、期限の来た問題）
+ * - drillItemsCorrect：正解した基礎ドリルの問題の数
+ * - listeningCorrect：正解したリスニングの問題の数
+ * - readingsCorrect：正解した読み物の問題の数
+ * - itemsOrdered：注文できた品物の種類の数
+ * - storiesSeen：見たおはなしの数
+ * - level：レベル
+ */
+export const ACHIEVEMENT_CONDITIONS = [
+  'wordsLearned',
+  'wordsSeen',
+  'chapterCleared',
+  'chapterTestsPassed',
+  'hangulLessonsPassed',
+  'reviewCorrect',
+  'drillItemsCorrect',
+  'listeningCorrect',
+  'readingsCorrect',
+  'itemsOrdered',
+  'storiesSeen',
+  'level',
+] as const
+export type AchievementConditionType = (typeof ACHIEVEMENT_CONDITIONS)[number]
+
+/** 実績（ゲームデータ。韓国語は含めない。reviewed は教材担当が文と数値を確かめたか） */
+export interface Achievement {
+  id: string
+  /** 実績の名前（例：はじめの一歩） */
+  titleJa: string
+  /** 達成の条件の説明（例：単語を5語覚える） */
+  descriptionJa: string
+  condition: { type: AchievementConditionType; target: number }
+  /** 達成したときにもらえるコイン */
+  coins: number
+  reviewed: boolean
+  notes?: string
+}
+
+/** スタンプの節目（集めたスタンプの合計の日数。GAME_SPEC 7-6） */
+export interface StampMilestone {
+  days: number
+  coins: number
+}
+
 /** マップの絵の上での位置（絵の幅・高さに対する割合。0〜100） */
 export interface MapArea {
   x: number
@@ -938,6 +991,22 @@ export interface Balance {
   earQuestions: number
   /** どの学習を終えたらスタンプを押すか */
   stampActivities: StampActivity[]
+  /**
+   * レベル（GAME_SPEC 7-2）。thresholds[n] はレベル n+1 になるのに要る経験値の合計（thresholds[0] は 0 ＝レベル1）。
+   * 表の最後より先は、stepAfter ずつ増やす
+   */
+  levels: { thresholds: number[]; stepAfter: number }
+  /** コイン（GAME_SPEC 7-3）。どれも初めてのときだけ */
+  coins: {
+    /** イベントを終えたとき */
+    eventComplete: number
+    /** 章を終えたとき（章の終わりの段階のあるイベントを終えたとき。eventComplete に足す） */
+    chapterClear: number
+    /** 章末テストに合格したとき */
+    chapterTest: number
+  }
+  /** スタンプの節目のごほうび（集めた合計の日数の少ない順） */
+  stampMilestones: StampMilestone[]
 }
 
 /** 検証で見つかった問題 */

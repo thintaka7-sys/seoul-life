@@ -3709,3 +3709,121 @@ body:has(.audio-debug) {
 .update-banner > p {
   margin: 0;
 }
+
+/* ---------- レベル・コイン・実績・節目（Phase 4） ---------- */
+
+.hud__xp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.hud__level {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  font-weight: 700;
+}
+
+.hud__next {
+  color: var(--color-muted);
+  font-size: 0.85em;
+}
+
+.hud__coins-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.hud__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+
+.toast__level,
+.toast__achievement {
+  font-weight: 700;
+}
+
+.achievement-list,
+.milestone-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.achievement-list {
+  display: grid;
+  gap: 8px;
+}
+
+.achievement {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.achievement--done {
+  background: var(--color-surface-soft);
+}
+
+.achievement__mark {
+  font-size: 1.2rem;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.achievement__body > p {
+  margin: 0;
+}
+
+.achievement__title {
+  font-weight: 700;
+}
+
+.achievement:not(.achievement--done) .achievement__title {
+  color: var(--color-muted);
+}
+
+.achievement__desc {
+  font-size: 0.9rem;
+}
+
+.achievement__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.milestone-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.milestone {
+  color: var(--color-muted);
+}
+
+.milestone--done {
+  color: var(--color-correct);
+  font-weight: 700;
+}

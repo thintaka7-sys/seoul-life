@@ -59,6 +59,14 @@ export function LocationPage({ locationId }: { locationId: string }) {
           <Button onClick={() => dispatch({ type: 'dismissNotice', notice: 'storyRestructured', now: nowIso() })}>わかりました</Button>
         </Notice>
       )}
+      {save?.progress.notices.includes('progressionIntroduced') === true && (
+        <Notice tone="info">
+          <p>
+            レベル・コイン・実績が加わりました。これまでの学習で、実績を{Object.keys(save.achievements).length}個達成し、コインを{save.stats.coins}枚もらっています。
+          </p>
+          <Button onClick={() => dispatch({ type: 'dismissNotice', notice: 'progressionIntroduced', now: nowIso() })}>わかりました</Button>
+        </Notice>
+      )}
       <Stage locationId={locationId} characterId={characterIn(next)} hasBackground={backgroundImage(locationId) !== undefined} />
 
       <div className="panel actions">
@@ -82,6 +90,7 @@ export function LocationPage({ locationId }: { locationId: string }) {
             <Button onClick={() => dispatch({ type: 'openStudy' })}>勉強する（復習・練習・ハングル）</Button>
             <Button onClick={() => dispatch({ type: 'openDictionary' })}>図鑑を見る</Button>
             <Button onClick={() => dispatch({ type: 'openStamps' })}>スタンプカード</Button>
+            <Button onClick={() => dispatch({ type: 'openAchievements' })}>実績</Button>
             <Button onClick={() => dispatch({ type: 'openAlbum' })}>おはなしのアルバム</Button>
           </>
         )}

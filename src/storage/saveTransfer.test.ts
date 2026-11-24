@@ -13,8 +13,8 @@ function playedSave(): SaveData {
     ...save,
     progress: { ...save.progress, completedEvents: ['event_004', 'event_005'], currentLocationId: 'home' },
     learning: { ...save.learning, words: { vocab_001: { learnedAt: '2026-11-20T09:10:00.000Z', chapter: 1 } } },
-    stats: { xp: 120 },
-    daily: { stamps: ['2026-11-20', '2026-11-21'] },
+    stats: { xp: 120, coins: 40, levelShown: 2 },
+    daily: { stamps: ['2026-11-20', '2026-11-21'], rewards: {} },
   }
 }
 

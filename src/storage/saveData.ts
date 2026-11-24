@@ -5,7 +5,7 @@
 
 import { isDateString } from '../learning/review/dates'
 
-export const CURRENT_SAVE_VERSION = 6
+export const CURRENT_SAVE_VERSION = 7
 
 /** v1（Phase 0）。移行のために型を残しておく */
 export interface SaveDataV1 {
@@ -162,8 +162,12 @@ export interface OrderRecord {
   items: string[]
 }
 
-/** 一度だけ画面に出すお知らせ（storyRestructured：物語が章立てに変わり、進み具合を最初からにした） */
-export const SAVE_NOTICES = ['storyRestructured'] as const
+/**
+ * 一度だけ画面に出すお知らせ。
+ * - storyRestructured：物語が章立てに変わり、進み具合を最初からにした（v6）
+ * - progressionIntroduced：レベル・コイン・実績が加わった。これまでの学習の分をさかのぼって付けた（v7）
+ */
+export const SAVE_NOTICES = ['storyRestructured', 'progressionIntroduced'] as const
 export type SaveNotice = (typeof SAVE_NOTICES)[number]
 
 /** v6（Phase 3）：おはなし・見かけた単語・読み物・注文・形が変わる言葉の記録と、一度だけのお知らせを追加 */
@@ -187,8 +191,41 @@ export interface SaveDataV6 extends Omit<SaveDataV5, 'version' | 'progress' | 'l
   }
 }
 
+/** 日時だけの記録（実績・家具・節目のごほうびを受け取った日時） */
+export interface DatedRecord {
+  /** 受け取った日時（ISO形式） */
+  at: string
+}
+
+/** v7（Phase 4）：コイン・レベルの知らせ・実績・自宅の家具・スタンプの節目のごほうびを追加 */
+export interface SaveDataV7 extends Omit<SaveDataV6, 'version' | 'stats' | 'daily'> {
+  version: 7
+  stats: {
+    xp: number
+    /** コイン（GAME_SPEC 7-3） */
+    coins: number
+    /** 知らせ済みのレベル（レベルは経験値から計算する）。0 は、v6 から移したばかりで、まだ数えていない */
+    levelShown: number
+  }
+  /** 実績ID → 達成した記録 */
+  achievements: Record<string, DatedRecord>
+  /** 自宅（GAME_SPEC 6-3） */
+  home: {
+    /** 家具ID → 手に入れた記録 */
+    owned: Record<string, DatedRecord>
+    /** 部屋の場所 → 置いた家具ID */
+    placement: Record<string, string>
+  }
+  daily: {
+    /** スタンプを押した日（YYYY-MM-DD） */
+    stamps: string[]
+    /** 受け取ったスタンプの節目（日数の文字列 → 記録） */
+    rewards: Record<string, DatedRecord>
+  }
+}
+
 /** 現在のバージョンのセーブデータ */
-export type SaveData = SaveDataV6
+export type SaveData = SaveDataV7
 
 /** 会話の記録のキー（会話ID#往復の番号） */
 export function conversationTurnKey(conversationId: string, turn: number): string {
@@ -197,13 +234,15 @@ export function conversationTurnKey(conversationId: string, turn: number): strin
 
 export function createNewSave(nowIso: string): SaveData {
   return {
-    version: 6,
+    version: 7,
     createdAt: nowIso,
     updatedAt: nowIso,
     progress: { currentLocationId: null, completedEvents: [], activeEvent: null, storiesSeen: {}, notices: [] },
     learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {}, review: {}, drills: {}, tests: {}, seen: {}, readings: {}, orders: {}, forms: {} },
-    stats: { xp: 0 },
-    daily: { stamps: [] },
+    stats: { xp: 0, coins: 0, levelShown: 1 },
+    achievements: {},
+    home: { owned: {}, placement: {} },
+    daily: { stamps: [], rewards: {} },
   }
 }
 
@@ -260,6 +299,10 @@ function isOrderRecord(v: unknown): boolean {
   return isObj(v) && isIsoDate(v['firstAt']) && Array.isArray(items) && items.every((i) => typeof i === 'string')
 }
 
+function isDatedRecord(v: unknown): boolean {
+  return isObj(v) && isIsoDate(v['at'])
+}
+
 function isTestRecord(v: unknown): boolean {
   if (!isObj(v)) return false
   const passedAt = v['passedAt']
@@ -301,8 +344,11 @@ export function isSaveData(v: unknown): v is SaveData {
   if (!isRecordOf(learning['forms'], isCorrectAtRecord)) return false
 
   const stats = v['stats']
-  if (!isObj(stats) || !isNonNegativeInt(stats['xp'])) return false
+  if (!isObj(stats) || !isNonNegativeInt(stats['xp']) || !isNonNegativeInt(stats['coins']) || !isNonNegativeInt(stats['levelShown'])) return false
+  if (!isRecordOf(v['achievements'], isDatedRecord)) return false
+  const home = v['home']
+  if (!isObj(home) || !isRecordOf(home['owned'], isDatedRecord) || !isRecordOf(home['placement'], (id) => typeof id === 'string')) return false
 
   const daily = v['daily']
-  return isObj(daily) && Array.isArray(daily['stamps']) && daily['stamps'].every(isDateString)
+  return isObj(daily) && Array.isArray(daily['stamps']) && daily['stamps'].every(isDateString) && isRecordOf(daily['rewards'], isDatedRecord)
 }

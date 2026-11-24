@@ -36,11 +36,12 @@ export const FAST_SETTINGS = {
 }
 
 /** いまのセーブデータの版（src/storage/saveData.ts の CURRENT_SAVE_VERSION） */
-export const SAVE_VERSION = 6
+export const SAVE_VERSION = 7
 
 /**
  * いまの版のセーブデータ。第1章のはじめ（空港・タクシー・先生の授業。event_004・005）を終えて、自宅にいる。
- * progress・learning などは patch で上書きできる（足りない項目は空で埋める）
+ * progress・learning・stats・daily などは patch で上書きできる（足りない項目は空で埋める）。
+ * stats.levelShown は既定で 0（まだ数えていない）。最初の操作で、レベルアップ・実績の知らせを出さずに精算する（Phase 4）
  */
 export function saveAtHome(patch = {}) {
   const now = new Date().toISOString()
@@ -50,10 +51,19 @@ export function saveAtHome(patch = {}) {
     updatedAt: now,
     progress: { currentLocationId: 'home', completedEvents: ['event_004', 'event_005'], activeEvent: null, storiesSeen: {}, notices: [] },
     learning: { words: {}, grammar: {}, conversations: {}, hangul: {}, listening: {}, review: {}, drills: {}, tests: {}, seen: {}, readings: {}, orders: {}, forms: {} },
-    stats: { xp: 0 },
-    daily: { stamps: [] },
+    stats: { xp: 0, coins: 0, levelShown: 0 },
+    achievements: {},
+    home: { owned: {}, placement: {} },
+    daily: { stamps: [], rewards: {} },
   }
-  return { ...base, ...patch, progress: { ...base.progress, ...patch.progress }, learning: { ...base.learning, ...patch.learning } }
+  return {
+    ...base,
+    ...patch,
+    progress: { ...base.progress, ...patch.progress },
+    learning: { ...base.learning, ...patch.learning },
+    stats: { ...base.stats, ...patch.stats },
+    daily: { ...base.daily, ...patch.daily },
+  }
 }
 
 /**
