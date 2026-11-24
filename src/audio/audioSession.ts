@@ -16,6 +16,7 @@
 //   「ambient」に戻してから少し待って（RESUME_AFTER_SPEECH_MS）、止めた BGM を続きから流し、音の出口を動かす
 // navigator.audioSession（Safari 16.4 以降）がないブラウザでは何もしない（マナーモードの区別がないため）。
 
+import { logAudio } from './audioDebug'
 import { isListening, subscribeListening } from './recognition'
 
 export type AudioSessionType = 'auto' | 'playback' | 'transient' | 'transient-solo' | 'ambient' | 'play-and-record'
@@ -60,6 +61,7 @@ export function createAudioSessionController(
     } catch {
       // 切り替えられない環境では、そのまま（音は鳴る）
     }
+    logAudio(`扱いを ${type} にした`)
   }
   function changed() {
     for (const l of listeners) l()
@@ -76,9 +78,11 @@ export function createAudioSessionController(
     } catch {
       // 切り替えられない環境では、そのまま
     }
+    logAudio('かけ直し（auto → ambient）')
   }
   function releaseAll() {
     holds = 0
+    logAudio('読み上げ：終わった')
     set('ambient')
     changed()
   }
@@ -98,15 +102,18 @@ export function createAudioSessionController(
       if (value) {
         micUsed = true
         settling = false
+        logAudio('マイク：聞き始めた（BGM・効果音を止める）')
         changed()
         return
       }
       settling = true
+      logAudio('マイク：閉じた')
       reapplyAmbient()
       later(() => {
         if (seq !== captureSeq) return
         settling = false
         reapplyAmbient()
+        logAudio(quietAfterMic ? 'マイクの後のかけ直しが終わった（設定により、BGM・効果音は止めたまま）' : 'マイクの後のかけ直しが終わった（BGM・効果音を戻す）')
         changed()
       }, AFTER_CAPTURE_MS)
     },
@@ -114,6 +121,7 @@ export function createAudioSessionController(
     hold(): () => void {
       holds += 1
       lastHold = now()
+      logAudio('読み上げ：始める')
       set('playback')
       if (holds === 1) changed()
       let released = false
@@ -128,6 +136,7 @@ export function createAudioSessionController(
     setQuietAfterMic(value: boolean) {
       if (value === quietAfterMic) return
       quietAfterMic = value
+      logAudio(`設定「話して答えたあと、BGM・効果音を止める」：${value ? 'オン' : 'オフ'}`)
       if (micUsed) changed()
     },
     /** マイクを使った後で、設定により BGM・効果音を止めている（ページを開き直すまで） */

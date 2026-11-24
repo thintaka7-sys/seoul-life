@@ -5,6 +5,7 @@
 // その間は、操作があっても音の出口を動かさない（動かした音は、ふだんの扱いに戻した後もマナーモードで鳴ってしまうため）。
 // 音の出口を動かすのは、すべて resumeAudioEngineIfAllowed を通す（効果音の sfx.ts は canStartAudio を確かめる）。
 
+import { isAudioDebugEnabled, logAudio } from './audioDebug'
 import { RESUME_AFTER_SPEECH_MS, isSilentModeUnsafe, subscribeAudioSession } from './audioSession'
 
 interface Engine {
@@ -39,6 +40,8 @@ export function ensureAudioEngine(): Engine | null {
     sfx.connect(ctx.destination)
     bgm.connect(ctx.destination)
     engine = { ctx, sfx, bgm }
+    logAudio(`音の出口（AudioContext）を作った：${ctx.state}`, ctx.state === 'running')
+    if (isAudioDebugEnabled()) ctx.addEventListener('statechange', () => logAudio(`音の出口（AudioContext）：${ctx.state}`, ctx.state === 'running'))
     // 読み上げのための扱いの最中に作ったときは、戻るまで止めておく
     if (!canStartAudio()) suspendContext()
     for (const l of listeners) l(ctx)

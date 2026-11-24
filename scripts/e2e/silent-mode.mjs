@@ -103,6 +103,7 @@ const bgmPlaying = async () => {
 }
 
 // ---------- はじめから：BGM がふだんの扱い（ambient）で流れる ----------
+check('ふだん（?debug=audio なし）は、音の記録を出さない', !(await evaluate(`!!document.querySelector('.audio-debug')`)))
 await mouseClickText('はじめから')
 check('起動時：音の扱いは ambient（マナーモードでは BGM・効果音を鳴らさない）', (await state()).type === 'ambient', JSON.stringify(await state()))
 check('はじめから：BGM が流れ始める', await waitFor(bgmPlaying), JSON.stringify(await state()))
@@ -286,5 +287,34 @@ await evaluate(`${quietRadios}[1].closest('label').setAttribute('data-e2e-target
 await mouseClick('[data-e2e-target="1"]')
 check('設定でオフにすると、BGM を続きから流す', await waitFor(bgmPlaying), JSON.stringify(await state()))
 check('オフにした設定を保存する（v6）', await evaluate(`(() => { const s = JSON.parse(localStorage.getItem('seoul-life:settings')); return s.version === 6 && s.quietAfterVoiceInput === false })()`))
+
+// ---------- 音の記録（開発者向け。?debug=audio のときだけ）：開いたときのかけ直しと、BGM・効果音を流し始めた時点の扱いが出る ----------
+await evaluate(`localStorage.setItem('e2e:sessionType', 'ambient')`)
+await b.load(`${b.url}?debug=audio`)
+await evaluate(`localStorage.removeItem('e2e:sessionType')`)
+/** 記録を読む（欄をひらいて読み、たたんでおく。ひらいたままだと、ゲームのボタンを覆うため） */
+async function debugRows() {
+  await mouseClickText('ひらく')
+  const rows = await evaluate(`[...document.querySelectorAll('.audio-debug__row')].map((r) => ({ text: r.textContent, bad: r.classList.contains('audio-debug__row--bad') })).reverse()`)
+  await mouseClickText('たたむ')
+  return rows
+}
+const debugBar = () => evaluate(`document.querySelector('.audio-debug__now')?.textContent ?? ''`)
+check('?debug=audio：音の記録を出す。最初はたたんで、いまの扱いと件数だけ出す', (await evaluate(`!!document.querySelector('.audio-debug') && !document.querySelector('.audio-debug__list')`)) && (await debugBar()).includes('type=ambient'), await debugBar())
+const opened = await debugRows()
+check('?debug=audio：開いたときの値と、かけ直し（auto → ambient）が記録される', opened[0]?.text.includes('ページを開いた') && opened.some((r) => r.text.includes('type=ambient') && r.text.includes('かけ直し')), JSON.stringify(opened))
+await mouseClickText('つづきから')
+await waitFor(bgmPlaying)
+await sleep(500)
+const played = await debugRows()
+check('?debug=audio：BGM・効果音を流した記録が、type=ambient で出る（赤い行なし・0件）', played.some((r) => r.text.includes('type=ambient') && r.text.includes('BGM：流す')) && played.some((r) => r.text.includes('効果音：button')) && played.every((r) => !r.bad) && (await debugBar()).includes('：0件'), JSON.stringify(played))
+// ページが知らないうちに扱いが変わった（ambient でない）まま効果音を鳴らすと、赤い行になる
+await evaluate(`navigator.audioSession.type = 'play-and-record'`)
+await mouseClickText('設定')
+await sleep(500)
+const badRows = (await debugRows()).filter((r) => r.bad)
+check('?debug=audio：ambient でない扱いで効果音を鳴らすと、赤い行（!!）と件数が出る', badRows.length > 0 && badRows[0].text.startsWith('!! ') && badRows[0].text.includes('type=play-and-record') && !(await debugBar()).includes('：0件'), JSON.stringify(await debugRows()))
+await mouseClickText('ひらく')
+await b.shot('debug-audio')
 
 b.finish()

@@ -2,6 +2,7 @@
 // ブラウザは、利用者が画面を操作する前に音を出させないため、最初のタップ（またはキー操作）で準備する。
 // iPhone はマナーモード（消音スイッチ）のとき、この音は鳴らない（audioSession.ts で ambient にしている）。
 
+import { logAudio } from './audioDebug'
 import { canStartAudio, ensureAudioEngine } from './engine'
 
 export const SFX_NAMES = ['button', 'correct', 'wrong', 'xp', 'fanfare'] as const
@@ -122,6 +123,7 @@ export function createSfxPlayer(env: SfxEnvironment): SfxPlayer {
       const ctx = prepare()
       if (ctx === null) return
       if (ctx.state === 'running') {
+        logAudio(`効果音：${name}`, true)
         ctx.play(SFX_RECIPES[name])
         return
       }
@@ -130,7 +132,9 @@ export function createSfxPlayer(env: SfxEnvironment): SfxPlayer {
       ctx
         .resume()
         .then(() => {
-          if (ctx.state === 'running') ctx.play(SFX_RECIPES[name])
+          if (ctx.state !== 'running') return
+          logAudio(`効果音：${name}（音の出口を動かしてから）`, true)
+          ctx.play(SFX_RECIPES[name])
         })
         .catch(() => undefined)
     },

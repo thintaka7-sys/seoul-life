@@ -14,6 +14,7 @@
 
 import { audioAssets } from '../data'
 import type { BgmId } from '../data/types'
+import { logAudio } from './audioDebug'
 import { RESUME_AFTER_SPEECH_MS, isSilentModeUnsafe, subscribeAudioSession } from './audioSession'
 import { canStartAudio, currentAudioEngine, onAudioEngineReady, resumeAudioEngineIfAllowed } from './engine'
 import { isListening, subscribeListening } from './recognition'
@@ -78,6 +79,7 @@ function play(deck: Deck): void {
     return
   }
   deck.starting = true
+  logAudio(`BGM：流す（${deck.track ?? '曲なし'}）`, true)
   deck.el
     .play()
     .then(() => {
@@ -190,6 +192,7 @@ function onGesture(): void {
     if (idle.el.paused && url !== null) {
       idle.el.src = url
       idle.gain.gain.value = 0
+      logAudio('BGM：最初の操作で、もう1つのデッキを準備（音量 0）', true)
       idle.el
         .play()
         .then(() => {
@@ -231,6 +234,7 @@ function pauseDecks(): void {
       deck.stopTimer = null
     }
     if (!deck.el.paused) {
+      logAudio(`BGM：止める（${deck.track ?? '消している途中の曲'}）`)
       deck.el.pause()
       // 流していた曲は、後で続きから流す（消している途中の曲は track が null）
       deck.pending = deck.track !== null

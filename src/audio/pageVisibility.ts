@@ -4,6 +4,7 @@
 // - 戻った：visibilitychange（visible）・pageshow（戻るボタンでページを復元したときなど）。1回だけ再開する
 // iPhone の Safari と、ホーム画面に追加したとき（standalone）のどちらも、この2組のイベントが届く。
 
+import { logAudio } from './audioDebug'
 import { resumeBgm, suspendBgm } from './bgm'
 import { resumeAudioEngine, suspendAudioEngine } from './engine'
 import { abortListening } from './recognition'
@@ -38,6 +39,7 @@ export function createVisibilityController(handlers: VisibilityHandlers, initial
 
 /** 止める順：マイク（聞き取りをやめる）→ 読み上げ → BGM（いまの位置で止める）→ 音の出口（効果音） */
 export function hideAudio(): void {
+  logAudio('画面が見えなくなった（音を止める）')
   abortListening()
   stopSpeaking()
   suspendBgm()
@@ -46,6 +48,7 @@ export function hideAudio(): void {
 
 /** 再開する順：音の出口 → BGM（続きから）。読み上げは再開しない（プレイヤーがもう一度押す） */
 export function showAudio(): void {
+  logAudio('画面に戻った')
   resumeAudioEngine()
   resumeBgm()
 }

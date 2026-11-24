@@ -3572,3 +3572,73 @@ h2.step-heading {
     grid-row: span 3;
   }
 }
+
+/* 音の記録（開発者向け。?debug=audio のときだけ出す。components/AudioDebugPanel.tsx） */
+.audio-debug {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  padding: 4px 8px max(4px, env(safe-area-inset-bottom));
+  background: rgb(0 0 0 / 85%);
+  color: #fff;
+  font: 11px/1.4 ui-monospace, Menlo, Consolas, monospace;
+}
+
+/* たたんだ欄の分だけ、ページの下を空ける（いちばん下のボタンを覆わないように） */
+body:has(.audio-debug) {
+  padding-bottom: 64px;
+}
+
+.audio-debug__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audio-debug__now {
+  flex: 1;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+}
+
+.audio-debug__count--bad {
+  color: #ff8a8a;
+  font-weight: bold;
+}
+
+.audio-debug__button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid #888;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  font: inherit;
+}
+
+.audio-debug__copied {
+  margin: 0;
+}
+
+.audio-debug__list {
+  max-height: 30vh;
+  overflow-y: auto;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.audio-debug__row--sound {
+  color: #9fe0a8;
+}
+
+.audio-debug__row--bad {
+  color: #ff8a8a;
+  font-weight: bold;
+}
