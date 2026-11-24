@@ -50,16 +50,16 @@ async function answerReading(id, P) {
   check(`${P} ${id}：答える前は日本語訳を出さない`, !(await evaluate(`!!document.querySelector('.reading__ja, .menu-row__ja, .showcase-item__ja')`)))
   for (const [i, q] of reading.questions.entries()) {
     await sleep(150)
+    if (q.questionKorean !== undefined) {
+      const ko = await plainText('.quiz .reading-question-ko')
+      check(`${P} ${id}：問題文の韓国語（${q.questionKorean.korean}）に、読み上げと「日本語訳を見る」がある`, ko.includes(q.questionKorean.korean.replace(/\s+/g, ' ')) && (await evaluate(`!!document.querySelector('.quiz .reading-question-ko button[aria-label^="読み上げ"]')`)) && (await evaluate(`!!document.querySelector('.quiz .reading-question-ko .translation-tap')`)), ko)
+    }
     if (q.type === 'find') {
       // 答えがある場所（findIn）の言葉だけを押せる
       const place = q.findIn ?? 'menu'
       const chips = await evaluate(`({ menu: document.querySelectorAll('.shop-menu .find-chip').length, lines: document.querySelectorAll('.reading__lines .find-chip').length })`)
       const other = place === 'menu' ? 'lines' : 'menu'
       check(`${P} ${id}：「${q.answer}」を探す問題では、${place === 'menu' ? 'メニュー' : '本文'}だけを押せる`, chips[place] > 0 && chips[other] === 0, JSON.stringify(chips))
-      if (q.questionKorean !== undefined) {
-        const ko = await plainText('.quiz .reading-question-ko')
-        check(`${P} ${id}：問題文の韓国語（${q.questionKorean.korean}）に、読み上げと「日本語訳を見る」がある`, ko.includes(q.questionKorean.korean.replace(/\s+/g, ' ')) && (await evaluate(`!!document.querySelector('.quiz .reading-question-ko button[aria-label^="読み上げ"]')`)) && (await evaluate(`!!document.querySelector('.quiz .reading-question-ko .translation-tap')`)), ko)
-      }
       const ok = await evaluate(`(() => { const plain = (el) => { const c = el.cloneNode(true); c.querySelectorAll('rt').forEach(r => r.remove()); return c.textContent.replace(/[\\s.,?!]/g, '') }; const b = [...document.querySelectorAll('.find-chip')].find(b => plain(b) === ${JSON.stringify(q.answer)}); if (!b) return false; b.click(); return true })()`)
       check(`${P} ${id}：本文から「${q.answer}」を探して押せる`, ok)
     } else if (q.type === 'choice') {
