@@ -286,7 +286,7 @@ check('設定画面：説明に理由（iPhone でマイクを使うと、マナ
 await evaluate(`${quietRadios}[1].closest('label').setAttribute('data-e2e-target', '1')`)
 await mouseClick('[data-e2e-target="1"]')
 check('設定でオフにすると、BGM を続きから流す', await waitFor(bgmPlaying), JSON.stringify(await state()))
-check('オフにした設定を保存する（v6）', await evaluate(`(() => { const s = JSON.parse(localStorage.getItem('seoul-life:settings')); return s.version === 6 && s.quietAfterVoiceInput === false })()`))
+check('オフにした設定を保存する（v7）', await evaluate(`(() => { const s = JSON.parse(localStorage.getItem('seoul-life:settings')); return s.version === 7 && s.quietAfterVoiceInput === false })()`))
 
 // ---------- 音の記録（開発者向け。?debug=audio のときだけ）：開いたときのかけ直しと、BGM・効果音を流し始めた時点の扱いが出る ----------
 await evaluate(`localStorage.setItem('e2e:sessionType', 'ambient')`)

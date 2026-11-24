@@ -74,5 +74,5 @@ export function GameProvider({ boot, children }: { boot: BootResult; children: R
     if (!result.ok) dispatch({ type: 'saveFailed', message: `設定を保存できませんでした（${result.detail}）` })
   }, [state.settings, boot.storage])
 
-  return <GameContext.Provider value={{ state, dispatch }}>{children}</GameContext.Provider>
+  return <GameContext.Provider value={{ state, dispatch, storage: boot.storage }}>{children}</GameContext.Provider>
 }

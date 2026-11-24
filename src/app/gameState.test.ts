@@ -622,3 +622,24 @@ describe('読み物・注文・形が変わる言葉（Phase 3 区切り3）', (
     for (const key of formKeysOf(v)) expect(done.save?.learning.review[key]).toMatchObject({ stage: 0 })
   })
 })
+
+describe('ファイルから読み込む（GAME_SPEC 10-2）', () => {
+  it('セーブデータと設定を置き換え、進めていたイベントをやめて、タイトルに「読み込みました」を出す', () => {
+    const playing = run(titleWithoutSave(), { type: 'startNew', now: T0 })
+    expect(playing.run).not.toBeNull()
+    const imported = { ...createNewSave(T1), stats: { xp: 300 } }
+    const settings = { ...DEFAULT_SETTINGS, furigana: 'off' as const }
+    const s = run(playing, { type: 'openSettings' }, { type: 'importSave', save: imported, settings, exportedAt: T1 })
+    expect(s.save).toBe(imported)
+    expect(s.settings).toBe(settings)
+    expect(s.run).toBeNull()
+    expect(s.scene).toEqual({ name: 'title', imported: T1 })
+  })
+
+  it('セーブデータがない（壊れていた）ときも、読み込んで始められる', () => {
+    const imported = createNewSave(T1)
+    const s = run(titleWithoutSave(), { type: 'importSave', save: imported, settings: DEFAULT_SETTINGS, exportedAt: T1 })
+    expect(s.save).toBe(imported)
+    expect(run(s, { type: 'continue', now: T1 }).scene.name).not.toBe('title')
+  })
+})

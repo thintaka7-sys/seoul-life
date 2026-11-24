@@ -11,6 +11,8 @@ import { syllableCount, type RateSupport, type SpeechCheckResult } from '../audi
 import { TEXT_SPEED_MS, totalChars } from '../components/dialogue/typewriter'
 import { useTypewriter } from '../components/dialogue/useTypewriter'
 import { pairReading } from '../learning/furigana/furigana'
+import { InstallSection } from './settings/InstallSection'
+import { SaveDataSection } from './settings/SaveDataSection'
 import {
   EFFECT_LEVELS,
   FURIGANA_MODES,
@@ -302,7 +304,9 @@ export function SettingsPage() {
         ))}
       </fieldset>
 
-      <p className="muted small">セーブデータの書き出し・読み込みなどは、今後のPhaseで追加します。</p>
+      <SaveDataSection />
+
+      <InstallSection />
     </ScreenLayout>
   )
 }

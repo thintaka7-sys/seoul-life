@@ -38,7 +38,7 @@ import { backTarget, type GameState, type Scene } from './gameState'
 function SceneView({ scene }: { scene: Scene }) {
   switch (scene.name) {
     case 'title':
-      return <TitlePage />
+      return <TitlePage imported={scene.imported} />
     case 'settings':
       return <SettingsPage />
     case 'main':

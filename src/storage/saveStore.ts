@@ -43,13 +43,22 @@ export function loadSave(storage: KeyValueStorage | null, options: LoadOptions =
     return { kind: 'unavailable' }
   }
   if (raw === null) return { kind: 'empty' }
+  return parseSaveText(raw, options)
+}
 
+/** JSON の文字列から、セーブデータを読む（移行・検証まで）。書き出したファイルの読み込みにも使う */
+export function parseSaveText(raw: string, options: LoadOptions = {}): Exclude<LoadResult, { kind: 'empty' } | { kind: 'unavailable' }> {
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
   } catch {
     return { kind: 'corrupt', reason: 'parse_error', detail: 'JSONとして読めません', raw }
   }
+  return parseSaveObject(parsed, raw, options)
+}
+
+/** 読んだ値から、セーブデータを読む（移行・検証まで）。raw は退避・記録のための元の文字列 */
+export function parseSaveObject(parsed: unknown, raw: string, options: LoadOptions = {}): Exclude<LoadResult, { kind: 'empty' } | { kind: 'unavailable' }> {
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return { kind: 'corrupt', reason: 'invalid_shape', detail: 'セーブデータの形ではありません', raw }
   }
@@ -87,6 +96,9 @@ export function saveGame(storage: KeyValueStorage | null, data: SaveData): SaveR
   return writeItem(storage, SAVE_KEY, JSON.stringify(data))
 }
 
+/** 退避の理由：読み込めなかった／形式を移す前／ファイルから読み込んで上書きする前 */
+export type BackupLabel = 'corrupt' | 'pre-migration' | 'before-import'
+
 /** 退避データのキーの一覧（古い順） */
 export function listBackupKeys(storage: KeyValueStorage): string[] {
   const keys: string[] = []
@@ -106,7 +118,7 @@ export function listBackupKeys(storage: KeyValueStorage): string[] {
  * 読み込めなかったデータや、移行前のデータを別のキーに写して残す。
  * 元のキー（SAVE_KEY）には触らない。退避先のキーを返し、失敗したら null。
  */
-export function backupRawSave(storage: KeyValueStorage, raw: string, label: 'corrupt' | 'pre-migration', now: Date): string | null {
+export function backupRawSave(storage: KeyValueStorage, raw: string, label: BackupLabel, now: Date): string | null {
   // 壊れたデータのまま再読み込みを繰り返しても、同じ内容を何度も退避して古い退避データを押し出さないようにする
   for (const existing of listBackupKeys(storage)) {
     try {
@@ -130,4 +142,19 @@ export function backupRawSave(storage: KeyValueStorage, raw: string, label: 'cor
     }
   }
   return key
+}
+
+/**
+ * いま保存されているセーブデータを、そのまま退避する（ファイルから読み込んで上書きする前）。
+ * 保存されていなければ何もせず null。退避できなければ null（呼び出し側で、続けるかを確かめる）
+ */
+export function backupCurrentSave(storage: KeyValueStorage, now: Date): { key: string | null; existed: boolean } {
+  let raw: string | null
+  try {
+    raw = storage.getItem(SAVE_KEY)
+  } catch {
+    return { key: null, existed: false }
+  }
+  if (raw === null) return { key: null, existed: false }
+  return { key: backupRawSave(storage, raw, 'before-import', now), existed: true }
 }

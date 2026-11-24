@@ -4,7 +4,7 @@
 import { writeItem, type KeyValueStorage, type SaveResult } from './saveStore'
 
 export const SETTINGS_KEY = 'seoul-life:settings'
-export const CURRENT_SETTINGS_VERSION = 6
+export const CURRENT_SETTINGS_VERSION = 7
 
 /** フリガナ：おすすめ（序盤はいつも表示・それ以降はタップ）／いつも表示／タップで表示／表示しない */
 export const FURIGANA_MODES = ['recommended', 'always', 'tap', 'off'] as const
@@ -75,13 +75,18 @@ export interface SettingsV4 extends Omit<Settings, 'version' | 'bgm' | 'bgmVolum
 export const VOLUME_MAX = 100
 
 /** v5（Phase 3。BGM のオン・オフと音量、効果音の音量を追加）。移行のために型を残しておく */
-export interface SettingsV5 extends Omit<Settings, 'version' | 'quietAfterVoiceInput'> {
+export interface SettingsV5 extends Omit<Settings, 'version' | 'quietAfterVoiceInput' | 'lastExportAt'> {
   version: 5
 }
 
-/** v6（Phase 3。話して答えたあと BGM・効果音を止める設定を追加） */
-export interface Settings {
+/** v6（Phase 3。話して答えたあと BGM・効果音を止める設定を追加）。移行のために型を残しておく */
+export interface SettingsV6 extends Omit<Settings, 'version' | 'lastExportAt'> {
   version: 6
+}
+
+/** v7（Phase 4。セーブデータを書き出した日時を追加） */
+export interface Settings {
+  version: 7
   furigana: FuriganaMode
   /** 日本語訳の出し方（台詞・反応・ログ・単語カードの例文・コラムの韓国語） */
   translation: TranslationMode
@@ -107,7 +112,15 @@ export interface Settings {
    * 初期値は、マナーモードを区別できるブラウザ（navigator.audioSession がある。iPhone の Safari など）ではオン
    */
   quietAfterVoiceInput: boolean
+  /**
+   * このブラウザでセーブデータを最後に書き出した日時（ISO 8601）。まだなら null。
+   * 書き出しの案内（GAME_SPEC 10-2）に使う。端末ごとの値なので、書き出しには含めない
+   */
+  lastExportAt: string | null
 }
+
+/** 端末ごとの値（設定の書き出し・読み込みで移さない。GAME_SPEC 10-4・Phase 4 計画 Q8） */
+export const DEVICE_SETTING_KEYS = ['slowSpeech', 'quietAfterVoiceInput', 'lastExportAt'] as const
 
 export interface DefaultSettingsOptions {
   /** 端末で「動きを減らす」設定がオンか */
@@ -124,7 +137,7 @@ export interface DefaultSettingsOptions {
 export function defaultSettings(options: DefaultSettingsOptions = {}): Settings {
   const { prefersReducedMotion = false, hasAudioSession = false } = options
   return {
-    version: 6,
+    version: 7,
     furigana: 'recommended',
     translation: 'always',
     speechRate: 'normal',
@@ -138,6 +151,7 @@ export function defaultSettings(options: DefaultSettingsOptions = {}): Settings 
     bgmVolume: 60,
     sfxVolume: 80,
     quietAfterVoiceInput: hasAudioSession,
+    lastExportAt: null,
   }
 }
 
@@ -168,7 +182,7 @@ export type LoadSettingsOptions = DefaultSettingsOptions
 
 /**
  * 設定を読み込む。壊れていても例外を投げず、読める項目だけを使う。
- * v1〜v5 は v6 に移す（増えた項目は初期値）。
+ * v1〜v6 は v7 に移す（増えた項目は初期値）。
  */
 export function loadSettings(storage: KeyValueStorage | null, options: LoadSettingsOptions = {}): SettingsLoadResult {
   const defaults = defaultSettings(options)
@@ -187,17 +201,27 @@ export function loadSettings(storage: KeyValueStorage | null, options: LoadSetti
   } catch {
     return { kind: 'repaired', settings: defaults, detail: 'JSONとして読めないため初期値にしました' }
   }
+  return settingsFromValue(parsed, defaults)
+}
+
+const SUPPORTED_VERSIONS: readonly unknown[] = [1, 2, 3, 4, 5, 6, CURRENT_SETTINGS_VERSION]
+
+/**
+ * 読んだ値を設定にする（古い版は移す）。正しくない項目は defaults の値にする。
+ * 書き出したファイルの設定の読み込みにも使う
+ */
+export function settingsFromValue(parsed: unknown, defaults: Settings): Exclude<SettingsLoadResult, { kind: 'default' }> {
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return { kind: 'repaired', settings: defaults, detail: '設定の形ではないため初期値にしました' }
   }
   const obj = parsed as Record<string, unknown>
   const version = obj['version']
-  if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5 && version !== CURRENT_SETTINGS_VERSION) {
+  if (!SUPPORTED_VERSIONS.includes(version)) {
     return { kind: 'repaired', settings: defaults, detail: `対応していないバージョン（${String(version)}）のため初期値にしました` }
   }
   // 古い版にない項目は初期値を入れる（正しくない値とはみなさない）
   // v1 → v2：textSpeed・soundEffects・effects。v2 → v3：translation・voiceInput・voiceInputNoticeSeen。v3 → v4：slowSpeech。v4 → v5：bgm・bgmVolume・sfxVolume
-  // v5 → v6：quietAfterVoiceInput（端末に合わせた初期値。iPhone の Safari などではオン）
+  // v5 → v6：quietAfterVoiceInput（端末に合わせた初期値。iPhone の Safari などではオン）。v6 → v7：lastExportAt（まだ書き出していない）
   const added: Record<string, unknown> = {}
   if (version === 1) Object.assign(added, { textSpeed: defaults.textSpeed, soundEffects: defaults.soundEffects, effects: defaults.effects })
   if (version === 1 || version === 2) {
@@ -205,7 +229,8 @@ export function loadSettings(storage: KeyValueStorage | null, options: LoadSetti
   }
   if (version === 1 || version === 2 || version === 3) Object.assign(added, { slowSpeech: null })
   if (version === 1 || version === 2 || version === 3 || version === 4) Object.assign(added, { bgm: defaults.bgm, bgmVolume: defaults.bgmVolume, sfxVolume: defaults.sfxVolume })
-  if (version !== CURRENT_SETTINGS_VERSION) Object.assign(added, { quietAfterVoiceInput: defaults.quietAfterVoiceInput })
+  if (version === 1 || version === 2 || version === 3 || version === 4 || version === 5) Object.assign(added, { quietAfterVoiceInput: defaults.quietAfterVoiceInput })
+  if (version !== CURRENT_SETTINGS_VERSION) Object.assign(added, { lastExportAt: null })
   const source: Record<string, unknown> = { ...obj, ...added }
   const bool = (key: 'soundEffects' | 'voiceInput' | 'voiceInputNoticeSeen' | 'bgm' | 'quietAfterVoiceInput'): boolean => {
     const v = source[key]
@@ -217,8 +242,10 @@ export function loadSettings(storage: KeyValueStorage | null, options: LoadSetti
   }
   const rawSlow = source['slowSpeech']
   const slowSpeech = rawSlow === null || !isSlowSpeech(rawSlow) ? null : { rate: rawSlow.rate, measuredAt: rawSlow.measuredAt }
+  const rawExport = source['lastExportAt']
+  const lastExportAt = typeof rawExport === 'string' && !Number.isNaN(Date.parse(rawExport)) ? rawExport : null
   const settings: Settings = {
-    version: 6,
+    version: 7,
     furigana: pick(FURIGANA_MODES, source['furigana'], defaults.furigana),
     translation: pick(TRANSLATION_MODES, source['translation'], defaults.translation),
     speechRate: pick(SPEECH_RATES, source['speechRate'], defaults.speechRate),
@@ -232,10 +259,12 @@ export function loadSettings(storage: KeyValueStorage | null, options: LoadSetti
     bgmVolume: volume('bgmVolume'),
     sfxVolume: volume('sfxVolume'),
     quietAfterVoiceInput: bool('quietAfterVoiceInput'),
+    lastExportAt,
   }
   const slowRepaired = rawSlow !== null && slowSpeech === null
+  const exportRepaired = rawExport !== null && lastExportAt === null
   const keys = ['furigana', 'translation', 'speechRate', 'textSpeed', 'soundEffects', 'effects', 'voiceInput', 'voiceInputNoticeSeen', 'bgm', 'bgmVolume', 'sfxVolume', 'quietAfterVoiceInput'] as const
-  const repaired = slowRepaired || keys.some((k) => settings[k] !== source[k])
+  const repaired = slowRepaired || exportRepaired || keys.some((k) => settings[k] !== source[k])
   return repaired ? { kind: 'repaired', settings, detail: '正しくない値を初期値に戻しました' } : { kind: 'ok', settings }
 }
 

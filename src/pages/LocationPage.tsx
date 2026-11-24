@@ -1,9 +1,11 @@
 import { useGame, nowIso } from '../app/GameContext'
 import { Button } from '../components/Button'
+import { ExportReminder } from '../components/ExportReminder'
 import { Hud } from '../components/Hud'
 import { Notice } from '../components/Notice'
 import { Stage } from '../components/scene/Stage'
 import { ScreenLayout } from '../components/ScreenLayout'
+import { UpdateBanner } from '../components/UpdateBanner'
 import { backgroundImage, content, findConversation, findLocation } from '../data'
 import type { GameEvent } from '../data/types'
 import { completedEventsAt, nextEventAt } from '../game/events/events'
@@ -45,6 +47,12 @@ export function LocationPage({ locationId }: { locationId: string }) {
       }
     >
       <Hud />
+      {locationId === 'home' && (
+        <>
+          <UpdateBanner />
+          <ExportReminder />
+        </>
+      )}
       {save?.progress.notices.includes('storyRestructured') === true && (
         <Notice tone="info">
           <p>物語が新しくなりました（第1章「韓国に到着」から始まります）。覚えた単語・復習・スタンプ・経験値は、そのまま残っています。</p>

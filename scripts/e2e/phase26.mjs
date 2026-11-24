@@ -479,7 +479,7 @@ await device({ strength: 1 })
 await startGame()
 let text = await speechCheck()
 check('BUG-010 読み上げの確認（十分に遅くなる端末）：ふつうと速さ 0.5 の時間・倍率を出し、「速さ 0.5 で読みます」', /ふつう（速さ 1）：\d+\.\d+秒/.test(text) && /速さ 0\.5：\d+\.\d+秒（2\.0倍）/.test(text) && !text.includes('速さ 0.35：') && text.includes('「ゆっくり」を速さ 0.5 で読みます'), text)
-check('BUG-010 読み上げの確認の結果を、設定に保存する（v6 の slowSpeech）', (await savedSettings())?.version === 6 && (await savedSettings())?.slowSpeech?.rate === 0.5, JSON.stringify(await savedSettings()))
+check('BUG-010 読み上げの確認の結果を、設定に保存する（v7 の slowSpeech）', (await savedSettings())?.version === 7 && (await savedSettings())?.slowSpeech?.rate === 0.5, JSON.stringify(await savedSettings()))
 await shot('bug010-check-works-375')
 
 // 2. 弱くしか効かない端末（iPhone の 1.3倍）：0.35 まで試して選ぶ。測り方も出す

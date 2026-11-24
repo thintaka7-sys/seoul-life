@@ -3642,3 +3642,70 @@ body:has(.audio-debug) {
   color: #ff8a8a;
   font-weight: bold;
 }
+
+/* ---------- セーブデータの書き出し・読み込み、PWA（Phase 4） ---------- */
+
+.notice > p {
+  margin: 0 0 8px;
+}
+
+.notice > p:last-child {
+  margin-bottom: 0;
+}
+
+.notice__buttons,
+.import-save__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.import-save {
+  display: grid;
+  gap: 10px;
+}
+
+.import-save__confirm {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-soft);
+}
+
+.import-save__confirm > p {
+  margin: 0;
+}
+
+.import-save__summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.import-save__summary dt {
+  color: var(--color-muted);
+}
+
+.import-save__summary dd {
+  margin: 0;
+}
+
+.install-steps {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.update-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.update-banner > p {
+  margin: 0;
+}

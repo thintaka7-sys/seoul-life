@@ -1,10 +1,12 @@
 import { useGame, nowIso } from '../app/GameContext'
 import { BUILD_LABEL, GAME_TITLE_JA, GAME_TITLE_KO } from '../app/gameInfo'
+import { formatDateTime } from '../app/saveSummary'
 import { Button } from '../components/Button'
 import { Notice } from '../components/Notice'
+import { UpdateBanner } from '../components/UpdateBanner'
 import { content } from '../data'
 
-export function TitlePage() {
+export function TitlePage({ imported }: { imported?: string | undefined }) {
   const { state, dispatch } = useGame()
   const hasSave = state.save !== null
 
@@ -15,6 +17,8 @@ export function TitlePage() {
 
   return (
     <main className="screen screen--title">
+      <UpdateBanner />
+      {imported !== undefined && <Notice tone="info">セーブデータを読み込みました（{formatDateTime(imported)} に書き出したもの）。「つづきから」で遊べます。</Notice>}
       <div className="title-card">
         <h1 className="title">
           <span className="title__ko" lang="ko">

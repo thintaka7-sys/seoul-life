@@ -1,9 +1,12 @@
 import { createContext, useContext, type Dispatch } from 'react'
+import type { KeyValueStorage } from '../storage/saveStore'
 import type { GameAction, GameState } from './gameState'
 
 export interface GameContextValue {
   state: GameState
   dispatch: Dispatch<GameAction>
+  /** 保存先（ファイルから読み込む前に、いまのセーブデータを退避するため）。使えない環境では null */
+  storage: KeyValueStorage | null
 }
 
 export const GameContext = createContext<GameContextValue | null>(null)

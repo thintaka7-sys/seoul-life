@@ -29,7 +29,8 @@ import type { CorruptReason, LoadResult } from '../storage/saveStore'
 import type { Settings } from '../storage/settings'
 
 export type Scene =
-  | { name: 'title' }
+  /** imported：ファイルから読み込んだ直後（書き出した日時。タイトルに「読み込みました」と出す） */
+  | { name: 'title'; imported?: string }
   | { name: 'settings'; back: Scene }
   | { name: 'main' }
   | { name: 'location'; locationId: string }
@@ -178,6 +179,8 @@ export type GameAction =
   | { type: 'setAnswerPreference'; mode: AnswerMode }
   | { type: 'dismissReward' }
   | { type: 'saveSucceeded' }
+  /** 書き出したファイルを読み込んだ（セーブデータと設定を置き換えて、タイトルに戻る。GAME_SPEC 10-2） */
+  | { type: 'importSave'; save: SaveData; settings: Settings; exportedAt: string }
   | { type: 'saveFailed'; message: string }
 
 export interface GameDeps {
@@ -668,6 +671,9 @@ export function createGameReducer(deps: GameDeps) {
 
       case 'saveSucceeded':
         return state.saveFailure === null ? state : { ...state, saveFailure: null }
+
+      case 'importSave':
+        return { ...state, save: action.save, settings: action.settings, run: null, reward: null, scene: { name: 'title', imported: action.exportedAt } }
 
       case 'saveFailed':
         return { ...state, saveFailure: action.message }

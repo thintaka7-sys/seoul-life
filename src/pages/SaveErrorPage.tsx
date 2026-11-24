@@ -1,5 +1,6 @@
 import { useGame, nowIso } from '../app/GameContext'
 import { Button } from '../components/Button'
+import { ImportSave } from '../components/ImportSave'
 import { Notice } from '../components/Notice'
 import { ScreenLayout } from '../components/ScreenLayout'
 import type { CorruptReason } from '../storage/saveStore'
@@ -46,6 +47,10 @@ export function SaveErrorPage({ reason, detail, backupKey }: SaveErrorPageProps)
       ) : (
         <Notice tone="warn">元のデータを別の場所に残せませんでした（保存容量が足りない可能性があります）。新しく始めると、元のデータは上書きされます。</Notice>
       )}
+      <section className="panel" aria-label="書き出したファイルから読み込む">
+        <p className="small">セーブデータをファイルに書き出していれば、そのファイルから続きを遊べます。</p>
+        <ImportSave />
+      </section>
     </ScreenLayout>
   )
 }
