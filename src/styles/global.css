@@ -4062,3 +4062,8 @@ body:has(.audio-debug) {
   align-items: center;
   gap: 6px;
 }
+
+/* 家具の韓国語の名前を押す場所も44px以上にする（お店のメニューと同じ） */
+.furniture__korean .gloss {
+  min-height: 44px;
+}

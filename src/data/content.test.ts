@@ -25,8 +25,9 @@ describe('data/ の実データ', () => {
     for (const item of drafts) expect(item.reviewed, item.id).toBe(false)
   })
 
-  it('すべての単語・文法は、どこかのイベントで覚える段階に入っているか、単語のタップ（glosses の vocab）で覚えられる', () => {
+  it('すべての単語・文法は、どこかのイベントで覚える段階に入っているか、単語のタップ（glosses の vocab・家具の vocab）で覚えられる', () => {
     // CONTENT_FORMAT 21-2：glosses の vocab でつないだ単語は、learn の段階で教えなくてもよい（窓の「覚える」で図鑑と復習に入る）
+    // 家具の vocab（CONTENT_FORMAT 29）も、部屋を飾る画面で韓国語の名前を押すと、同じ窓で覚えられる
     const learned = new Set(content.events.flatMap((e) => e.steps.flatMap((s) => (s.type === 'learn' ? [...s.vocabulary, ...s.grammar] : []))))
     const tappable = new Set<string>()
     const collect = (value: unknown): void => {
@@ -39,6 +40,7 @@ describe('data/ の実データ', () => {
       }
     }
     collect([content.stories, content.conversations, content.readings])
+    for (const f of content.furniture) if (f.vocab !== null) tappable.add(f.vocab)
     const missing = [...content.vocabulary, ...content.grammar].map((x) => x.id).filter((id) => !learned.has(id) && !tappable.has(id))
     expect(missing).toEqual([])
   })
@@ -98,6 +100,19 @@ describe('家具と部屋（Phase 4 区切り3）', () => {
     for (const slot of content.balance.room.slots) {
       expect(content.furniture.some((f) => f.slot === slot.id && f.milestone === null), slot.id).toBe(true)
     }
+  })
+
+  it('どの家具にも、韓国語の名前（確認済みの名詞）がある。観葉植物と鉢植え・本棚2つ・ラグ3つは同じ単語', () => {
+    for (const f of content.furniture) {
+      const v = content.vocabulary.find((x) => x.id === f.vocab)
+      expect(v?.reviewed, f.id).toBe(true)
+      expect(v?.partOfSpeech, f.id).toBe('noun')
+    }
+    const shared = (vocab: string) => content.furniture.filter((f) => f.vocab === vocab).map((f) => f.id)
+    expect(shared('vocab_070')).toEqual(['furniture_007', 'furniture_014'])
+    expect(shared('vocab_072')).toEqual(['furniture_009', 'furniture_012'])
+    expect(shared('vocab_077')).toEqual(['furniture_016', 'furniture_017', 'furniture_020'])
+    expect(new Set(content.furniture.map((f) => f.vocab)).size).toBe(17)
   })
 
   it('節目専用の家具は 7・30・50・100 日（docs/PHASE4_HOME_PLAN.md）', () => {
