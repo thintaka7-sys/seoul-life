@@ -41,10 +41,10 @@
     "slots": [
       { "id": "wall_left", "nameJa": "壁（左）", "x": 2, "y": 26, "w": 11, "h": 13, "align": "center", "layer": 2 },
       { "id": "wall_right", "nameJa": "壁（右）", "x": 76, "y": 16, "w": 15, "h": 8, "align": "center", "layer": 2 },
-      { "id": "window", "nameJa": "窓のそば", "x": 76, "y": 31, "w": 10, "h": 25, "align": "bottom", "layer": 3 },
-      { "id": "floor_left", "nameJa": "床（左手前）", "x": 0, "y": 71, "w": 30, "h": 20, "align": "bottom", "layer": 4 },
+      { "id": "window", "nameJa": "窓のそば", "x": 70, "y": 32, "w": 14, "h": 25, "align": "bottom", "layer": 3 },
+      { "id": "floor_left", "nameJa": "床（左手前）", "x": 0, "y": 73, "w": 30, "h": 20, "align": "bottom", "layer": 4 },
       { "id": "floor_right", "nameJa": "床（右手前）", "x": 76, "y": 73, "w": 22, "h": 16, "align": "bottom", "layer": 4 },
-      { "id": "rug", "nameJa": "ラグ", "x": 30, "y": 72, "w": 44, "h": 16, "align": "center", "layer": 1 }
+      { "id": "rug", "nameJa": "ラグ", "x": 31, "y": 74, "w": 44, "h": 16, "align": "center", "layer": 1 }
     ]
   }
 }

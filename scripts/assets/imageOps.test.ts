@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseAssetConfig } from './config.ts'
-import { FURNITURE_KEY_OPTIONS, alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
+import { FURNITURE_KEY_OPTIONS, alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, removeMagentaSpill, splitFigures, type RGBAImage } from './imageOps.ts'
 
 const GREEN: [number, number, number, number] = [10, 250, 5, 255]
 const KEY = { r: 10, g: 250, b: 5 }
@@ -128,6 +128,29 @@ describe('人物全体の緑みを取る', () => {
     expect(a).toBe(Math.round(255 * (1 - 120 / 240)))
     expect(rgba(out, 2, 0)).toEqual([60, 140, 60, 255])
     expect(rgba(out, 3, 0)).toEqual([0, 0, 0, 0])
+  })
+})
+
+describe('家具のマゼンタのにじみ（全体）', () => {
+  const MAGENTA = { r: 250, g: 10, b: 250 }
+
+  it('小さなすき間に残ったマゼンタは、色を引いて半透明にする。絵の色（少しだけ赤紫みのある暗い線など）と透明な所は変えない', () => {
+    const img = createImage(4, 1)
+    img.data.set([150, 50, 110, 255], 0) // 枝のすき間に残った、茶色とマゼンタの混ざった色（R・B が G を 60 上回る）
+    img.data.set([60, 20, 35, 255], 4) // 暗い赤茶の線（15 上回るだけ）
+    img.data.set([200, 120, 60, 255], 8) // 木の色
+    img.data.set([0, 0, 0, 0], 12)
+    const out = removeMagentaSpill(img, MAGENTA)
+    const over = 60 - 20
+    expect(rgba(out, 0, 0)).toEqual([150 - over, 50, 110 - over, Math.round(255 * (1 - over / (240 - 20)))])
+    expect(rgba(out, 1, 0)).toEqual([60, 20, 35, 255])
+    expect(rgba(out, 2, 0)).toEqual([200, 120, 60, 255])
+    expect(rgba(out, 3, 0)).toEqual([0, 0, 0, 0])
+  })
+
+  it('マゼンタそのものが残っていれば、透明にする', () => {
+    const img = createImage(1, 1, [250, 10, 250, 255])
+    expect(rgba(removeMagentaSpill(img, MAGENTA), 0, 0)[3]).toBe(0)
   })
 })
 

@@ -236,6 +236,29 @@ export function removeGreenSpill(src: RGBAImage, key: RGB, keep: readonly Box[] 
   return { width: src.width, height: src.height, data }
 }
 
+/**
+ * 家具の絵の全体から、マゼンタのにじみを取る（removeBackground の despill は透明にした所の近くだけなので、
+ * 枝のすき間のような小さく閉じた所に残ったマゼンタは、こちらで取る）。
+ * 家具にはピンク・赤紫・紫を使わない決まり（docs/ART_GUIDE.md）なので、全体にかけてよい。
+ * ただし、R と B が G をわずかに上回るだけの色（暗い赤茶の線、夜空など）は絵の色なので、tolerance までは残す。
+ * それを超えた分を R と B から引き、超えた分に応じて半透明にする（すき間から後ろの壁が見えるように）。
+ */
+export function removeMagentaSpill(src: RGBAImage, key: RGB, tolerance = 20): RGBAImage {
+  const data = new Uint8ClampedArray(src.data)
+  const keyExcess = Math.max(tolerance + 1, Math.min(key.r, key.b) - key.g)
+  for (let p = 0; p < src.width * src.height; p++) {
+    const i = p * 4
+    const alpha = data[i + 3] ?? 0
+    if (alpha === 0) continue
+    const over = Math.min(data[i] ?? 0, data[i + 2] ?? 0) - (data[i + 1] ?? 0) - tolerance
+    if (over <= 0) continue
+    data[i] = (data[i] ?? 0) - over
+    data[i + 2] = (data[i + 2] ?? 0) - over
+    data[i + 3] = Math.round(alpha * (1 - Math.min(1, over / (keyExcess - tolerance))))
+  }
+  return { width: src.width, height: src.height, data }
+}
+
 /** 不透明（alpha が threshold 以上）の画素を囲む最小の箱。なければ null */
 export function contentBox(img: RGBAImage, area: Box = { x0: 0, y0: 0, x1: img.width, y1: img.height }, threshold = 16): Box | null {
   let x0 = Infinity

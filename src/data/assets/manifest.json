@@ -70,6 +70,11 @@
     }
   },
   "backgrounds": {
+    "home": {
+      "src": "assets/bg/home.webp?v=08e49c6f5a",
+      "width": 1080,
+      "height": 1935
+    },
     "home_moving": {
       "src": "assets/bg/home_moving.webp?v=0bc71da662",
       "width": 1080,
@@ -97,11 +102,6 @@
     },
     "street": {
       "src": "assets/bg/street.webp?v=f417fda4ef",
-      "width": 1080,
-      "height": 1935
-    },
-    "home": {
-      "src": "assets/bg/home_moving.webp?v=0bc71da662",
       "width": 1080,
       "height": 1935
     }
@@ -206,5 +206,111 @@
       "height": 793
     }
   },
-  "furniture": {}
+  "furniture": {
+    "wall_clock": {
+      "src": "assets/fur/wall_clock.webp?v=3bbc663840",
+      "width": 637,
+      "height": 640
+    },
+    "seoul_poster": {
+      "src": "assets/fur/seoul_poster.webp?v=7800ecb7e4",
+      "width": 418,
+      "height": 640
+    },
+    "cork_board": {
+      "src": "assets/fur/cork_board.webp?v=da2121a756",
+      "width": 424,
+      "height": 640
+    },
+    "wall_shelf": {
+      "src": "assets/fur/wall_shelf.webp?v=332fc6bce1",
+      "width": 640,
+      "height": 637
+    },
+    "flower_wreath": {
+      "src": "assets/fur/flower_wreath.webp?v=691ff5102b",
+      "width": 640,
+      "height": 624
+    },
+    "round_mirror": {
+      "src": "assets/fur/round_mirror.webp?v=f049733cdb",
+      "width": 598,
+      "height": 640
+    },
+    "tall_plant": {
+      "src": "assets/fur/tall_plant.webp?v=39190f2f8f",
+      "width": 225,
+      "height": 640
+    },
+    "floor_lamp": {
+      "src": "assets/fur/floor_lamp.webp?v=fca821471a",
+      "width": 142,
+      "height": 640
+    },
+    "tall_bookshelf": {
+      "src": "assets/fur/tall_bookshelf.webp?v=a8e7b32957",
+      "width": 306,
+      "height": 640
+    },
+    "wood_chest": {
+      "src": "assets/fur/wood_chest.webp?v=f719596054",
+      "width": 640,
+      "height": 623
+    },
+    "armchair": {
+      "src": "assets/fur/armchair.webp?v=7bd4b75a22",
+      "width": 640,
+      "height": 611
+    },
+    "low_bookcase": {
+      "src": "assets/fur/low_bookcase.webp?v=878fc3e270",
+      "width": 640,
+      "height": 609
+    },
+    "floor_cushion": {
+      "src": "assets/fur/floor_cushion.webp?v=02c0b9a0e0",
+      "width": 640,
+      "height": 524
+    },
+    "potted_plant": {
+      "src": "assets/fur/potted_plant.webp?v=ccdcc45d87",
+      "width": 482,
+      "height": 640
+    },
+    "humidifier": {
+      "src": "assets/fur/humidifier.webp?v=b157b37d17",
+      "width": 286,
+      "height": 640
+    },
+    "round_rug": {
+      "src": "assets/fur/round_rug.webp?v=aaf6554ce0",
+      "width": 640,
+      "height": 400
+    },
+    "check_rug": {
+      "src": "assets/fur/check_rug.webp?v=e58cbe65bb",
+      "width": 640,
+      "height": 347
+    },
+    "pojagi": {
+      "src": "assets/fur/pojagi.webp?v=bd184ed1c0",
+      "width": 353,
+      "height": 640
+    },
+    "moon_lamp": {
+      "src": "assets/fur/moon_lamp.webp?v=68e0edcdec",
+      "width": 133,
+      "height": 640
+    },
+    "fluffy_rug": {
+      "src": "assets/fur/fluffy_rug.webp?v=f73ca39883",
+      "width": 640,
+      "height": 400
+    },
+    "bandaji": {
+      "src": "assets/fur/bandaji.webp?v=254caec9e4",
+      "width": 640,
+      "height": 515
+    }
+  }
 }
