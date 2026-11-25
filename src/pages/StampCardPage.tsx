@@ -3,7 +3,7 @@ import { nowIso, useGame } from '../app/GameContext'
 import { Button } from '../components/Button'
 import { ScreenLayout } from '../components/ScreenLayout'
 import { content } from '../data'
-import type { StampActivity } from '../data/types'
+import type { StampActivity, StampMilestone } from '../data/types'
 import { currentStreak, monthGrid, shiftMonth } from '../game/stamps/stamps'
 import { localDate } from '../learning/review/dates'
 
@@ -28,6 +28,9 @@ export function StampCardPage() {
   const streak = currentStreak([...stamps], today)
   const weeks = monthGrid(view.year, view.month)
   const close = () => dispatch({ type: 'closeStudyScene' })
+  /** 節目のごほうび（コインと、節目専用の家具） */
+  const milestoneGift = (m: StampMilestone) =>
+    [`コイン ${m.coins}`, ...content.furniture.filter((f) => f.milestone === m.days).map((f) => `家具「${f.nameJa}」`)].join(' と ')
   const rewards = state.save?.daily.rewards ?? {}
   const nextMilestone = content.balance.stampMilestones.find((m) => rewards[String(m.days)] === undefined && stamps.size < m.days)
 
@@ -55,7 +58,7 @@ export function StampCardPage() {
         <h2 className="section-title">節目のごほうび（集めたスタンプの数）</h2>
         {nextMilestone !== undefined ? (
           <p>
-            次の節目（{nextMilestone.days}個）まで、あと<strong>{nextMilestone.days - stamps.size}</strong>個：コイン {nextMilestone.coins}
+            次の節目（{nextMilestone.days}個）まで、あと<strong>{nextMilestone.days - stamps.size}</strong>個：{milestoneGift(nextMilestone)}
           </p>
         ) : (
           <p>すべての節目のごほうびを受け取りました。</p>
@@ -65,7 +68,7 @@ export function StampCardPage() {
             const got = rewards[String(m.days)]
             return (
               <li key={m.days} className={got === undefined ? 'milestone' : 'milestone milestone--done'}>
-                <span aria-hidden="true">{got === undefined ? '・' : '✓'}</span> {m.days}個：コイン {m.coins}
+                <span aria-hidden="true">{got === undefined ? '・' : '✓'}</span> {m.days}個：{milestoneGift(m)}
                 {got !== undefined && <span className="visually-hidden">（受け取りました）</span>}
               </li>
             )

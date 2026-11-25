@@ -436,8 +436,10 @@
 | `airport` | 空港（第1章の最初のおはなし） |
 | `taxi` | タクシーの中（第1章のおはなし） |
 | `street` | 家の前の道（第2章で友人と出会う場面など） |
+| `home_moving` | 引っ越したばかりの自宅（段ボールのある部屋。第1章の「引っ越したばかり」の場面） |
 
 - 施設ID（10-3）も使えます。施設IDを書くと、その施設のふだんの背景になります（切り替えた背景から戻すときに使います）。
+- 自宅（`home`）は、部屋に置いた家具を重ねて出します（29章）。ただし、引っ越しを終えるまで（`balance.json` の `room.movedInAfter` のイベントを終えるまで）は、`home` と書いても `home_moving` の絵になります。おはなしを見返したときも引っ越したばかりの部屋にしたい場面は、`home_moving` と書いてください。
 - 場面の背景を増やしたいときは、教材を作る前に開発者に伝えてください。画像（docs/ART_GUIDE.md）とプログラム側の一覧への追加が必要です。
 
 ### 10-8. ハングルのレッスンの種類（`kind`）
@@ -2022,5 +2024,50 @@ Phase 3 から、物語は「1日目」ではなく**章**で進みます。章�
 [
   { "id": "achievement_001", "titleJa": "はじめの一歩", "descriptionJa": "単語を5語覚える", "condition": { "type": "wordsLearned", "target": 5 }, "coins": 20, "reviewed": false },
   { "id": "achievement_007", "titleJa": "カフェデビュー", "descriptionJa": "第3章をクリアする", "condition": { "type": "chapterCleared", "target": 3 }, "coins": 30, "reviewed": false, "notes": "見本" }
+]
+```
+
+---
+
+## 29. 家具・小物（GAME_SPEC 6-3・7-3。Phase 4）
+
+家具は開発側のデータ（`src/data/furniture/`）です。自宅の「部屋を飾る」で、カタログでコインを使って買い、部屋の決まった場所に置きます。節目専用の家具は、カタログでは売らず、スタンプの節目でもらえます。一覧と絵の決まりは docs/PHASE4_HOME_PLAN.md、絵の指示文は docs/ART_GUIDE.md 4-5 にあります。
+
+| 項目 | 必須 | 型 | 意味 |
+|---|---|---|---|
+| `id` | 必須 | 文字列 | `furniture_001` の形。後から変えない（セーブデータが持ち物と置き場所に使う） |
+| `nameJa` | 必須 | 文字列 | 家具の名前。ハングルは入れない |
+| `slot` | 必須 | 文字列 | 置く場所（29-1 の場所のID） |
+| `price` | 必須 | 整数か null | 値段（コイン、1以上）。節目専用なら `null` |
+| `level` | 必須 | 整数か null | カタログで買えるようになるレベル（1以上）。節目専用なら `null` |
+| `milestone` | 必須 | 整数か null | 節目専用なら、もらえる節目（スタンプを集めた合計の数。`balance.json` の `stampMilestones` の `days`）。カタログで売るなら `null` |
+| `image` | 必須 | 文字列 | 絵のキー（英小文字・数字・`_`）。元の画像は `fur_キー`（例：`wall_clock` → `fur_wall_clock.png`）。絵がまだなければ、ゲームでは仮の絵を出す |
+| `vocab` | 必須 | 文字列か null | 韓国語の名前（単語ID）。押すと意味が出て、「覚える」で見かけた単語に入る。まだなければ `null` |
+| `reviewed` | 必須 | 真偽値 | 名前・値段・レベルを確かめたか |
+| `notes` | 任意 | 文字列 | メモ |
+
+- 1か所に置けるのは1つだけです。買ったとき・もらったときに、その場所が空いていれば、そこに置きます（空いていなければ持ち物に入り、「飾る」で入れかえられます）。
+- 同じ単語を、いくつかの家具の `vocab` に使えます（例：観葉植物と鉢植えの 화분）。
+
+### 29-1. 部屋の場所（`balance.json` の `room`）
+
+部屋の場所は `src/data/game/balance.json` の `room.slots` です（開発側のデータ）。位置と大きさは、部屋の絵の幅・高さに対する割合（%）です。
+
+| 項目 | 意味 |
+|---|---|
+| `movedInAfter` | このイベントを終えるまでは「引っ越したばかり」：自宅の背景を `home_moving` にし、「部屋を飾る」を出さない |
+| `slots[].id` | 場所のID（`wall_left` など）。後から変えない（セーブデータが置き場所に使う） |
+| `slots[].nameJa` | 場所の名前（例：「壁（左）」） |
+| `slots[].x`・`y`・`w`・`h` | 枠の左端・上端・幅・高さ（%）。絵の外に出ないように |
+| `slots[].align` | 家具の絵をそろえる位置。`bottom`：床に置くもの（枠の下の辺、左右は中央）、`center`：壁・ラグ（枠の中央） |
+| `slots[].layer` | 重なりの順（小さいほど奥） |
+
+### 見本（`src/data/furniture/furniture.json` など）
+
+<!-- sample: furniture -->
+```json
+[
+  { "id": "furniture_001", "nameJa": "壁かけ時計", "slot": "wall_left", "price": 80, "level": 1, "milestone": null, "image": "wall_clock", "vocab": null, "reviewed": false },
+  { "id": "furniture_018", "nameJa": "チョガクポ（つぎはぎの布）の壁かけ", "slot": "wall_left", "price": null, "level": null, "milestone": 7, "image": "pojagi", "vocab": null, "reviewed": false, "notes": "見本。節目専用" }
 ]
 ```

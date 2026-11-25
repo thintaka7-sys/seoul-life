@@ -19,6 +19,8 @@ import { EarSetPage } from '../pages/study/EarSetPage'
 import { DrillsPage } from '../pages/study/DrillsPage'
 import { StampCardPage } from '../pages/StampCardPage'
 import { AchievementsPage } from '../pages/AchievementsPage'
+import { RoomPage } from '../pages/RoomPage'
+import { isMovedIn, placedFurniture } from '../game/home/home'
 import { ConversationListPage } from '../pages/study/ConversationListPage'
 import { ConversationReplayPage } from '../pages/study/ConversationReplayPage'
 import { ReviewPage } from '../pages/study/ReviewPage'
@@ -27,12 +29,12 @@ import { AlbumPage } from '../pages/AlbumPage'
 import { OrderPage } from '../pages/OrderPage'
 import { StoryReplayPage } from '../pages/StoryReplayPage'
 import { setBgm } from '../audio/bgm'
-import { backgroundImage } from '../data'
+import { content } from '../data'
 import { bgmFor } from './bgmScene'
 import { useBackdropOverride, useBgmOverride } from './overrides'
 import { TitlePage } from '../pages/TitlePage'
 import { OVERLAY_ROOT_ID } from '../components/Overlay'
-import { backdropFor } from './backdrop'
+import { backdropFor, isRoomBackdrop, sceneBackground } from './backdrop'
 import { nowIso, useGame } from './GameContext'
 import { backTarget, type GameState, type Scene } from './gameState'
 
@@ -72,6 +74,8 @@ function SceneView({ scene }: { scene: Scene }) {
       return <StampCardPage />
     case 'achievements':
       return <AchievementsPage />
+    case 'room':
+      return <RoomPage />
     case 'ear':
       return <EarListPage />
     case 'earSet':
@@ -148,7 +152,11 @@ export function App() {
 
   // おはなしの場面で変えた背景があれば、それを敷く（画像がなければ、ふだんの背景）
   const override = useBackdropOverride()
-  const backdrop = (override === null ? undefined : backgroundImage(override)) ?? backdropFor(state.scene, state.run)
+  const save = state.save
+  const movedIn = save === null || isMovedIn(save.progress, content.balance.room)
+  const backdrop = (override === null ? undefined : sceneBackground(override, movedIn)) ?? backdropFor(state.scene, state.run, movedIn)
+  // 自宅の部屋の絵なら、置いた家具を重ねる（おはなしの自宅の場面も）
+  const room = save !== null && isRoomBackdrop(backdrop) ? placedFurniture(save, content.balance.room, content.furniture) : undefined
 
   // 場面に合わせて BGM を流す（おはなしで指定した曲があれば、それ）
   const bgmOverride = useBgmOverride()
@@ -159,7 +167,7 @@ export function App() {
 
   return (
     <div className={`app${backdrop === undefined ? '' : ' app--backdrop'}`} data-effects={state.settings.effects}>
-      <Backdrop image={backdrop} />
+      <Backdrop image={backdrop} room={room} />
       {(!state.storageAvailable || state.saveFailure !== null) && (
         <div className="app__banners">
           {!state.storageAvailable && (

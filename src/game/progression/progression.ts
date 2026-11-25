@@ -24,6 +24,10 @@ export interface Reward {
   achievements?: string[]
   /** 届いたスタンプの節目（日数） */
   milestones?: number[]
+  /** 節目でもらった家具のID */
+  furniture?: string[]
+  /** 新しくカタログで買えるようになった家具のID */
+  catalog?: string[]
 }
 
 export interface Updated {

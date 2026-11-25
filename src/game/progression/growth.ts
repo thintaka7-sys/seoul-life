@@ -3,9 +3,11 @@
 // どれも一度だけ（達成した記録をセーブデータに残す）。日時はセーブデータの updatedAt を使う（同じデータなら同じ結果になるように）。
 // v6 から移したデータ（levelShown が 0）は、これまでの学習の分（終えたイベント・章・章末テスト）のコインもさかのぼって付け、
 // レベルアップの知らせは出さない（画面にはお知らせ progressionIntroduced を出す）。
+// 受け取った節目に、節目専用の家具があれば渡す（区切り3 より前に受け取った節目の分も、あとから渡す）。
 
-import type { Achievement, AchievementConditionType, Balance, Chapter, GameEvent } from '../../data/types'
+import type { Achievement, AchievementConditionType, Balance, Chapter, Furniture, GameEvent } from '../../data/types'
 import type { SaveData } from '../../storage/saveData'
+import { acquireFurniture, newlyBuyable } from '../home/home'
 import { levelOf } from './level'
 
 export interface GrowthContext {
@@ -13,6 +15,8 @@ export interface GrowthContext {
   achievements: readonly Achievement[]
   events: readonly GameEvent[]
   chapters: readonly Chapter[]
+  /** 家具（節目専用の家具を渡す・新しく買える家具を知らせる）。省略したら扱わない */
+  furniture?: readonly Furniture[]
 }
 
 /** すべてのイベントを終えた章の番号 */
@@ -72,6 +76,10 @@ export interface Growth {
   milestones: number[]
   /** 上がったレベル（知らせるもの）。上がっていなければ null */
   levelUp: number | null
+  /** 節目で新しくもらった家具のID */
+  furniture: string[]
+  /** レベルが上がって、新しくカタログで買えるようになった家具のID */
+  catalog: string[]
   /** v6 から移したデータを、初めて精算した */
   retroactive: boolean
 }
@@ -105,15 +113,26 @@ export function settleGrowth(save: SaveData, ctx: GrowthContext): Growth {
   const level = levelOf(save.stats.xp, ctx.balance.levels)
   const levelUp = !retroactive && level > save.stats.levelShown ? level : null
   const levelShown = Math.max(level, retroactive ? 0 : save.stats.levelShown)
+  const catalog = levelUp === null ? [] : newlyBuyable(ctx.furniture ?? [], save.stats.levelShown, levelUp).map((f) => f.id)
 
-  if (!retroactive && coins === 0 && achieved.length === 0 && milestones.length === 0 && levelUp === null) {
-    return { save, coins: 0, achievements: [], milestones: [], levelUp: null, retroactive: false }
+  // 受け取った節目（これまでの分も含む）の、節目専用の家具
+  let home: SaveData = save
+  const received: string[] = []
+  for (const item of ctx.furniture ?? []) {
+    if (item.milestone === null || rewards[String(item.milestone)] === undefined || home.home.owned[item.id] !== undefined) continue
+    home = acquireFurniture(home, item, at)
+    received.push(item.id)
+  }
+
+  if (!retroactive && coins === 0 && achieved.length === 0 && milestones.length === 0 && levelUp === null && received.length === 0) {
+    return { save, coins: 0, achievements: [], milestones: [], levelUp: null, furniture: [], catalog: [], retroactive: false }
   }
   const next: SaveData = {
     ...save,
     stats: { ...save.stats, coins: save.stats.coins + coins, levelShown },
     achievements,
+    home: home.home,
     daily: { ...save.daily, rewards },
   }
-  return { save: next, coins, achievements: achieved, milestones, levelUp, retroactive }
+  return { save: next, coins, achievements: achieved, milestones, levelUp, furniture: received, catalog, retroactive }
 }

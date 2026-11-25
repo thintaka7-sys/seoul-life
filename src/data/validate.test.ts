@@ -110,6 +110,13 @@ const validBalance = {
   levels: { thresholds: [0, 100, 250], stepAfter: 200 },
   coins: { eventComplete: 20, chapterClear: 50, chapterTest: 50 },
   stampMilestones: [{ days: 3, coins: 30 }],
+  room: {
+    movedInAfter: 'event_001',
+    slots: [
+      { id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2 },
+      { id: 'rug', nameJa: 'ラグ', x: 30, y: 72, w: 44, h: 16, align: 'center', layer: 1 },
+    ],
+  },
 }
 
 function issuesOf(kind: ContentKind, item: unknown) {
@@ -443,6 +450,7 @@ const base: ContentInput = {
   orders: {},
   chapters: { 'ch.json': Array.from({ length: 10 }, (_, i) => ({ chapter: i + 1, titleJa: `第${i + 1}章`, goalJa: 'できること' })) },
   achievements: {},
+  furniture: {},
   balance: { 'balance.json': validBalance },
 }
 
@@ -1149,5 +1157,78 @@ describe('実績（src/data/achievements/。Phase 4）', () => {
     const result = loadContent({ ...base, achievements: { 'a.json': [a(), a({ titleJa: '二つ目' })] } })
     expect(result.achievements.map((x) => x.titleJa)).toEqual(['はじめの一歩'])
     expect(result.issues[0]?.message).toContain('2回あります')
+  })
+})
+
+describe('部屋の場所（balance.json の room。Phase 4）', () => {
+  const slot = (patch: Record<string, unknown> = {}) => ({ id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2, ...patch })
+
+  it('正しい値を読む', () => {
+    const result = loadContent({ ...base, balance: { 'balance.json': validBalance } })
+    expect(result.issues).toEqual([])
+    expect(result.balance.room.movedInAfter).toBe('event_001')
+    expect(result.balance.room.slots.map((s) => s.id)).toEqual(['wall_left', 'rug'])
+  })
+
+  it.each([
+    [{ movedInAfter: 'event_099', slots: [slot()] }, 'room.movedInAfter'],
+    [{ movedInAfter: 'event_001', slots: [] }, 'room.slots'],
+    [{ movedInAfter: 'event_001', slots: [slot(), slot()] }, 'room.slots[1].id'],
+    [{ movedInAfter: 'event_001', slots: [slot({ id: 'Wall Left' })] }, 'room.slots[0].id'],
+    [{ movedInAfter: 'event_001', slots: [slot({ x: 95, w: 10 })] }, 'room.slots[0].w'],
+    [{ movedInAfter: 'event_001', slots: [slot({ align: 'top' })] }, 'room.slots[0].align'],
+    [{ movedInAfter: 'event_001', slots: [slot({ nameJa: '벽' })] }, 'room.slots[0].nameJa'],
+  ])('誤りがあれば既定の値を使う %#', (room, path) => {
+    const result = loadContent({ ...base, balance: { 'balance.json': { ...validBalance, room } } })
+    expect(result.balance).toEqual(DEFAULT_BALANCE)
+    expect(result.issues[0]?.path).toBe(path)
+  })
+})
+
+describe('家具・小物（src/data/furniture/。Phase 4）', () => {
+  const f = (patch: Record<string, unknown> = {}) => ({
+    id: 'furniture_001',
+    nameJa: '壁かけ時計',
+    slot: 'wall_left',
+    price: 80,
+    level: 1,
+    milestone: null,
+    image: 'wall_clock',
+    vocab: null,
+    reviewed: false,
+    ...patch,
+  })
+  const gift = f({ id: 'furniture_018', nameJa: '壁かけ', price: null, level: null, milestone: 3, image: 'pojagi', vocab: 'vocab_001', notes: 'メモ' })
+
+  it('正しい家具を読む（節目専用・単語つきも）', () => {
+    const result = loadContent({ ...base, furniture: { 'f.json': [f(), gift] } })
+    expect(result.issues).toEqual([])
+    expect(result.furniture.map((x) => x.id)).toEqual(['furniture_001', 'furniture_018'])
+    expect(result.furniture[1]).toMatchObject({ milestone: 3, price: null, vocab: 'vocab_001', notes: 'メモ' })
+  })
+
+  it.each([
+    [f({ id: 'fur_1' }), 'id'],
+    [f({ nameJa: '벽시계' }), 'nameJa'],
+    [f({ slot: 'ceiling' }), 'slot'],
+    [f({ price: 0 }), 'price'],
+    [f({ level: null }), 'level'],
+    [f({ milestone: 7, price: null, level: null }), 'milestone'],
+    [f({ milestone: 3 }), 'milestone'],
+    [f({ image: 'fur_Wall' }), 'image'],
+    [f({ vocab: 'vocab_999' }), 'vocab'],
+    [f({ vocab: undefined }), 'vocab'],
+    [f({ reviewed: 'yes' }), 'reviewed'],
+    [f({ extra: 1 }), 'extra'],
+  ])('誤りのある家具は除外する %#', (entry, path) => {
+    const result = loadContent({ ...base, furniture: { 'f.json': [entry] } })
+    expect(result.furniture).toEqual([])
+    expect(result.issues[0]?.path).toBe(path)
+  })
+
+  it('同じ ID・同じ絵のキーは、後のほうを除外する', () => {
+    const result = loadContent({ ...base, furniture: { 'f.json': [f(), f({ nameJa: '二つ目', image: 'other' }), f({ id: 'furniture_002' })] } })
+    expect(result.furniture.map((x) => x.id)).toEqual(['furniture_001'])
+    expect(result.issues.map((i) => i.message).join('\n')).toMatch(/2回あります[\s\S]*重なっています/)
   })
 })

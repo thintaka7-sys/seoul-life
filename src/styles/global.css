@@ -3827,3 +3827,238 @@ body:has(.audio-debug) {
   color: var(--color-correct);
   font-weight: 700;
 }
+
+/* ---------- 自宅の部屋と家具（Phase 4。docs/PHASE4_HOME_PLAN.md 2章） ---------- */
+
+/* 部屋の絵と家具を重ねる入れ物。大きさは親が決め、--room-aspect（絵の縦横の比）を保つ */
+.room {
+  position: relative;
+  aspect-ratio: var(--room-aspect);
+  overflow: hidden;
+}
+
+.room .room__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room .room__item {
+  position: absolute;
+  object-fit: contain;
+  object-position: 50% 50%;
+  pointer-events: none;
+}
+
+/* 床に置くもの：枠の下の辺にそろえる。影は薄く付ける（家具の絵には影を描かない） */
+.room .room__item--bottom {
+  object-position: 50% 100%;
+}
+
+.room .room__item--floor {
+  filter: drop-shadow(0 3px 3px rgb(40 24 10 / 0.28));
+}
+
+/* 家具の絵が届くまでの仮の絵 */
+.room .room__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgb(120 90 60 / 0.55);
+  border-radius: 8px;
+  background: rgb(255 250 240 / 0.72);
+  font-size: clamp(16px, 4cqw, 36px);
+  line-height: 1;
+  filter: none;
+}
+
+.room .room__slot {
+  position: absolute;
+  border: 1px dashed rgb(255 255 255 / 0.85);
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgb(40 24 10 / 0.35);
+  pointer-events: none;
+}
+
+.room .room__slot--selected {
+  border: 3px solid var(--color-primary);
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.9);
+}
+
+.room__slot-number {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: rgb(40 24 10 / 0.7);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.room__slot--selected .room__slot-number {
+  background: var(--color-primary);
+}
+
+/* 背景に敷くとき：くっきりした絵（.backdrop__sharp）と同じ範囲に置く。
+   ほかの背景と違い、切り取らずに部屋全体を見せる（端の場所の家具が切れないように）。
+   上にそろえ、余ったところ（スマホでは下、PC では左右）は、後ろのぼかした絵が見える */
+.backdrop__room {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(100%, calc(var(--content-width) + 2 * var(--gutter)));
+  height: 100%;
+  translate: -50% 0;
+  overflow: hidden;
+  container-type: size;
+  animation: fade-in var(--duration-move) ease-out;
+}
+
+.backdrop__room .room {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 100%;
+  width: min(100cqw, calc(100cqh * var(--room-aspect)));
+  translate: -50% 0;
+}
+
+.backdrop .room .room__bg {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  translate: none;
+  animation: none;
+}
+
+/* 部屋を飾る画面の部屋（全体が見えるように収める） */
+.room-view {
+  display: flex;
+  justify-content: center;
+  container-type: inline-size;
+}
+
+.room-view .room {
+  width: min(100%, calc(56dvh * var(--room-aspect)));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+}
+
+.room-status {
+  flex-direction: row;
+  justify-content: space-between;
+  margin: 0;
+  font-weight: 600;
+}
+
+.room-status__coins {
+  font-variant-numeric: tabular-nums;
+}
+
+.slot-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.slot-tab {
+  display: grid;
+  gap: 2px;
+  min-height: var(--tap-min);
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-tab[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.slot-tab__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.slot-tab__item {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.furniture-choices {
+  display: grid;
+  gap: 8px;
+}
+
+.furniture-choice[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  font-weight: 700;
+}
+
+.catalog-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.catalog-item__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.catalog-item__body > p {
+  margin: 0;
+}
+
+.catalog-item__name {
+  font-weight: 700;
+}
+
+.catalog-item--level .catalog-item__name,
+.catalog-item--milestone .catalog-item__name {
+  color: var(--color-muted);
+}
+
+.catalog-item__meta,
+.catalog-item__state {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.catalog-item--owned .catalog-item__state {
+  color: var(--color-correct);
+  font-weight: 600;
+}
+
+.furniture__korean {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -45,11 +45,19 @@ function median(values: number[]): number {
   return sorted[Math.floor(sorted.length / 2)] ?? 0
 }
 
+/** 背景の色の種類。立ち絵は緑、家具はマゼンタ（#FF00FF。家具には緑の植物があるため。docs/PHASE4_HOME_PLAN.md 2-3） */
+export type KeyKind = 'green' | 'magenta'
+
+/** 背景の色らしい画素か（緑：G が R・B より十分大きい。マゼンタ：R と B が G より十分大きい） */
+function isKeyLike(r: number, g: number, b: number, kind: KeyKind): boolean {
+  return kind === 'green' ? g > r + 60 && g > b + 60 : r > g + 60 && b > g + 60
+}
+
 /**
- * 背景の緑を、画像の縁の画素から測る（Gemini の緑はちょうど #00FF00 とは限らないため）。
- * 縁のうち、緑が強い画素（G が R・B より十分大きい）の中央値を使う。
+ * 背景の緑（kind が magenta ならマゼンタ）を、画像の縁の画素から測る（Gemini の色はちょうど #00FF00・#FF00FF とは限らないため）。
+ * 縁のうち、背景の色らしい画素の中央値を使う。
  */
-export function estimateKeyColor(img: RGBAImage): RGB {
+export function estimateKeyColor(img: RGBAImage, kind: KeyKind = 'green'): RGB {
   const rs: number[] = []
   const gs: number[] = []
   const bs: number[] = []
@@ -58,7 +66,7 @@ export function estimateKeyColor(img: RGBAImage): RGB {
     const r = img.data[i] ?? 0
     const g = img.data[i + 1] ?? 0
     const b = img.data[i + 2] ?? 0
-    if (g > r + 60 && g > b + 60) {
+    if (isKeyLike(r, g, b, kind)) {
       rs.push(r)
       gs.push(g)
       bs.push(b)
@@ -72,7 +80,9 @@ export function estimateKeyColor(img: RGBAImage): RGB {
     visit(0, y)
     visit(img.width - 1, y)
   }
-  if (gs.length === 0) throw new Error('画像の縁に緑の背景が見つかりません（背景が緑一色か確かめてください）')
+  if (gs.length === 0) {
+    throw new Error(kind === 'green' ? '画像の縁に緑の背景が見つかりません（背景が緑一色か確かめてください）' : '画像の縁にマゼンタの背景が見つかりません（背景がマゼンタ一色か確かめてください）')
+  }
   return { r: median(rs), g: median(gs), b: median(bs) }
 }
 
@@ -88,9 +98,14 @@ export interface KeyOptions {
   enclosed: number
   /** 透明にした部分から何画素までの範囲で、緑のにじみを取るか */
   despillRadius: number
+  /** にじみを取る色（省略したら緑） */
+  spill?: KeyKind
 }
 
 export const DEFAULT_KEY_OPTIONS: KeyOptions = { hard: 90, soft: 170, enclosed: 75, despillRadius: 3 }
+
+/** 家具（マゼンタの背景）の透過の設定 */
+export const FURNITURE_KEY_OPTIONS: KeyOptions = { ...DEFAULT_KEY_OPTIONS, spill: 'magenta' }
 
 /**
  * 緑の背景を透明にする。
@@ -175,6 +190,16 @@ export function removeBackground(src: RGBAImage, key: RGB, opts: KeyOptions = DE
   for (let p = 0; p < n; p++) {
     if (removed[p] === 1 || near[p] === -1) continue
     const i = p * 4
+    if (opts.spill === 'magenta') {
+      // マゼンタのにじみ：R と B の両方が G より大きい分（赤紫み）を、両方から引く
+      const g = data[i + 1] ?? 0
+      const excess = Math.min(data[i] ?? 0, data[i + 2] ?? 0) - g
+      if (excess > 0) {
+        data[i] = (data[i] ?? 0) - excess
+        data[i + 2] = (data[i + 2] ?? 0) - excess
+      }
+      continue
+    }
     const limit = Math.max(data[i] ?? 0, data[i + 2] ?? 0)
     if ((data[i + 1] ?? 0) > limit) data[i + 1] = limit
   }

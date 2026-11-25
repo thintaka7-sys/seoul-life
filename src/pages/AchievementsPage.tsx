@@ -27,7 +27,7 @@ export function AchievementsPage() {
         <p>
           達成した実績：<strong>{done}</strong> / {content.achievements.length}
         </p>
-        <p className="muted small">実績を達成すると、コインがもらえます。コインは、自宅に飾る家具を買うのに使えます（準備中）。</p>
+        <p className="muted small">実績を達成すると、コインがもらえます。コインは、自宅の「部屋を飾る」のカタログで、家具を買うのに使えます。</p>
       </section>
       <ul className="achievement-list">
         {content.achievements.map((a) => {

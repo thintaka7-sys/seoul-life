@@ -30,6 +30,9 @@ import {
   STAMP_ACTIVITIES,
   VOCAB_GENRES,
   type Achievement,
+  type Furniture,
+  type Room,
+  type RoomSlot,
   type Balance,
   type Chapter,
   type ChapterTest,
@@ -2098,6 +2101,80 @@ function loadChapters(files: FileMap, issues: ValidationIssue[]): Chapter[] {
 
 // ---------- 実績（GAME_SPEC 7-2・7-3。Phase 4） ----------
 
+const FURNITURE_KEYS = ['id', 'nameJa', 'slot', 'price', 'level', 'milestone', 'image', 'vocab', 'reviewed', 'notes'] as const
+const FURNITURE_ID = /^furniture_\d{3}$/
+const FURNITURE_IMAGE = /^[a-z][a-z0-9_]*$/
+
+/** null か、min 以上の整数 */
+function nullableInteger(o: Obj, key: string, base: string, errs: FieldError[], min: number): number | null | undefined {
+  if (o[key] === null) return null
+  return integer(o, key, base, errs, min)
+}
+
+/**
+ * 家具・小物（src/data/furniture/）。ID は furniture_001 の形で重ねない。ファイルの名前順・ファイル内の順。
+ * 置く場所は balance の room の場所。節目専用（milestone に日数）なら price・level は null で、その日数の節目が balance にあること。
+ * それ以外は price（1以上）と level（1以上）を書く。vocab は単語ID か null
+ */
+function loadFurniture(files: FileMap, balance: Balance, vocabularyIds: ReadonlySet<string>, issues: ValidationIssue[]): Furniture[] {
+  const furniture: Furniture[] = []
+  const slotIds = new Set(balance.room.slots.map((s) => s.id))
+  const milestoneDays = new Set(balance.stampMilestones.map((m) => m.days))
+  for (const file of Object.keys(files).sort()) {
+    const raw = files[file]
+    if (!Array.isArray(raw)) {
+      issues.push({ file, index: null, id: null, path: '', message: 'ファイル全体を配列（[ ]）にしてください' })
+      continue
+    }
+    raw.forEach((entry: unknown, index) => {
+      if (!isObj(entry)) {
+        issues.push({ file, index, id: null, path: '', message: 'オブジェクト（{ }）にしてください' })
+        return
+      }
+      const errs: FieldError[] = []
+      checkKnownKeys(entry, FURNITURE_KEYS, '', errs)
+      const id = text(entry, 'id', '', errs)
+      if (id !== undefined && !FURNITURE_ID.test(id)) errs.push({ path: 'id', message: 'furniture_001 の形にしてください' })
+      if (id !== undefined && furniture.some((f) => f.id === id)) errs.push({ path: 'id', message: `${id} が2回あります。後から出てきた方を除外しました` })
+      const nameJa = japaneseText(entry, 'nameJa', '', errs)
+      const slot = reference(entry, 'slot', '', errs, slotIds, '置く場所（balance の room の slots の id）')
+      const price = nullableInteger(entry, 'price', '', errs, 1)
+      const level = nullableInteger(entry, 'level', '', errs, 1)
+      const milestone = nullableInteger(entry, 'milestone', '', errs, 1)
+      if (milestone !== undefined && milestone !== null) {
+        if (!milestoneDays.has(milestone)) errs.push({ path: 'milestone', message: `${milestone}日の節目が balance の stampMilestones にありません` })
+        if (price !== null || level !== null) errs.push({ path: 'milestone', message: '節目専用の家具は、price と level を null にしてください（カタログでは売りません）' })
+      }
+      if (milestone === null && (price === null || level === null)) errs.push({ path: price === null ? 'price' : 'level', message: 'カタログで売る家具は、price と level を書いてください（節目専用なら milestone に日数）' })
+      const image = text(entry, 'image', '', errs)
+      if (image !== undefined && !FURNITURE_IMAGE.test(image)) errs.push({ path: 'image', message: '英小文字・数字・_ のキーにしてください（元の画像は fur_キー）' })
+      if (image !== undefined && furniture.some((f) => f.image === image)) errs.push({ path: 'image', message: `絵のキー ${image} が、ほかの家具と重なっています` })
+      let vocab: string | null | undefined = null
+      if (entry['vocab'] === undefined) errs.push({ path: 'vocab', message: '必須項目がありません（韓国語の名前がまだなければ null）' })
+      else if (entry['vocab'] !== null) vocab = reference(entry, 'vocab', '', errs, vocabularyIds, '単語ID')
+      const reviewed = bool(entry, 'reviewed', '', errs)
+      const notes = optionalText(entry, 'notes', '', errs)
+      for (const e of errs) issues.push({ file, index, id: id ?? null, path: e.path, message: e.message })
+      if (
+        errs.length > 0 ||
+        id === undefined ||
+        nameJa === undefined ||
+        slot === undefined ||
+        price === undefined ||
+        level === undefined ||
+        milestone === undefined ||
+        image === undefined ||
+        vocab === undefined ||
+        reviewed === undefined
+      ) {
+        return
+      }
+      furniture.push({ id, nameJa, slot, price, level, milestone, image, vocab, reviewed, ...(notes === undefined ? {} : { notes }) })
+    })
+  }
+  return furniture
+}
+
 const ACHIEVEMENT_KEYS = ['id', 'titleJa', 'descriptionJa', 'condition', 'coins', 'reviewed', 'notes'] as const
 const ACHIEVEMENT_CONDITION_KEYS = ['type', 'target'] as const
 const ACHIEVEMENT_ID = /^achievement_\d{3}$/
@@ -2248,6 +2325,8 @@ export interface ContentInput {
   chapters: FileMap
   /** 実績（ゲームデータ） */
   achievements: FileMap
+  /** 家具・小物（ゲームデータ） */
+  furniture: FileMap
   /** ゲームの調整用の数値。ファイルは1つだけ置く */
   balance: FileMap
 }
@@ -2278,6 +2357,8 @@ export interface LoadedContent {
   chapters: Chapter[]
   /** ファイルの名前順・ファイル内の順 */
   achievements: Achievement[]
+  /** ファイルの名前順・ファイル内の順 */
+  furniture: Furniture[]
   balance: Balance
   issues: ValidationIssue[]
 }
@@ -2309,6 +2390,17 @@ export const DEFAULT_BALANCE: Balance = {
     { days: 50, coins: 150 },
     { days: 100, coins: 300 },
   ],
+  room: {
+    movedInAfter: 'event_001',
+    slots: [
+      { id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2 },
+      { id: 'wall_right', nameJa: '壁（右）', x: 76, y: 16, w: 15, h: 8, align: 'center', layer: 2 },
+      { id: 'window', nameJa: '窓のそば', x: 76, y: 31, w: 10, h: 25, align: 'bottom', layer: 3 },
+      { id: 'floor_left', nameJa: '床（左手前）', x: 0, y: 71, w: 30, h: 20, align: 'bottom', layer: 4 },
+      { id: 'floor_right', nameJa: '床（右手前）', x: 76, y: 73, w: 22, h: 16, align: 'bottom', layer: 4 },
+      { id: 'rug', nameJa: 'ラグ', x: 30, y: 72, w: 44, h: 16, align: 'center', layer: 1 },
+    ],
+  },
 }
 
 const BALANCE_KEYS = [
@@ -2330,7 +2422,11 @@ const BALANCE_KEYS = [
   'levels',
   'coins',
   'stampMilestones',
+  'room',
 ] as const
+const ROOM_KEYS = ['movedInAfter', 'slots'] as const
+const ROOM_SLOT_KEYS = ['id', 'nameJa', 'x', 'y', 'w', 'h', 'align', 'layer'] as const
+const ROOM_SLOT_ID = /^[a-z][a-z0-9_]*$/
 const LEVEL_KEYS = ['thresholds', 'stepAfter'] as const
 const COIN_KEYS = ['eventComplete', 'chapterClear', 'chapterTest'] as const
 const MILESTONE_KEYS = ['days', 'coins'] as const
@@ -2426,6 +2522,49 @@ function parseStampMilestones(raw: unknown, errs: FieldError[]): Balance['stampM
   return errs.length > before ? undefined : result
 }
 
+/** 部屋（balance.json の room）。場所の ID は重ねない。位置と大きさは、絵の中に収まる割合（%） */
+function parseRoom(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Room | undefined {
+  const path = 'room'
+  if (!isObj(raw)) {
+    errs.push({ path, message: 'オブジェクト（{ "movedInAfter": …, "slots": […] }）にしてください' })
+    return undefined
+  }
+  const before = errs.length
+  checkKnownKeys(raw, ROOM_KEYS, path, errs)
+  // イベントが1つもない（教材の一部だけを確かめるテストなど）ときは、イベントがあるかは確かめない
+  const movedInAfter = ctx.eventIds.size === 0 ? text(raw, 'movedInAfter', path, errs) : reference(raw, 'movedInAfter', path, errs, ctx.eventIds, 'イベントID')
+  const rawSlots = raw['slots']
+  const slots: RoomSlot[] = []
+  if (!Array.isArray(rawSlots) || rawSlots.length === 0) {
+    errs.push({ path: `${path}.slots`, message: '1個以上の配列にしてください' })
+  } else {
+    rawSlots.forEach((s: unknown, i) => {
+      const base = `${path}.slots[${i}]`
+      if (!isObj(s)) {
+        errs.push({ path: base, message: 'オブジェクト（{ }）にしてください' })
+        return
+      }
+      checkKnownKeys(s, ROOM_SLOT_KEYS, base, errs)
+      const id = text(s, 'id', base, errs)
+      if (id !== undefined && !ROOM_SLOT_ID.test(id)) errs.push({ path: `${base}.id`, message: '英小文字・数字・_ のキーにしてください（例：wall_left）' })
+      if (id !== undefined && slots.some((o) => o.id === id)) errs.push({ path: `${base}.id`, message: `${id} が2回あります` })
+      const nameJa = japaneseText(s, 'nameJa', base, errs)
+      const x = integer(s, 'x', base, errs, 0, 100)
+      const y = integer(s, 'y', base, errs, 0, 100)
+      const w = integer(s, 'w', base, errs, 1, 100)
+      const h = integer(s, 'h', base, errs, 1, 100)
+      if (x !== undefined && w !== undefined && x + w > 100) errs.push({ path: `${base}.w`, message: 'x + w が 100 を超えています（絵の外に出ます）' })
+      if (y !== undefined && h !== undefined && y + h > 100) errs.push({ path: `${base}.h`, message: 'y + h が 100 を超えています（絵の外に出ます）' })
+      const align = oneOf(s, 'align', base, errs, ['center', 'bottom'] as const)
+      const layer = integer(s, 'layer', base, errs, 0)
+      if (id === undefined || nameJa === undefined || x === undefined || y === undefined || w === undefined || h === undefined || align === undefined || layer === undefined) return
+      slots.push({ id, nameJa, x, y, w, h, align, layer })
+    })
+  }
+  if (errs.length > before || movedInAfter === undefined) return undefined
+  return { movedInAfter, slots }
+}
+
 function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Balance | undefined {
   if (!isObj(raw)) {
     errs.push({ path: '', message: 'オブジェクト（{ }）にしてください' })
@@ -2457,6 +2596,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
   const levels = parseLevels(raw['levels'], errs)
   const coins = parseCoins(raw['coins'], errs)
   const stampMilestones = parseStampMilestones(raw['stampMilestones'], errs)
+  const room = parseRoom(raw['room'], ctx, errs)
   if (startLocation !== undefined && initialLocations !== undefined && !initialLocations.includes(startLocation)) {
     errs.push({ path: 'startLocation', message: 'startLocation は initialLocations に含めてください' })
   }
@@ -2491,7 +2631,8 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     stampActivities === undefined ||
     levels === undefined ||
     coins === undefined ||
-    stampMilestones === undefined
+    stampMilestones === undefined ||
+    room === undefined
   ) {
     return undefined
   }
@@ -2514,6 +2655,7 @@ function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): 
     levels,
     coins,
     stampMilestones,
+    room,
   }
 }
 
@@ -2802,8 +2944,9 @@ export function loadContent(input: ContentInput): LoadedContent {
   const parsedTests = validateKind('chapterTests', input.chapterTests, ctx, contentIds, issues)
   const chapterTests = checkOneTestPerChapter(checkDrillItemIds(parsedTests, contentIds, issues), contentIds, issues).sort((a, b) => a.chapter - b.chapter)
   const earSets = validateKind('earSets', input.earSets, ctx, contentIds, issues)
-  const balance = loadBalance(input.balance, ctx, issues)
+  const balance = loadBalance(input.balance, { ...ctx, eventIds: new Set(events.map((e) => e.id)) }, issues)
   const achievements = loadAchievements(input.achievements, chapters, issues)
+  const furniture = loadFurniture(input.furniture, balance, ctx.vocabularyIds, issues)
 
   return {
     vocabulary,
@@ -2824,6 +2967,7 @@ export function loadContent(input: ContentInput): LoadedContent {
     orders,
     chapters,
     achievements,
+    furniture,
     balance,
     issues,
   }

@@ -26,8 +26,8 @@ export interface AssetConfig {
   /** マップの幅（px） */
   mapWidth: number
   characters: CharacterSheetConfig[]
-  /** id は施設ID */
-  backgrounds: { id: string; file: string }[]
+  /** id は施設ID か場面の背景のID。fallbackId：元の画像がまだないときに、代わりに使う背景（仮の絵） */
+  backgrounds: { id: string; file: string; fallbackId?: string }[]
   map: { file: string } | null
   /** おはなしの一枚絵（id は一枚絵のキー。元の画像は cg_キー） */
   cg: { id: string; file: string }[]
@@ -37,6 +37,10 @@ export interface AssetConfig {
   menuSize: number
   /** 説明の図の絵の幅（px） */
   figureWidth: number
+  /** 家具のデータのフォルダ（家具の image のキーを読み、元の画像 fur_キー を探す） */
+  furnitureData: string
+  /** 家具の絵の長い辺の最大（px） */
+  furnitureSize: number
 }
 
 export interface CellSheetConfig {
@@ -100,7 +104,16 @@ export function parseAssetConfig(raw: unknown): AssetConfig {
     })
     return { id: str(c, 'id', where), sheet: str(c, 'sheet', where), expressions: parsed, keepGreen }
   })
-  const backgrounds = list(raw, 'backgrounds').map((b, i) => ({ id: str(b, 'id', `backgrounds[${i}]`), file: str(b, 'file', `backgrounds[${i}]`) }))
+  const backgrounds = list(raw, 'backgrounds').map((b, i): AssetConfig['backgrounds'][number] => {
+    const where = `backgrounds[${i}]`
+    const entry = { id: str(b, 'id', where), file: str(b, 'file', where) }
+    return b['fallbackId'] === undefined ? entry : { ...entry, fallbackId: str(b, 'fallbackId', where) }
+  })
+  for (const b of backgrounds) {
+    if (b.fallbackId !== undefined && !backgrounds.some((o) => o.id === b.fallbackId && o.fallbackId === undefined)) {
+      throw new Error(`backgrounds の ${b.id} の fallbackId（${b.fallbackId}）は、fallbackId のない背景の id にしてください`)
+    }
+  }
   const cg = raw['cg'] === undefined ? [] : list(raw, 'cg').map((b, i) => ({ id: str(b, 'id', `cg[${i}]`), file: str(b, 'file', `cg[${i}]`) }))
   const cellSheets = (raw['cellSheets'] === undefined ? [] : list(raw, 'cellSheets')).map((s, i): CellSheetConfig => {
     const where = `cellSheets[${i}]`
@@ -132,5 +145,7 @@ export function parseAssetConfig(raw: unknown): AssetConfig {
     cellSheets,
     menuSize: posInt(raw, 'menuSize'),
     figureWidth: posInt(raw, 'figureWidth'),
+    furnitureData: str(raw, 'furnitureData', ''),
+    furnitureSize: posInt(raw, 'furnitureSize'),
   }
 }

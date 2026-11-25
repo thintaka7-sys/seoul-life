@@ -44,6 +44,7 @@ export function bgmFor(scene: Scene, override: BgmId | 'none' | null = null): Bg
     case 'dictionary':
     case 'stamps':
     case 'achievements':
+    case 'room':
     case 'album':
       return bgmFor(scene.back, override)
     case 'study':

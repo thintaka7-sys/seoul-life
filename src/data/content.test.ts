@@ -90,3 +90,35 @@ describe('data/ の実データ', () => {
     expect(content.events.some((e) => e.requires.length === 0 && e.location === content.balance.startLocation)).toBe(true)
   })
 })
+
+describe('家具と部屋（Phase 4 区切り3）', () => {
+  it('家具は21点（カタログ17点・節目専用4点）。どの場所にも、カタログで買える家具がある', () => {
+    expect(content.furniture).toHaveLength(21)
+    expect(content.furniture.filter((f) => f.milestone === null)).toHaveLength(17)
+    for (const slot of content.balance.room.slots) {
+      expect(content.furniture.some((f) => f.slot === slot.id && f.milestone === null), slot.id).toBe(true)
+    }
+  })
+
+  it('節目専用の家具は 7・30・50・100 日（docs/PHASE4_HOME_PLAN.md）', () => {
+    expect(content.furniture.filter((f) => f.milestone !== null).map((f) => [f.id, f.milestone])).toEqual([
+      ['furniture_018', 7],
+      ['furniture_019', 30],
+      ['furniture_020', 50],
+      ['furniture_021', 100],
+    ])
+  })
+
+  it('引っ越しは第1章のお隣さんへのあいさつ（event_001）を終えたら。そのあとの先生とのふり返り（event_006）は新しい部屋', () => {
+    expect(content.balance.room.movedInAfter).toBe('event_001')
+    expect(content.events.find((e) => e.id === 'event_006')?.requires).toContain('event_001')
+  })
+
+  it('第1章のおはなしの自宅の場面：story_002・story_003 は引っ越したばかりの部屋、story_004 からは自宅', () => {
+    const homes = (id: string) => content.stories.find((s) => s.id === id)?.beats.flatMap((b) => (b.type === 'scene' && b.background !== undefined ? [b.background] : [])) ?? []
+    expect(homes('story_002')).toContain('home_moving')
+    expect(homes('story_003')).toContain('home_moving')
+    expect(homes('story_004')).toContain('home')
+    expect(homes('story_004')).not.toContain('home_moving')
+  })
+})

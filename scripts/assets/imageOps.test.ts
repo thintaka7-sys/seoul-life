@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseAssetConfig } from './config.ts'
-import { alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
+import { FURNITURE_KEY_OPTIONS, alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
 
 const GREEN: [number, number, number, number] = [10, 250, 5, 255]
 const KEY = { r: 10, g: 250, b: 5 }
@@ -70,6 +70,47 @@ describe('背景を透明にする', () => {
     const out = removeBackground(img, KEY, { hard: 90, soft: 170, enclosed: 40, despillRadius: 3 })
     expect(rgba(out, 4, 5)[1]).toBe(100)
     expect(rgba(out, 20, 5)[1]).toBe(140)
+  })
+})
+
+describe('家具：マゼンタの背景を透明にする', () => {
+  const MAGENTA: [number, number, number, number] = [250, 6, 245, 255]
+  /** マゼンタの背景に、緑の葉（植物）と茶色の鉢を置いた画像。鉢の縁は背景がにじんで赤紫がかっている */
+  function plantOnMagenta(): RGBAImage {
+    const img = createImage(20, 20, MAGENTA)
+    fillRect(img, 6, 2, 14, 12, [40, 160, 60, 255])
+    fillRect(img, 7, 12, 13, 18, [150, 90, 50, 255])
+    fillRect(img, 6, 12, 7, 18, [170, 80, 120, 255])
+    return img
+  }
+
+  it('縁のマゼンタを測る（緑のときと同じ、縁の画素の中央値）', () => {
+    expect(estimateKeyColor(plantOnMagenta(), 'magenta')).toEqual({ r: 250, g: 6, b: 245 })
+    expect(() => estimateKeyColor(plantOnMagenta())).toThrow(/緑の背景/)
+    expect(() => estimateKeyColor(createImage(4, 4, [10, 250, 5, 255]), 'magenta')).toThrow(/マゼンタの背景/)
+  })
+
+  it('マゼンタは透明に、緑の葉と鉢は残る', () => {
+    const img = plantOnMagenta()
+    const out = removeBackground(img, estimateKeyColor(img, 'magenta'), FURNITURE_KEY_OPTIONS)
+    expect(rgba(out, 0, 0)[3]).toBe(0)
+    expect(rgba(out, 19, 19)[3]).toBe(0)
+    expect(rgba(out, 10, 5)).toEqual([40, 160, 60, 255])
+    expect(rgba(out, 10, 15)).toEqual([150, 90, 50, 255])
+  })
+
+  it('境目の赤紫のにじみを取る（緑のにじみは取らない）', () => {
+    const img = plantOnMagenta()
+    const out = removeBackground(img, estimateKeyColor(img, 'magenta'), FURNITURE_KEY_OPTIONS)
+    const [r, g, b] = rgba(out, 6, 15)
+    expect(Math.min(r ?? 0, b ?? 0)).toBeLessThanOrEqual(g ?? 0)
+    expect(rgba(out, 6, 5)).toEqual([40, 160, 60, 255])
+  })
+
+  it('家具のまわりの余白を切り落とす範囲', () => {
+    const img = plantOnMagenta()
+    const out = removeBackground(img, estimateKeyColor(img, 'magenta'), FURNITURE_KEY_OPTIONS)
+    expect(contentBox(out)).toEqual({ x0: 6, y0: 2, x1: 14, y1: 18 })
   })
 })
 
@@ -176,6 +217,8 @@ describe('設定（assets.config.json）', () => {
     mapWidth: 1080,
     menuSize: 400,
     figureWidth: 720,
+    furnitureData: 'src/data/furniture',
+    furnitureSize: 640,
     cellSheets: [{ kind: 'menu', file: 'menu.png', rows: 1, cols: 2, inset: 4, keys: ['americano', 'cookie'] }],
     characters: [{ id: 'neighbor', sheet: 's.png', expressions: ['normal', 'smile'], keepGreen: [{ x: 1, y: 2, w: 3, h: 4 }] }],
     backgrounds: [{ id: 'home', file: 'bg.png' }],
@@ -186,6 +229,16 @@ describe('設定（assets.config.json）', () => {
     const config = parseAssetConfig(valid)
     expect(config.characters[0]?.keepGreen).toEqual([{ x0: 1, y0: 2, x1: 4, y1: 6 }])
     expect(parseAssetConfig({ ...valid, map: null }).map).toBeNull()
+  })
+
+  it('背景の代わりの絵（fallbackId）は、fallbackId のない背景を指す', () => {
+    const backgrounds = [
+      { id: 'home', file: 'bg_home_room', fallbackId: 'home_moving' },
+      { id: 'home_moving', file: 'bg_home.png' },
+    ]
+    expect(parseAssetConfig({ ...valid, backgrounds }).backgrounds[0]?.fallbackId).toBe('home_moving')
+    expect(parseAssetConfig(valid).backgrounds[0]?.fallbackId).toBeUndefined()
+    expect(() => parseAssetConfig({ ...valid, backgrounds: [{ id: 'home', file: 'a', fallbackId: 'nothing' }] })).toThrow(/fallbackId/)
   })
 
   it('表情のキーの間違い・重複、品質の範囲外は止める', () => {

@@ -1,10 +1,11 @@
 // ゲーム全体の状態と、画面遷移の reducer。
 // reducer は純粋な関数にする（日時は action で受け取る）ので、画面なしでテストできる。
 
-import type { Achievement, Balance, Chapter, Conversation, GameEvent, StampActivity } from '../data/types'
+import type { Achievement, Balance, Chapter, Conversation, Furniture, GameEvent, StampActivity } from '../data/types'
 import type { AnswerMode } from '../learning/conversation/session'
 import { isReplayable } from '../game/conversations/replayList'
 import { autoStartEvent, findEvent, newlyUnlocked, nextEvent, playableStep, resumeStep, unlockedLocations } from '../game/events/events'
+import { buyFurniture, isMovedIn, placeFurniture } from '../game/home/home'
 import { settleGrowth } from '../game/progression/growth'
 import {
   advanceEvent,
@@ -60,6 +61,8 @@ export type Scene =
   | { name: 'stamps'; back: Scene }
   /** 実績の一覧（GAME_SPEC 7-2。Phase 4）。自宅から開く */
   | { name: 'achievements'; back: Scene }
+  /** 部屋を飾る（家具を置く・カタログで買う・持ち物。GAME_SPEC 6-3。Phase 4）。自宅から開く */
+  | { name: 'room'; back: Scene }
   /** 聞き分け練習：組の一覧（GAME_SPEC 4-10） */
   | { name: 'ear'; back: Scene }
   /** 聞き分け練習：1つの組（試しに聞く・練習）。setId が null なら全部の組からまぜて練習 */
@@ -157,6 +160,12 @@ export type GameAction =
   | { type: 'openChapterTest'; testId: string }
   | { type: 'openStamps' }
   | { type: 'openAchievements' }
+  /** 部屋を飾る画面を開く（引っ越しを終えてから） */
+  | { type: 'openRoom' }
+  /** カタログで家具を買う（場所が空いていれば、そこに置く） */
+  | { type: 'buyFurniture'; furnitureId: string; now: string }
+  /** 場所に家具を置く（furnitureId が null なら外す） */
+  | { type: 'placeFurniture'; slot: string; furnitureId: string | null; now: string }
   | { type: 'openConversations' }
   | { type: 'openEar' }
   /** 聞き分けの組を開く（null なら全部の組からまぜて練習） */
@@ -202,7 +211,7 @@ export interface GameDeps {
   /**
    * 成長の精算（実績・スタンプの節目・レベルアップ。Phase 4）に使う。省略したら精算しない（テストで、ほかの動きだけを確かめるため）
    */
-  growth?: { achievements: readonly Achievement[]; chapters: readonly Chapter[] }
+  growth?: { achievements: readonly Achievement[]; chapters: readonly Chapter[]; furniture?: readonly Furniture[] }
 }
 
 export function createInitialState(load: LoadResult, backupKey: string | null, settings: Settings): GameState {
@@ -233,7 +242,9 @@ function hasNews(r: Reward): boolean {
     (r.coins ?? 0) > 0 ||
     r.levelUp !== undefined ||
     (r.achievements?.length ?? 0) > 0 ||
-    (r.milestones?.length ?? 0) > 0
+    (r.milestones?.length ?? 0) > 0 ||
+    (r.furniture?.length ?? 0) > 0 ||
+    (r.catalog?.length ?? 0) > 0
   )
 }
 
@@ -253,6 +264,10 @@ function sumRewards(a: Reward, b: Reward): Reward {
   if (achievements.length > 0) sum.achievements = achievements
   const milestones = [...(a.milestones ?? []), ...(b.milestones ?? [])]
   if (milestones.length > 0) sum.milestones = milestones
+  const furniture = [...(a.furniture ?? []), ...(b.furniture ?? [])]
+  if (furniture.length > 0) sum.furniture = furniture
+  const catalog = [...(a.catalog ?? []), ...(b.catalog ?? [])]
+  if (catalog.length > 0) sum.catalog = catalog
   const levelUp = Math.max(a.levelUp ?? 0, b.levelUp ?? 0)
   if (levelUp > 0) sum.levelUp = levelUp
   return sum
@@ -284,6 +299,7 @@ export function backTarget(state: GameState): GameAction['type'] | null {
     case 'chapterTest':
     case 'stamps':
     case 'achievements':
+    case 'room':
     case 'conversations':
     case 'conversationReplay':
     case 'ear':
@@ -317,6 +333,7 @@ type StudyScene = Extract<
       | 'chapterTest'
       | 'stamps'
       | 'achievements'
+      | 'room'
       | 'conversations'
       | 'conversationReplay'
       | 'ear'
@@ -339,6 +356,7 @@ const STUDY_SCENES: readonly Scene['name'][] = [
   'chapterTest',
   'stamps',
   'achievements',
+  'room',
   'conversations',
   'conversationReplay',
   'ear',
@@ -364,7 +382,7 @@ export function createGameReducer(deps: GameDeps) {
     const save = next.save
     if (growth === undefined || save === null) return next
     if (save === prev.save && save.stats.levelShown !== 0 && !always) return next
-    const g = settleGrowth(save, { balance, events, achievements: growth.achievements, chapters: growth.chapters })
+    const g = settleGrowth(save, { balance, events, achievements: growth.achievements, chapters: growth.chapters, ...(growth.furniture === undefined ? {} : { furniture: growth.furniture }) })
     if (g.save === save) return next
     if (g.retroactive) return { ...next, save: g.save }
     const gained: Reward = { xp: 0, newWords: 0 }
@@ -372,12 +390,18 @@ export function createGameReducer(deps: GameDeps) {
     if (g.achievements.length > 0) gained.achievements = g.achievements
     if (g.milestones.length > 0) gained.milestones = g.milestones
     if (g.levelUp !== null) gained.levelUp = g.levelUp
+    if (g.furniture.length > 0) gained.furniture = g.furniture
+    if (g.catalog.length > 0) gained.catalog = g.catalog
     // この操作で出した知らせがあれば、そこに足す（なければ新しく出す）
     const own = next.reward !== prev.reward ? next.reward : null
     const reward = own === null ? addReward(next, gained) : { ...sumRewards(own, gained), seq: own.seq }
     return { ...next, save: g.save, reward }
   }
   const firstHangulLessonId = deps.firstHangulLessonId ?? null
+
+  function furnitureOf(id: string): Furniture | undefined {
+    return growth?.furniture?.find((f) => f.id === id)
+  }
 
   /** いま行ける施設 */
   function unlockedFor(save: SaveData): Set<string> {
@@ -579,6 +603,25 @@ export function createGameReducer(deps: GameDeps) {
       case 'openAchievements':
         if (state.save === null || isStudyScene(state.scene)) return state
         return { ...state, scene: { name: 'achievements', back: state.scene } }
+
+      case 'openRoom':
+        if (state.save === null || isStudyScene(state.scene) || !isMovedIn(state.save.progress, balance.room)) return state
+        return { ...state, scene: { name: 'room', back: state.scene } }
+
+      case 'buyFurniture': {
+        const item = furnitureOf(action.furnitureId)
+        if (state.save === null || item === undefined) return state
+        const bought = buyFurniture(state.save, item, balance.levels, action.now)
+        return bought === state.save ? state : { ...state, save: bought }
+      }
+
+      case 'placeFurniture': {
+        if (state.save === null) return state
+        const item = action.furnitureId === null ? null : furnitureOf(action.furnitureId)
+        if (item === undefined) return state
+        const placed = placeFurniture(state.save, action.slot, item, action.now)
+        return placed === state.save ? state : { ...state, save: placed }
+      }
 
       case 'drillAnswered': {
         if (state.save === null) return state

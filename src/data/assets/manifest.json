@@ -70,8 +70,8 @@
     }
   },
   "backgrounds": {
-    "home": {
-      "src": "assets/bg/home.webp?v=0bc71da662",
+    "home_moving": {
+      "src": "assets/bg/home_moving.webp?v=0bc71da662",
       "width": 1080,
       "height": 1935
     },
@@ -97,6 +97,11 @@
     },
     "street": {
       "src": "assets/bg/street.webp?v=f417fda4ef",
+      "width": 1080,
+      "height": 1935
+    },
+    "home": {
+      "src": "assets/bg/home_moving.webp?v=0bc71da662",
       "width": 1080,
       "height": 1935
     }
@@ -200,5 +205,6 @@
       "width": 720,
       "height": 793
     }
-  }
+  },
+  "furniture": {}
 }

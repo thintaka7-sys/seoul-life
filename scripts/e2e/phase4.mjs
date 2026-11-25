@@ -208,6 +208,151 @@ for (const [W, H] of [
   check(`${P} レベルアップの後は、知らせ済みのレベルを保存する`, (await b.saved())?.stats.levelShown === 3)
 }
 
+// ---------- 区切り3：自宅の家具（部屋を飾る・カタログ・持ち物・節目の家具） ----------
+const furnitureData = JSON.parse(readFileSync('src/data/furniture/furniture.json', 'utf8'))
+const room = balance.room
+const name = (id) => furnitureData.find((f) => f.id === id)?.nameJa ?? id
+const allAchieved = Object.fromEntries(achievementData.map((a) => [a.id, { at: old }]))
+const CH1 = ['event_004', 'event_005', 'event_001', 'event_006']
+const settled = (patch = {}) =>
+  saveAtHome({
+    ...patch,
+    progress: { completedEvents: CH1, ...patch.progress },
+    stats: { xp: 300, coins: 500, levelShown: 3, ...patch.stats },
+    achievements: allAchieved,
+  })
+/** 部屋の絵（.room）に対する、家具の位置と大きさ（%） */
+const furnitureRect = (scope, id) =>
+  evaluate(`(() => {
+    const r = document.querySelector(${JSON.stringify(scope)} + ' .room')?.getBoundingClientRect()
+    const f = document.querySelector(${JSON.stringify(scope)} + ' [data-furniture="${id}"]')?.getBoundingClientRect()
+    if (!r || !f) return null
+    return { x: (f.left - r.left) / r.width * 100, y: (f.top - r.top) / r.height * 100, w: f.width / r.width * 100, h: f.height / r.height * 100 }
+  })()`)
+const near = (rect, slot) => rect !== null && Math.abs(rect.x - slot.x) < 0.6 && Math.abs(rect.y - slot.y) < 0.6 && Math.abs(rect.w - slot.w) < 0.6 && Math.abs(rect.h - slot.h) < 0.6
+const slotOf = (id) => room.slots.find((s) => s.id === id)
+
+for (const [W, H] of [
+  [375, 800],
+  [1280, 900],
+]) {
+  const P = `[${W}px]`
+  await viewport(W, H, W < 600)
+
+  // 引っ越したばかり（お隣さんへのあいさつの前）：段ボールのある部屋で、飾れない
+  await freshStart({ settings: { ...FAST_SETTINGS, lastExportAt: new Date().toISOString() }, save: saveAtHome({ stats: { levelShown: 1 }, achievements: allAchieved }) })
+  await b.continueToHome()
+  await sleep(300)
+  const movingBg = await evaluate(`document.querySelector('.backdrop__sharp')?.getAttribute('src') ?? ''`)
+  check(`${P} 引っ越したばかり：自宅は段ボールのある部屋（home_moving）で、家具を重ねない`, movingBg.includes('bg/home_moving') && !(await evaluate(`!!document.querySelector('.backdrop__room')`)), movingBg)
+  check(`${P} 引っ越したばかり：「部屋を飾る」は出さない`, !(await mainText()).includes('部屋を飾る'))
+
+  // 引っ越しを終えた（第1章を終えた）：コイン 500・Lv.3
+  await freshStart({ settings: { ...FAST_SETTINGS, lastExportAt: new Date().toISOString() }, save: settled() })
+  await b.continueToHome()
+  await sleep(300)
+  check(`${P} 引っ越しの後：自宅の背景は部屋の絵（家具を重ねる入れ物）`, await evaluate(`document.querySelector('.backdrop__room .room')?.dataset.roomItems === '0'`))
+  await click('部屋を飾る（家具）')
+  await sleep(300)
+  check(`${P} 部屋を飾る：部屋の絵と6か所の枠、コイン・レベル`, (await evaluate(`document.querySelectorAll('.room-view .room__slot').length`)) === 6 && (await evaluate(`document.querySelector('.room-status')?.textContent ?? ''`)).includes('コイン 500'), await evaluate(`document.querySelector('.room-status')?.textContent ?? ''`))
+  check(`${P} 部屋を飾る：画面の後ろには部屋を敷かない（二重にしない）`, !(await evaluate(`!!document.querySelector('.backdrop')`)))
+  check(`${P} 飾る：まだ持っていなければ「カタログを見る」`, (await mainText()).includes('まだ持っていません'))
+  if (W === 375) await shot('375-09-room-empty')
+
+  // カタログ
+  await click('カタログ')
+  await sleep(200)
+  const catalog = await evaluate(`[...document.querySelectorAll('.catalog-item')].map((li) => ({ id: li.dataset.id, text: li.innerText, buy: !!li.querySelector('button') }))`)
+  const row = (id) => catalog.find((c) => c.id === id)
+  check(`${P} カタログ：21点（売る17点と、節目でもらえる4点）`, catalog.length === 21, String(catalog.length))
+  check(`${P} カタログ：レベルが足りれば「買う」、足りなければ「Lv.4 で買えます」、節目専用は「スタンプ7個の節目でもらえます」`, row('furniture_001')?.buy === true && (row('furniture_003')?.text ?? '').includes('Lv.4 で買えます') && (row('furniture_018')?.text ?? '').includes('スタンプ7個の節目でもらえます') && row('furniture_018')?.buy === false, JSON.stringify([row('furniture_003'), row('furniture_018')]))
+  check(`${P} カタログ：家具18の名前は「${name('furniture_018')}」`, (row('furniture_018')?.text ?? '').includes('チョガクポ（つぎはぎの布）の壁かけ'))
+  if (W === 375) await shot('375-10-catalog')
+  await layoutCheck(`${P} カタログ`)
+  await click('買う', { within: 'li[data-id="furniture_001"]' })
+  await sleep(300)
+  let saved = await b.saved()
+  check(`${P} 買う：コインが減り（500 → 420）、空いた場所（壁（左））に置く`, saved?.stats.coins === 420 && saved?.home.owned.furniture_001 !== undefined && saved?.home.placement.wall_left === 'furniture_001' && (await mainText()).includes('買って、壁（左）に置きました'), JSON.stringify(saved?.home))
+  check(`${P} 買う：カタログでは「持っています」`, (await evaluate(`document.querySelector('li[data-id="furniture_001"]')?.innerText ?? ''`)).includes('持っています'))
+  await click('買う', { within: 'li[data-id="furniture_002"]' })
+  await sleep(300)
+  saved = await b.saved()
+  check(`${P} 同じ場所に置いてあれば、買っても置き換えない（持ち物に入る）`, saved?.stats.coins === 320 && saved?.home.placement.wall_left === 'furniture_001' && (await mainText()).includes('「飾る」で'), JSON.stringify(saved?.home.placement))
+
+  // 飾る：置き換える・外す
+  await click('飾る')
+  await sleep(200)
+  await click(`✓ ${name('furniture_001')}`)
+  await sleep(100)
+  await click(name('furniture_002'))
+  await sleep(200)
+  saved = await b.saved()
+  check(`${P} 飾る：壁（左）をポスターに置き換え、部屋の絵に出す`, saved?.home.placement.wall_left === 'furniture_002' && (await evaluate(`!!document.querySelector('.room-view [data-furniture="furniture_002"]') && !document.querySelector('.room-view [data-furniture="furniture_001"]')`)))
+  check(`${P} 飾る：家具は場所の枠の位置・大きさに出る`, near(await furnitureRect('.room-view', 'furniture_002'), slotOf('wall_left')), JSON.stringify(await furnitureRect('.room-view', 'furniture_002')))
+  await click('何も置かない')
+  await sleep(200)
+  check(`${P} 飾る：「何も置かない」で外す（持ち物には残る）`, (await b.saved())?.home.placement.wall_left === undefined && (await b.saved())?.home.owned.furniture_002 !== undefined)
+  await click(name('furniture_001'))
+  await sleep(200)
+  if (W === 375) await shot('375-11-room-decorated')
+  await layoutCheck(`${P} 部屋を飾る`)
+
+  // 持ち物
+  await click('持ち物')
+  await sleep(200)
+  const items = await evaluate(`document.querySelector('section[aria-label="持ち物"]')?.innerText ?? ''`)
+  check(`${P} 持ち物：持っている家具（2 / 21）と、置いているか`, items.includes('持っている家具：2 / 21') && items.includes('壁（左）に置いています') && items.includes('しまってあります'), items)
+  await click('戻る')
+  await sleep(300)
+
+  // 自宅の背景に、置いた家具が重なる（絵と同じ切り取り方）
+  const fit = await evaluate(`(() => {
+    const c = document.querySelector('.backdrop__room')?.getBoundingClientRect()
+    const r = document.querySelector('.backdrop__room .room')?.getBoundingClientRect()
+    if (!c || !r) return null
+    return { inside: r.left >= c.left - 1 && r.right <= c.right + 1 && r.bottom <= c.bottom + 1, top: Math.abs(r.top - c.top) < 1, centered: Math.abs((r.left + r.width / 2) - (c.left + c.width / 2)) < 1, fills: Math.abs(r.width - c.width) < 1 || Math.abs(r.height - c.height) < 1 }
+  })()`)
+  check(`${P} 自宅の背景：部屋の絵は切り取らずに全体を見せる（上にそろえ、左右の中央）`, fit?.inside === true && fit?.top === true && fit?.centered === true && fit?.fills === true, JSON.stringify(fit))
+  check(`${P} 自宅の背景：置いた家具（壁かけ時計）が、壁（左）の位置に重なる`, near(await furnitureRect('.backdrop__room', 'furniture_001'), slotOf('wall_left')), JSON.stringify(await furnitureRect('.backdrop__room', 'furniture_001')))
+  if (W === 375) await shot('375-12-home-with-furniture')
+
+  // おはなしの自宅の場面にも重ねる（story_004）。引っ越したばかりの場面（story_003）には重ねない
+  await freshStart({
+    settings: { ...FAST_SETTINGS, lastExportAt: new Date().toISOString() },
+    save: settled({ home: { owned: { furniture_016: { at: old } }, placement: { rug: 'furniture_016' } }, progress: { storiesSeen: { story_003: { seenAt: old }, story_004: { seenAt: old } } } }),
+  })
+  await b.continueToHome()
+  await click('おはなしのアルバム')
+  await sleep(200)
+  const titles = JSON.parse(readFileSync('src/data/stories/ch01.json', 'utf8'))
+  await click(titles.find((s) => s.id === 'story_004').titleJa)
+  await sleep(500)
+  check(`${P} おはなし（story_004）の自宅の場面にも、置いた家具（ラグ）を重ねる`, await evaluate(`!!document.querySelector('.backdrop__room [data-furniture="furniture_016"]')`))
+  await load(url)
+  await b.continueToHome()
+  await click('おはなしのアルバム')
+  await sleep(200)
+  await click(titles.find((s) => s.id === 'story_003').titleJa)
+  await sleep(500)
+  const bg3 = await evaluate(`document.querySelector('.backdrop__sharp')?.getAttribute('src') ?? ''`)
+  check(`${P} おはなし（story_003）は引っ越したばかりの部屋で、家具を重ねない`, bg3.includes('bg/home_moving') && !(await evaluate(`!!document.querySelector('.backdrop__room')`)), bg3)
+
+  // スタンプ7個の節目：コインと、節目専用の家具（空いていれば置く）
+  const stamps = Array.from({ length: 7 }, (_, i) => `2026-11-${String(i + 1).padStart(2, '0')}`)
+  await freshStart({ settings: { ...FAST_SETTINGS, lastExportAt: new Date().toISOString() }, save: settled({ daily: { stamps, rewards: { 3: { at: old } } } }) })
+  await click('つづきから')
+  await sleep(300)
+  const gift = await evaluate(`document.querySelector('.toast')?.textContent ?? ''`)
+  saved = await b.saved()
+  check(`${P} スタンプ7個の節目：「家具「${name('furniture_018')}」をもらいました」と出し、壁（左）に置く`, gift.includes(`家具「${name('furniture_018')}」をもらいました`) && saved?.home.owned.furniture_018 !== undefined && saved?.home.placement.wall_left === 'furniture_018', gift)
+  await click('スタンプカード')
+  await sleep(300)
+  const ms3 = await evaluate(`document.querySelector('section[aria-label="節目のごほうび"]')?.innerText ?? ''`)
+  check(`${P} スタンプカード：節目のごほうびに、節目専用の家具を出す`, ms3.includes(`7個：コイン 50 と 家具「${name('furniture_018')}」`) && ms3.includes(`30個：コイン 120 と 家具「${name('furniture_019')}」`), ms3)
+  await click('戻る')
+  await sleep(200)
+}
+
 // ---------- PWA：manifest と Service Worker ----------
 await viewport(375, 800, true)
 await freshStart({ settings: FAST_SETTINGS, save: PLAYED })
@@ -224,14 +369,16 @@ const sw = await evaluate(`(async () => { const r = await Promise.race([navigato
 check('PWA：Service Worker を登録する（/seoul-life/ の範囲）', sw !== null && sw.scope.endsWith('/seoul-life/') && sw.active === 'activated', JSON.stringify(sw))
 await reload()
 check('PWA：開き直すと、Service Worker がページを受け持つ', await evaluate(`navigator.serviceWorker.controller !== null`))
-const cached = await evaluate(`(async () => { const names = await caches.keys(); const urls = (await Promise.all(names.map(async (n) => (await (await caches.open(n)).keys()).map((r) => new URL(r.url).pathname)))).flat(); return { bg: urls.some((u) => u.endsWith('/assets/bg/home.webp')), sfx: urls.some((u) => u.includes('/audio/sfx/')), bgm: urls.some((u) => u.includes('/audio/bgm_')), n: urls.length } })()`)
+// 自宅の背景の絵（部屋の絵が届くまでは、引っ越したばかりの部屋の絵を仮に使う）
+const homeBg = JSON.parse(readFileSync('src/data/assets/manifest.json', 'utf8')).backgrounds.home.src.split('?')[0]
+const cached = await evaluate(`(async () => { const names = await caches.keys(); const urls = (await Promise.all(names.map(async (n) => (await (await caches.open(n)).keys()).map((r) => new URL(r.url).pathname)))).flat(); return { bg: urls.some((u) => u.endsWith('/${homeBg}')), sfx: urls.some((u) => u.includes('/audio/sfx/')), bgm: urls.some((u) => u.includes('/audio/bgm_')), n: urls.length } })()`)
 check('PWA：絵・効果音を端末に保存し、BGM は保存しない', cached.bg && cached.sfx && !cached.bgm, JSON.stringify(cached))
 await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 })
 await load(url)
 check('PWA：オフラインで開き直しても、タイトルが出る', (await evaluate(`document.querySelector('.title__ko')?.textContent ?? ''`)) === '서울에서 살기' && (await evaluate(`navigator.onLine`)) === false)
 await b.continueToHome()
 await sleep(500)
-const bgLoaded = await evaluate(`(() => { const img = [...document.images].find((i) => i.src.includes('/bg/home.webp')); return img ? img.complete && img.naturalWidth > 0 : null })()`)
+const bgLoaded = await evaluate(`(() => { const img = [...document.images].find((i) => i.src.includes('/${homeBg}')); return img ? img.complete && img.naturalWidth > 0 : null })()`)
 check('PWA：オフラインでも、つづきから自宅に入れて、背景の絵が出る', (await mainText()).includes('勉強する') && bgLoaded !== false, `bg ${bgLoaded}`)
 await shot('375-04-offline-home')
 await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 })

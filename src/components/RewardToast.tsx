@@ -16,7 +16,12 @@ export function RewardToast() {
     if (reward === null) return
     if (reward.levelUp !== undefined) playSfx('fanfare')
     else if (reward.xp > 0 || (reward.coins ?? 0) > 0) playSfx('xp')
-    const long = (reward.unlocked?.length ?? 0) > 0 || reward.levelUp !== undefined || (reward.achievements?.length ?? 0) > 0 || (reward.milestones?.length ?? 0) > 0
+    const long =
+      (reward.unlocked?.length ?? 0) > 0 ||
+      reward.levelUp !== undefined ||
+      (reward.achievements?.length ?? 0) > 0 ||
+      (reward.milestones?.length ?? 0) > 0 ||
+      (reward.furniture?.length ?? 0) > 0
     const timer = window.setTimeout(() => dispatch({ type: 'dismissReward' }), long ? SHOW_UNLOCK_MS : SHOW_MS)
     return () => window.clearTimeout(timer)
   }, [reward, dispatch])
@@ -46,6 +51,12 @@ export function RewardToast() {
               ★ スタンプ{days}個の節目
             </span>
           ))}
+          {(reward.furniture ?? []).map((id) => (
+            <span key={id} className="toast__words toast__furniture">
+              🎁 家具「{content.furniture.find((f) => f.id === id)?.nameJa ?? id}」をもらいました
+            </span>
+          ))}
+          {(reward.catalog?.length ?? 0) > 0 && <span className="toast__words toast__catalog">カタログに新しい家具が {reward.catalog?.length} 点</span>}
           {reward.newWords > 0 && <span className="toast__words">図鑑に {reward.newWords} 語</span>}
           {reward.stamp === true && <span className="toast__words">★ 今日のスタンプ</span>}
           {(reward.unlocked ?? []).map((id) => (

@@ -8,6 +8,8 @@
   "mapWidth": 1080,
   "menuSize": 400,
   "figureWidth": 720,
+  "furnitureData": "src/data/furniture",
+  "furnitureSize": 640,
   "characters": [
     {
       "id": "cafe_staff",
@@ -69,6 +71,11 @@
   "backgrounds": [
     {
       "id": "home",
+      "file": "bg_home_room",
+      "fallbackId": "home_moving"
+    },
+    {
+      "id": "home_moving",
       "file": "bg_home.png"
     },
     {

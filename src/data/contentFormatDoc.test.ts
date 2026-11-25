@@ -81,7 +81,7 @@ function labelsInSection(markdown: string, headingPrefix: string): Record<string
 
 describe('docs/CONTENT_FORMAT.md の見本', () => {
   const samples = extractSamples(doc)
-  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests', 'earSets', 'stories', 'readings', 'menus', 'orders', 'achievements'] as const
+  const kinds = ['vocabulary', 'grammar', 'conversations', 'columns', 'events', 'hangulLessons', 'listening', 'drills', 'chapterTests', 'earSets', 'stories', 'readings', 'menus', 'orders', 'achievements', 'furniture'] as const
 
   it('単語・文法・会話・コラム・イベント・ハングルのレッスン・リスニングの文・基礎ドリル・章末テスト・聞き分けの組・おはなし・読み物・メニュー・注文・実績の見本がそろっている', () => {
     expect(sorted(samples.keys())).toEqual(sorted(kinds))
@@ -108,6 +108,7 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
       characters: { 'characters.json': content.characters },
       chapters: { 'chapters.json': content.chapters },
       achievements: { 'sample-achievements': samples.get('achievements') },
+      furniture: { 'sample-furniture': samples.get('furniture') },
       balance: { 'balance.json': content.balance },
     })
     expect(result.issues.map(formatIssue)).toEqual([])
@@ -131,6 +132,7 @@ describe('docs/CONTENT_FORMAT.md の見本', () => {
     expect(items.some((i) => i.digits === undefined)).toBe(true)
     expect(result.chapterTests.length).toBeGreaterThan(0)
     expect(result.achievements.length).toBe(2)
+    expect(result.furniture.map((f) => f.milestone)).toEqual([null, 7])
     // 見本の聞き分けの組は、3つの音の組と2つの音の組を含む
     expect([...new Set(result.earSets.map((e) => e.items.length))].sort((a, b) => a - b)).toEqual([2, 3])
     // Phase 3 の見本：おはなしの段階・読み物の問題・図の種類をすべて含み、注文・メニュー・形が変わる言葉・glosses がある

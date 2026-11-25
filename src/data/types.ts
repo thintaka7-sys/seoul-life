@@ -527,7 +527,7 @@ export type EventStep =
 export const EVENT_STEP_TYPES = ['message', 'learn', 'conversation', 'column', 'dictionary', 'dayEnd', 'background', 'story', 'reading', 'order', 'listening', 'chapterEnd', 'hangulIntro'] as const
 
 /** 施設のほかに使える、場面の背景のID（画像は docs/ART_GUIDE.md の手順で作る。画像がなければ施設の背景のまま） */
-export const SCENE_BACKGROUNDS = ['entrance', 'airport', 'taxi', 'street'] as const
+export const SCENE_BACKGROUNDS = ['entrance', 'airport', 'taxi', 'street', 'home_moving'] as const
 
 /** イベント：どの施設で、何を、どの順に行うか */
 export interface GameEvent {
@@ -872,6 +872,52 @@ export interface StampMilestone {
   coins: number
 }
 
+/**
+ * 部屋の、家具を置く場所（GAME_SPEC 6-3。Phase 4。docs/PHASE4_HOME_PLAN.md 2章）。
+ * 位置と大きさは、部屋の絵の幅・高さに対する割合（%）。ID はセーブデータ（home.placement）が参照するので、後から変えない
+ */
+export interface RoomSlot {
+  id: string
+  /** 場所の名前（例：壁（左）） */
+  nameJa: string
+  x: number
+  y: number
+  w: number
+  h: number
+  /** 家具の絵を枠のどこにそろえるか（bottom：床に置くもの。下の辺にそろえ、左右は中央。center：壁・ラグ。枠の中央） */
+  align: 'center' | 'bottom'
+  /** 重なりの順（小さいほど奥） */
+  layer: number
+}
+
+export interface Room {
+  /** このイベントを終えるまでは「引っ越したばかり」：自宅の背景を home_moving（段ボールのある部屋）にし、部屋を飾れない */
+  movedInAfter: string
+  slots: RoomSlot[]
+}
+
+/** 家具・小物（ゲームデータ。src/data/furniture/。GAME_SPEC 6-3・7-3） */
+export interface Furniture {
+  /** furniture_001 の形。セーブデータが参照するので、後から変えない */
+  id: string
+  nameJa: string
+  /** 置く場所（RoomSlot の id） */
+  slot: string
+  /** 値段（コイン）。節目専用なら null */
+  price: number | null
+  /** カタログで買えるようになるレベル。節目専用なら null */
+  level: number | null
+  /** 節目専用：スタンプを集めた合計の日数（balance の stampMilestones の days）。カタログでは売らない */
+  milestone: number | null
+  /** 絵のキー（元の画像は fur_キー。assets の furniture） */
+  image: string
+  /** 韓国語の名前（単語ID）。まだなければ null */
+  vocab: string | null
+  /** 名前・値段・レベルを確かめたか */
+  reviewed: boolean
+  notes?: string
+}
+
 /** マップの絵の上での位置（絵の幅・高さに対する割合。0〜100） */
 export interface MapArea {
   x: number
@@ -933,6 +979,8 @@ export interface AssetManifest {
   menu: Record<string, ImageAsset>
   /** 説明の図の絵（図の image のキー → 画像。元の画像は fig_…_sheet のマス） */
   figures: Record<string, ImageAsset>
+  /** 家具の絵（家具の image のキー → 背景を透明にした画像。元の画像は fur_キー） */
+  furniture: Record<string, ImageAsset>
 }
 
 /** ゲームの調整用の数値（src/data/game/balance.json） */
@@ -1007,6 +1055,8 @@ export interface Balance {
   }
   /** スタンプの節目のごほうび（集めた合計の日数の少ない順） */
   stampMilestones: StampMilestone[]
+  /** 部屋（家具を置く場所） */
+  room: Room
 }
 
 /** 検証で見つかった問題 */

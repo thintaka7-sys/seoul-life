@@ -18,7 +18,7 @@ function parseImage(v: unknown): ImageAsset | null {
 }
 
 export function emptyAssetManifest(): AssetManifest {
-  return { characters: {}, backgrounds: {}, map: null, cg: {}, menu: {}, figures: {} }
+  return { characters: {}, backgrounds: {}, map: null, cg: {}, menu: {}, figures: {}, furniture: {} }
 }
 
 /** 画像の一覧を確かめる。使えない項目は除き、問題の一覧を返す */
@@ -80,6 +80,13 @@ export function parseAssetManifest(
     const parsed = parseImage(image)
     if (!/^[a-z][a-z0-9_]*$/.test(key) || parsed === null) issue(`figures.${key}`, '図の絵のキーか画像の情報が正しくありません')
     else manifest.figures[key] = parsed
+  }
+
+  const furniture = isObj(raw['furniture']) ? raw['furniture'] : {}
+  for (const [key, image] of Object.entries(furniture)) {
+    const parsed = parseImage(image)
+    if (!/^[a-z][a-z0-9_]*$/.test(key) || parsed === null) issue(`furniture.${key}`, '家具の絵のキーか画像の情報が正しくありません')
+    else manifest.furniture[key] = parsed
   }
 
   if (raw['map'] !== null && raw['map'] !== undefined) {

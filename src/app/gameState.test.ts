@@ -20,7 +20,7 @@ const reducer = createGameReducer({
   locationIds: new Set(content.locations.map((l) => l.id)),
   storyIds: new Set(content.stories.map((s) => s.id)),
   formKeysOf: (vocabId) => formKeysOf(content.vocabulary.find((v) => v.id === vocabId)),
-  growth: { achievements: content.achievements, chapters: content.chapters },
+  growth: { achievements: content.achievements, chapters: content.chapters, furniture: content.furniture },
 })
 
 function run(state: GameState, ...actions: GameAction[]): GameState {
@@ -683,5 +683,53 @@ describe('成長（レベル・コイン・実績。Phase 4）', () => {
     expect(s.save?.stats.coins).toBeGreaterThanOrEqual(4 * content.balance.coins.eventComplete + content.balance.coins.chapterClear)
     expect(s.reward).toBeNull()
     expect(s.save?.progress.notices).toEqual(['progressionIntroduced'])
+  })
+})
+
+describe('部屋を飾る（家具。Phase 4 区切り3）', () => {
+  /** 引っ越しを終え（event_001 まで）、自宅にいて、コインと経験値がある状態 */
+  function movedIn(coins: number, xp = 0): GameState {
+    const state = stateBefore('event_006')
+    const save = state.save ?? createNewSave(T0)
+    return { ...state, save: { ...save, stats: { xp, coins, levelShown: 1 }, achievements: Object.fromEntries(content.achievements.map((a) => [a.id, { at: T0 }])) } }
+  }
+
+  it('引っ越しを終えるまでは開けない。終えたら自宅から開け、戻ると自宅に戻る', () => {
+    expect(reducer(atHome(), { type: 'openRoom' }).scene).toEqual(home)
+    const opened = reducer(movedIn(0), { type: 'openRoom' })
+    expect(opened.scene).toEqual({ name: 'room', back: home })
+    expect(reducer(opened, { type: 'closeStudyScene' }).scene).toEqual(home)
+  })
+
+  it('カタログで買うと、コインが減り、空いた場所に置かれる。足りなければ買えない', () => {
+    let s = run(movedIn(100), { type: 'openRoom' }, { type: 'buyFurniture', furnitureId: 'furniture_001', now: T1 })
+    expect(s.save?.stats.coins).toBe(20)
+    expect(s.save?.home.owned['furniture_001']).toEqual({ at: T1 })
+    expect(s.save?.home.placement['wall_left']).toBe('furniture_001')
+    const before = s
+    s = reducer(s, { type: 'buyFurniture', furnitureId: 'furniture_007', now: T1 })
+    expect(s).toBe(before)
+    expect(reducer(s, { type: 'buyFurniture', furnitureId: 'furniture_999', now: T1 })).toBe(s)
+  })
+
+  it('置き換える・外す。持っていない家具・場所に合わない家具は置けない', () => {
+    let s = run(movedIn(1000, 300), { type: 'buyFurniture', furnitureId: 'furniture_001', now: T1 }, { type: 'buyFurniture', furnitureId: 'furniture_002', now: T1 })
+    expect(s.save?.home.placement['wall_left']).toBe('furniture_001')
+    s = reducer(s, { type: 'placeFurniture', slot: 'wall_left', furnitureId: 'furniture_002', now: T1 })
+    expect(s.save?.home.placement['wall_left']).toBe('furniture_002')
+    expect(reducer(s, { type: 'placeFurniture', slot: 'rug', furnitureId: 'furniture_002', now: T1 })).toBe(s)
+    expect(reducer(s, { type: 'placeFurniture', slot: 'wall_left', furnitureId: 'furniture_003', now: T1 })).toBe(s)
+    s = reducer(s, { type: 'placeFurniture', slot: 'wall_left', furnitureId: null, now: T1 })
+    expect(s.save?.home.placement['wall_left']).toBeUndefined()
+  })
+
+  it('スタンプ7個の節目で、節目専用の家具をもらい、知らせに出る', () => {
+    const state = movedIn(0)
+    const save = state.save ?? createNewSave(T0)
+    const stamps = Array.from({ length: 7 }, (_, i) => `2026-11-${String(i + 1).padStart(2, '0')}`)
+    const s = reducer({ ...state, save: { ...save, daily: { stamps, rewards: {} } } }, { type: 'continue', now: T1 })
+    expect(s.save?.home.owned['furniture_018']).toBeDefined()
+    expect(s.reward?.furniture).toEqual(['furniture_018'])
+    expect(s.reward?.milestones).toEqual([3, 7])
   })
 })

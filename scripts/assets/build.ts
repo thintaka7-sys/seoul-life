@@ -4,7 +4,7 @@
 //   元の画像がないものは飛ばす（ゲームでは仮の絵を出す）。
 
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -12,7 +12,7 @@ import sharp, { type Sharp } from 'sharp'
 import type { AssetManifest, ImageAsset } from '../../src/data/types.ts'
 import { parseAssetConfig, type AssetConfig } from './config.ts'
 import { findInput } from './inputFiles.ts'
-import { DEFAULT_KEY_OPTIONS, alignFigures, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
+import { DEFAULT_KEY_OPTIONS, FURNITURE_KEY_OPTIONS, alignFigures, contentBox, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, splitFigures, type RGBAImage } from './imageOps.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const { values } = parseArgs({ options: { preview: { type: 'string' } } })
@@ -72,7 +72,7 @@ function inputPath(file: string): string | null {
   return null
 }
 
-const manifest: AssetManifest = { characters: {}, backgrounds: {}, map: null, cg: {}, menu: {}, figures: {} }
+const manifest: AssetManifest = { characters: {}, backgrounds: {}, map: null, cg: {}, menu: {}, figures: {}, furniture: {} }
 
 for (const c of config.characters) {
   console.log(`立ち絵：${c.id}（${c.sheet}）`)
@@ -100,6 +100,51 @@ for (const b of config.backgrounds) {
   const file = inputPath(b.file)
   if (file === null) continue
   manifest.backgrounds[b.id] = await writeWebp(sharp(file).resize({ width: config.backgroundWidth }), `bg/${b.id}.webp`)
+}
+// 元の画像がまだない背景は、代わりの背景の絵を仮に使う（同じファイルを指す）
+for (const b of config.backgrounds) {
+  const fallback = b.fallbackId === undefined ? undefined : manifest.backgrounds[b.fallbackId]
+  if (manifest.backgrounds[b.id] !== undefined || fallback === undefined) continue
+  console.log(`  ！ 背景 ${b.id} は、届くまで ${b.fallbackId} の絵を仮に使います`)
+  manifest.backgrounds[b.id] = fallback
+}
+
+// 家具：マゼンタの背景を透明にし、家具のまわりの余白を切り落として、長い辺を furnitureSize までに縮める
+const furnitureKeys: string[] = []
+const furnitureDir = join(root, config.furnitureData)
+for (const name of readdirSync(furnitureDir).filter((n) => n.endsWith('.json')).sort()) {
+  const items: unknown = JSON.parse(readFileSync(join(furnitureDir, name), 'utf8'))
+  if (!Array.isArray(items)) continue
+  for (const item of items) {
+    const image = typeof item === 'object' && item !== null ? (item as Record<string, unknown>)['image'] : undefined
+    if (typeof image === 'string' && /^[a-z][a-z0-9_]*$/.test(image) && !furnitureKeys.includes(image)) furnitureKeys.push(image)
+  }
+}
+for (const key of furnitureKeys) {
+  console.log(`家具：${key}（fur_${key}）`)
+  const file = inputPath(`fur_${key}`)
+  if (file === null) continue
+  const source = await readRgba(file)
+  const color = estimateKeyColor(source, 'magenta')
+  console.log(`  背景のマゼンタ：rgb(${color.r}, ${color.g}, ${color.b})`)
+  const keyed = removeBackground(source, color, FURNITURE_KEY_OPTIONS)
+  const box = contentBox(keyed)
+  if (box === null) {
+    console.warn(`  ！ fur_${key} に家具が見つかりません（すべて透明になりました）。飛ばします`)
+    continue
+  }
+  const pad = 2
+  const area = { left: Math.max(0, box.x0 - pad), top: Math.max(0, box.y0 - pad), width: 0, height: 0 }
+  area.width = Math.min(keyed.width, box.x1 + pad) - area.left
+  area.height = Math.min(keyed.height, box.y1 + pad) - area.top
+  // sharp は切り出しを縮小より先に行うため、切り出した結果を一度画像にしてから縮小する
+  const cropped = await fromRgba(keyed).extract(area).png().toBuffer()
+  const { data, info } = await sharp(cropped).raw().toBuffer({ resolveWithObject: true })
+  await writePreview({ width: info.width, height: info.height, data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.length) }, `fur_${key}`)
+  manifest.furniture[key] = await writeWebp(
+    sharp(cropped).resize({ width: config.furnitureSize, height: config.furnitureSize, fit: 'inside', withoutEnlargement: true }),
+    `fur/${key}.webp`,
+  )
 }
 
 for (const c of config.cg) {

@@ -25,6 +25,7 @@ export const content: LoadedContent = loadContent({
   orders: import.meta.glob<unknown>('./orders/*.json', { eager: true, import: 'default' }),
   chapters: import.meta.glob<unknown>('./chapters/*.json', { eager: true, import: 'default' }),
   achievements: import.meta.glob<unknown>('./achievements/*.json', { eager: true, import: 'default' }),
+  furniture: import.meta.glob<unknown>('./furniture/*.json', { eager: true, import: 'default' }),
   balance: import.meta.glob<unknown>('./game/balance.json', { eager: true, import: 'default' }),
 })
 
@@ -69,6 +70,10 @@ export function findHangulLesson(id: string) {
   return content.hangulLessons.find((l) => l.id === id)
 }
 
+export function findFurniture(id: string) {
+  return content.furniture.find((f) => f.id === id)
+}
+
 // ---------- 加工済みの画像 ----------
 
 const assetResult = parseAssetManifest(import.meta.glob<unknown>('./assets/manifest.json', { eager: true, import: 'default' })['./assets/manifest.json'], {
@@ -91,6 +96,11 @@ export const assetIssues = assetResult.issues
 export function characterImage(characterId: string, expression: Expression) {
   const images = assets.characters[characterId]
   return images?.[expression] ?? images?.normal
+}
+
+/** 家具の絵。なければ undefined（仮の絵を出す） */
+export function furnitureImage(key: string) {
+  return assets.furniture[key]
 }
 
 /** おはなしの一枚絵。なければ undefined（背景だけで進む） */

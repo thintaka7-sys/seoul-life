@@ -9,6 +9,7 @@ import { UpdateBanner } from '../components/UpdateBanner'
 import { backgroundImage, content, findConversation, findLocation } from '../data'
 import type { GameEvent } from '../data/types'
 import { completedEventsAt, nextEventAt } from '../game/events/events'
+import { isMovedIn } from '../game/home/home'
 
 /** 次のイベントで会話する相手（施設にいる人として立ち絵を出す）。会話がなければ null */
 function characterIn(event: GameEvent | undefined): string | null {
@@ -88,6 +89,7 @@ export function LocationPage({ locationId }: { locationId: string }) {
         {locationId === 'home' && (
           <>
             <Button onClick={() => dispatch({ type: 'openStudy' })}>勉強する（復習・練習・ハングル）</Button>
+            {save !== null && isMovedIn(save.progress, content.balance.room) && <Button onClick={() => dispatch({ type: 'openRoom' })}>部屋を飾る（家具）</Button>}
             <Button onClick={() => dispatch({ type: 'openDictionary' })}>図鑑を見る</Button>
             <Button onClick={() => dispatch({ type: 'openStamps' })}>スタンプカード</Button>
             <Button onClick={() => dispatch({ type: 'openAchievements' })}>実績</Button>

@@ -116,6 +116,13 @@ const balance = {
   levels: { thresholds: [0, 100, 250], stepAfter: 200 },
   coins: { eventComplete: 20, chapterClear: 50, chapterTest: 50 },
   stampMilestones: [{ days: 3, coins: 30 }],
+  room: {
+    movedInAfter: 'event_001',
+    slots: [
+      { id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2 },
+      { id: 'rug', nameJa: 'ラグ', x: 30, y: 72, w: 44, h: 16, align: 'center', layer: 1 },
+    ],
+  },
 }
 
 const base: ContentInput = {
@@ -123,6 +130,7 @@ const base: ContentInput = {
   characters: { 'c.json': [{ id: 'cafe_staff', roleJa: '店員' }, { id: 'teacher', roleJa: '先生' }] },
   chapters: { 'ch.json': [1, 2, 3].map((chapter) => ({ chapter, titleJa: `第${chapter}章`, goalJa: 'できること' })) },
   achievements: {},
+  furniture: {},
   vocabulary: { 'v.json': [vocab('vocab_001', '커피', 'コピ'), vocab('vocab_002', '아메리카노', 'アメリカノ'), vocab('vocab_003', '치즈케이크', 'チジュケイク')] },
   grammar: {},
   conversations: {},
