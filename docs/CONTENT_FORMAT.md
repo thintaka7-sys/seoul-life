@@ -2042,6 +2042,7 @@ Phase 3 から、物語は「1日目」ではなく**章**で進みます。章�
 | `level` | 必須 | 整数か null | カタログで買えるようになるレベル（1以上）。節目専用なら `null` |
 | `milestone` | 必須 | 整数か null | 節目専用なら、もらえる節目（スタンプを集めた合計の数。`balance.json` の `stampMilestones` の `days`）。カタログで売るなら `null` |
 | `image` | 必須 | 文字列 | 絵のキー（英小文字・数字・`_`）。元の画像は `fur_キー`（例：`wall_clock` → `fur_wall_clock.png`）。絵がまだなければ、ゲームでは仮の絵を出す |
+| `size` | 必須 | 数 | 本当の幅（m。0より大きく5以下。小数でよい）。絵の横幅に当たる長さ。部屋に置くときの大きさに使う（29-1） |
 | `vocab` | 必須 | 文字列か null | 韓国語の名前（単語ID）。押すと意味が出て、「覚える」で見かけた単語に入る。まだなければ `null` |
 | `reviewed` | 必須 | 真偽値 | 名前・値段・レベルを確かめたか |
 | `notes` | 任意 | 文字列 | メモ |
@@ -2051,15 +2052,21 @@ Phase 3 から、物語は「1日目」ではなく**章**で進みます。章�
 
 ### 29-1. 部屋の場所（`balance.json` の `room`）
 
-部屋の場所は `src/data/game/balance.json` の `room.slots` です（開発側のデータ）。位置と大きさは、部屋の絵の幅・高さに対する割合（%）です。
+部屋の場所は `src/data/game/balance.json` の `room` です（開発側のデータ）。位置は、部屋の絵の幅・高さに対する割合（%）です。家具は、本当の幅（`size`）と置く所の奥行きから大きさを決めます（奥ほど小さい）。決め方は docs/PHASE4_HOME_PLAN.md 2-1 にあります。
 
 | 項目 | 意味 |
 |---|---|
 | `movedInAfter` | このイベントを終えるまでは「引っ越したばかり」：自宅の背景を `home_moving` にし、「部屋を飾る」を出さない |
+| `perspective` | 奥行き。床の高さ y（%）の所での 1m の長さ（絵の幅に対する %）を `a` ×（y ＋ `b`）とする。`wallFloorY` は奥の壁の足元の y（壁の物の大きさに使う） |
+| `light` | 光の来る所（窓）の `x`・`y`（%）。家具の、窓側を明るく・反対側を暗くする |
+| `occluders[]` | 家具より手前にある物（ベッドなど）。`id`、形 `points`（[x, y] の頂点を3個以上）、重なりの順 `layer`。部屋の絵のその形の所を、家具の上に描き直す |
 | `slots[].id` | 場所のID（`wall_left` など）。後から変えない（セーブデータが置き場所に使う） |
 | `slots[].nameJa` | 場所の名前（例：「壁（左）」） |
-| `slots[].x`・`y`・`w`・`h` | 枠の左端・上端・幅・高さ（%）。絵の外に出ないように |
-| `slots[].align` | 家具の絵をそろえる位置。`bottom`：床に置くもの（枠の下の辺、左右は中央）、`center`：壁・ラグ（枠の中央） |
+| `slots[].kind` | `wall`：正面の壁に掛ける物。`floor`：床に置く物。`rug`：床に敷く物 |
+| `slots[].x`・`y` | `wall`・`rug` は絵の中心、`floor` は床に触れる所（絵の下の辺の中央） |
+| `slots[].maxW`・`maxH` | `wall` だけ（必須）：いちばん大きくしたときの幅・高さ（%）。超えれば縮める |
+| `slots[].scale` | 任意：本当の大きさに掛ける倍率（省略したら 1）。手前の床の物は 0.8（見下ろした部屋の絵で大きく見えすぎないように） |
+| `slots[].behind` | 任意：この場所の家具より手前にある物（`occluders` の `id`）。その物の `layer` は、この場所の `layer` より大きくする |
 | `slots[].layer` | 重なりの順（小さいほど奥） |
 
 ### 見本（`src/data/furniture/furniture.json` など）
@@ -2067,7 +2074,7 @@ Phase 3 から、物語は「1日目」ではなく**章**で進みます。章�
 <!-- sample: furniture -->
 ```json
 [
-  { "id": "furniture_001", "nameJa": "壁かけ時計", "slot": "wall_left", "price": 80, "level": 1, "milestone": null, "image": "wall_clock", "vocab": null, "reviewed": false },
-  { "id": "furniture_018", "nameJa": "チョガクポ（つぎはぎの布）の壁かけ", "slot": "wall_left", "price": null, "level": null, "milestone": 7, "image": "pojagi", "vocab": null, "reviewed": false, "notes": "見本。節目専用" }
+  { "id": "furniture_001", "nameJa": "壁かけ時計", "slot": "wall_left", "price": 80, "level": 1, "milestone": null, "image": "wall_clock", "size": 0.3, "vocab": null, "reviewed": false },
+  { "id": "furniture_018", "nameJa": "チョガクポ（つぎはぎの布）の壁かけ", "slot": "wall_left", "price": null, "level": null, "milestone": 7, "image": "pojagi", "size": 0.4, "vocab": null, "reviewed": false, "notes": "見本。節目専用" }
 ]
 ```

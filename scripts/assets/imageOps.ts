@@ -259,6 +259,64 @@ export function removeMagentaSpill(src: RGBAImage, key: RGB, tolerance = 20): RG
   return { width: src.width, height: src.height, data }
 }
 
+/**
+ * 家具の色の整え方（docs/PHASE4_HOME_PLAN.md 2-4。試作の案2）。CSS の filter と同じ計算を、この順にかける：
+ * 線を薄く（lift：SVG の feComponentTransfer の table。いちばん暗い所を部屋の線の色まで持ち上げる）→ saturate → sepia → contrast
+ */
+export interface FurnitureTone {
+  lift: { r: readonly number[]; g: readonly number[]; b: readonly number[] }
+  saturate: number
+  sepia: number
+  contrast: number
+}
+
+/** SVG の feComponentTransfer type="table"（値 c は 0〜1） */
+function tableValue(values: readonly number[], c: number): number {
+  const n = values.length - 1
+  if (n < 1) return c
+  const k = Math.min(n - 1, Math.floor(c * n))
+  const v0 = values[k] ?? 0
+  const v1 = values[k + 1] ?? 1
+  return v0 + (c * n - k) * (v1 - v0)
+}
+
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v)
+
+/** 色を落ち着かせる量を ratio 倍にする（1 で同じ、0.5 で半分）。線の持ち上げ・コントラストは変えない */
+export function softenTone(tone: FurnitureTone, ratio: number): FurnitureTone {
+  return { ...tone, saturate: 1 - (1 - tone.saturate) * ratio, sepia: tone.sepia * ratio }
+}
+
+/** 家具の絵の色を整える（透明な所はそのまま） */
+export function toneImage(src: RGBAImage, tone: FurnitureTone): RGBAImage {
+  const data = new Uint8ClampedArray(src.data)
+  const s = tone.saturate
+  const a = 1 - tone.sepia
+  for (let i = 0; i < data.length; i += 4) {
+    if ((data[i + 3] ?? 0) === 0) continue
+    let r = tableValue(tone.lift.r, (data[i] ?? 0) / 255)
+    let g = tableValue(tone.lift.g, (data[i + 1] ?? 0) / 255)
+    let b = tableValue(tone.lift.b, (data[i + 2] ?? 0) / 255)
+    // saturate（Filter Effects の行列）
+    ;[r, g, b] = [
+      clamp01((0.213 + 0.787 * s) * r + (0.715 - 0.715 * s) * g + (0.072 - 0.072 * s) * b),
+      clamp01((0.213 - 0.213 * s) * r + (0.715 + 0.285 * s) * g + (0.072 - 0.072 * s) * b),
+      clamp01((0.213 - 0.213 * s) * r + (0.715 - 0.715 * s) * g + (0.072 + 0.928 * s) * b),
+    ]
+    // sepia（Filter Effects の行列。a は 1 − 量）
+    ;[r, g, b] = [
+      clamp01((0.393 + 0.607 * a) * r + (0.769 - 0.769 * a) * g + (0.189 - 0.189 * a) * b),
+      clamp01((0.349 - 0.349 * a) * r + (0.686 + 0.314 * a) * g + (0.168 - 0.168 * a) * b),
+      clamp01((0.272 - 0.272 * a) * r + (0.534 - 0.534 * a) * g + (0.131 + 0.869 * a) * b),
+    ]
+    // contrast
+    data[i] = Math.round(clamp01((r - 0.5) * tone.contrast + 0.5) * 255)
+    data[i + 1] = Math.round(clamp01((g - 0.5) * tone.contrast + 0.5) * 255)
+    data[i + 2] = Math.round(clamp01((b - 0.5) * tone.contrast + 0.5) * 255)
+  }
+  return { width: src.width, height: src.height, data }
+}
+
 /** 不透明（alpha が threshold 以上）の画素を囲む最小の箱。なければ null */
 export function contentBox(img: RGBAImage, area: Box = { x0: 0, y0: 0, x1: img.width, y1: img.height }, threshold = 16): Box | null {
   let x0 = Infinity

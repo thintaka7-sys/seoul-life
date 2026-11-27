@@ -1,7 +1,7 @@
 // assets.config.json（どの画像を何として使うか）の形と検証。
 
 import { EXPRESSIONS, type Expression } from '../../src/data/types.ts'
-import type { Box } from './imageOps.ts'
+import type { Box, FurnitureTone } from './imageOps.ts'
 
 export interface CharacterSheetConfig {
   /** キャラクターID（src/data/characters） */
@@ -41,6 +41,11 @@ export interface AssetConfig {
   furnitureData: string
   /** 家具の絵の長い辺の最大（px） */
   furnitureSize: number
+  /**
+   * 家具の色を部屋の絵に寄せる（線を薄く・鮮やかさを下げる）。keepColor の家具（絵のキー）は、色を落ち着かせる量を keepColorAmount 倍にする
+   * （チェック柄のラグ・チョガクポ・パンダジなど、色が持ち味の物）
+   */
+  furnitureTone: FurnitureTone & { keepColor: string[]; keepColorAmount: number }
 }
 
 export interface CellSheetConfig {
@@ -67,6 +72,36 @@ function posInt(o: Record<string, unknown>, key: string): number {
   const v = o[key]
   if (typeof v !== 'number' || !Number.isInteger(v) || v <= 0) throw new Error(`${key} は正の整数にしてください`)
   return v
+}
+
+function unit(o: Record<string, unknown>, key: string, where: string): number {
+  const v = o[key]
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 1) throw new Error(`${where}.${key} は 0〜1 の数にしてください`)
+  return v
+}
+
+function parseTone(raw: unknown): AssetConfig['furnitureTone'] {
+  const where = 'furnitureTone'
+  if (!isObj(raw)) throw new Error(`${where} はオブジェクトにしてください`)
+  const lift = raw['lift']
+  if (!isObj(lift)) throw new Error(`${where}.lift はオブジェクト（r・g・b）にしてください`)
+  const channel = (c: string) => {
+    const v = lift[c]
+    if (!Array.isArray(v) || v.length < 2 || !v.every((x) => typeof x === 'number' && x >= 0 && x <= 1)) throw new Error(`${where}.lift.${c} は 0〜1 の数の配列（2個以上）にしてください`)
+    return v as number[]
+  }
+  const keepColor = raw['keepColor']
+  if (!Array.isArray(keepColor) || !keepColor.every((k) => typeof k === 'string')) throw new Error(`${where}.keepColor は絵のキーの配列にしてください`)
+  const contrast = raw['contrast']
+  if (typeof contrast !== 'number' || !(contrast > 0) || contrast > 2) throw new Error(`${where}.contrast は 0より大きく2以下の数にしてください`)
+  return {
+    lift: { r: channel('r'), g: channel('g'), b: channel('b') },
+    saturate: unit(raw, 'saturate', where),
+    sepia: unit(raw, 'sepia', where),
+    contrast,
+    keepColor,
+    keepColorAmount: unit(raw, 'keepColorAmount', where),
+  }
 }
 
 function list(o: Record<string, unknown>, key: string): Record<string, unknown>[] {
@@ -147,5 +182,6 @@ export function parseAssetConfig(raw: unknown): AssetConfig {
     figureWidth: posInt(raw, 'figureWidth'),
     furnitureData: str(raw, 'furnitureData', ''),
     furnitureSize: posInt(raw, 'furnitureSize'),
+    furnitureTone: parseTone(raw['furnitureTone']),
   }
 }

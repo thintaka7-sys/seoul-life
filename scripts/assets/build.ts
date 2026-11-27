@@ -12,7 +12,7 @@ import sharp, { type Sharp } from 'sharp'
 import type { AssetManifest, ImageAsset } from '../../src/data/types.ts'
 import { parseAssetConfig, type AssetConfig } from './config.ts'
 import { findInput } from './inputFiles.ts'
-import { DEFAULT_KEY_OPTIONS, FURNITURE_KEY_OPTIONS, alignFigures, contentBox, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, removeMagentaSpill, splitFigures, type RGBAImage } from './imageOps.ts'
+import { DEFAULT_KEY_OPTIONS, FURNITURE_KEY_OPTIONS, alignFigures, contentBox, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, removeMagentaSpill, softenTone, splitFigures, toneImage, type RGBAImage } from './imageOps.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const { values } = parseArgs({ options: { preview: { type: 'string' } } })
@@ -127,7 +127,10 @@ for (const key of furnitureKeys) {
   const source = await readRgba(file)
   const color = estimateKeyColor(source, 'magenta')
   console.log(`  背景のマゼンタ：rgb(${color.r}, ${color.g}, ${color.b})`)
-  const keyed = removeMagentaSpill(removeBackground(source, color, FURNITURE_KEY_OPTIONS), color)
+  // 色を部屋の絵に寄せる（線を薄く・鮮やかさを下げる。作り直した絵が届いても、同じ処理をかける）
+  const { keepColor, keepColorAmount, ...baseTone } = config.furnitureTone
+  const tone = keepColor.includes(key) ? softenTone(baseTone, keepColorAmount) : baseTone
+  const keyed = toneImage(removeMagentaSpill(removeBackground(source, color, FURNITURE_KEY_OPTIONS), color), tone)
   const box = contentBox(keyed)
   if (box === null) {
     console.warn(`  ！ fur_${key} に家具が見つかりません（すべて透明になりました）。飛ばします`)

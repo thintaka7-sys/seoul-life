@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FAST_SETTINGS, SAVE_VERSION, openBrowser, saveAtHome, sleep } from './browser.mjs'
+import { furnitureRect as layoutRect } from '../../src/game/home/layout.ts'
 
 const b = await openBrowser('phase4')
 const { send, evaluate, check, click, freshStart, viewport, load, reload, url, outDir, shot, layoutCheck, mainText } = b
@@ -229,8 +230,15 @@ const furnitureRect = (scope, id) =>
     if (!r || !f) return null
     return { x: (f.left - r.left) / r.width * 100, y: (f.top - r.top) / r.height * 100, w: f.width / r.width * 100, h: f.height / r.height * 100 }
   })()`)
-const near = (rect, slot) => rect !== null && Math.abs(rect.x - slot.x) < 0.6 && Math.abs(rect.y - slot.y) < 0.6 && Math.abs(rect.w - slot.w) < 0.6 && Math.abs(rect.h - slot.h) < 0.6
-const slotOf = (id) => room.slots.find((s) => s.id === id)
+const near = (rect, want) => rect !== null && Math.abs(rect.x - want.x) < 0.6 && Math.abs(rect.y - want.y) < 0.6 && Math.abs(rect.w - want.w) < 0.6 && Math.abs(rect.h - want.h) < 0.6
+const assetManifest = JSON.parse(readFileSync('src/data/assets/manifest.json', 'utf8'))
+/** 家具を置く位置と大きさ（%）。本当の幅・奥行き・絵の縦横の比から（src/game/home/layout.ts と同じ計算） */
+const expectedRect = (id) => {
+  const f = furnitureData.find((x) => x.id === id)
+  const img = assetManifest.furniture[f.image]
+  const bg = assetManifest.backgrounds.home
+  return layoutRect(room.slots.find((s) => s.id === f.slot), f, img === undefined ? 1 : img.height / img.width, room, bg.height / bg.width)
+}
 
 for (const [W, H] of [
   [375, 800],
@@ -291,6 +299,44 @@ for (const [W, H] of [
   saved = await b.saved()
   check(`${P} 同じ場所に置いてあれば、買っても置き換えない（持ち物に入る）`, saved?.stats.coins === 320 && saved?.home.placement.wall_left === 'furniture_001' && (await mainText()).includes('「飾る」で'), JSON.stringify(saved?.home.placement))
 
+  // 試しに置いてみる：まだ買えない家具（レベルが足りない・節目専用）も、部屋に置いた見た目を見られる。セーブデータは変えない
+  check(`${P} 試しに置いてみる：持っている家具には出さない`, !(await evaluate(`document.querySelector('li[data-id="furniture_001"]')?.innerText ?? ''`)).includes('試しに置いてみる'))
+  await click('試しに置いてみる', { within: 'li[data-id="furniture_003"]' })
+  await sleep(300)
+  const trialBar = () => evaluate(`document.querySelector('.trial-bar')?.innerText ?? ''`)
+  check(
+    `${P} 試しに置いてみる（Lv.4 のコルクボード）：部屋の壁（左）に置いて見せ、「Lv.4 で買えます」（買うボタンなし）`,
+    (await evaluate(`!!document.querySelector('.room-view [data-furniture="furniture_003"]') && !document.querySelector('.room-view [data-furniture="furniture_001"]')`)) &&
+      (await trialBar()).includes('Lv.4 で買えます') &&
+      !(await trialBar()).includes('買う（'),
+    await trialBar(),
+  )
+  check(`${P} 試しに置いてみる：決まった位置・大きさに出る`, near(await furnitureRect('.room-view', 'furniture_003'), expectedRect('furniture_003')), JSON.stringify([await furnitureRect('.room-view', 'furniture_003'), expectedRect('furniture_003')]))
+  check(`${P} 試しに置いてみる：部屋の絵が見える所まで戻す`, await evaluate(`Math.abs(document.querySelector('.room-view').getBoundingClientRect().top) < 2`))
+  saved = await b.saved()
+  check(`${P} 試しに置いてみる：セーブデータは変えない`, saved?.home.placement.wall_left === 'furniture_001' && saved?.home.owned.furniture_003 === undefined && saved?.stats.coins === 320)
+  if (W === 375) await shot('375-10c-trial-level')
+  await layoutCheck(`${P} 試しに置いてみる`)
+  await click('やめる', { within: '.trial-bar' })
+  await sleep(200)
+  check(`${P} 試しに置いてみる：「やめる」で元の部屋に戻す`, (await evaluate(`!document.querySelector('.trial-bar') && !!document.querySelector('.room-view [data-furniture="furniture_001"]') && !document.querySelector('.room-view [data-furniture="furniture_003"]')`)))
+  await click('試しに置いてみる', { within: 'li[data-id="furniture_021"]' })
+  await sleep(300)
+  check(`${P} 試しに置いてみる（節目専用のパンダジ）：「スタンプ100個の節目でもらえます」`, (await trialBar()).includes('スタンプ100個の節目でもらえます') && (await evaluate(`!!document.querySelector('.room-view [data-furniture="furniture_021"]')`)), await trialBar())
+  await click('やめる', { within: '.trial-bar' })
+  await sleep(200)
+  // 買える家具は、試しに置いたまま買える（その場所に置く）
+  await click('試しに置いてみる', { within: 'li[data-id="furniture_013"]' })
+  await sleep(300)
+  await click('買う（80 コイン）', { within: '.trial-bar' })
+  await sleep(300)
+  saved = await b.saved()
+  check(
+    `${P} 試しに置いてみる：「買う（80 コイン）」で買い、床（右手前）に置く`,
+    saved?.stats.coins === 240 && saved?.home.owned.furniture_013 !== undefined && saved?.home.placement.floor_right === 'furniture_013' && (await mainText()).includes('買って、床（右手前）に置きました') && !(await evaluate(`!!document.querySelector('.trial-bar')`)),
+    JSON.stringify(saved?.home),
+  )
+
   // 飾る：置き換える・外す
   await click('飾る')
   await sleep(200)
@@ -300,7 +346,8 @@ for (const [W, H] of [
   await sleep(200)
   saved = await b.saved()
   check(`${P} 飾る：壁（左）をポスターに置き換え、部屋の絵に出す`, saved?.home.placement.wall_left === 'furniture_002' && (await evaluate(`!!document.querySelector('.room-view [data-furniture="furniture_002"]') && !document.querySelector('.room-view [data-furniture="furniture_001"]')`)))
-  check(`${P} 飾る：家具は場所の枠の位置・大きさに出る`, near(await furnitureRect('.room-view', 'furniture_002'), slotOf('wall_left')), JSON.stringify(await furnitureRect('.room-view', 'furniture_002')))
+  check(`${P} 飾る：家具は決まった位置・大きさ（本当の幅・奥行き）に出る`, near(await furnitureRect('.room-view', 'furniture_002'), expectedRect('furniture_002')), JSON.stringify([await furnitureRect('.room-view', 'furniture_002'), expectedRect('furniture_002')]))
+  check(`${P} 飾る：家具に、その場所の部屋の色と光の向きをのせる`, await evaluate(`[...document.querySelectorAll('.room-view [data-furniture]')].every((p) => p.querySelector('.room__tone--tint') && p.querySelector('.room__tone--light'))`))
   await click('何も置かない')
   await sleep(200)
   check(`${P} 飾る：「何も置かない」で外す（持ち物には残る）`, (await b.saved())?.home.placement.wall_left === undefined && (await b.saved())?.home.owned.furniture_002 !== undefined)
@@ -313,7 +360,7 @@ for (const [W, H] of [
   await click('持ち物')
   await sleep(200)
   const items = await evaluate(`document.querySelector('section[aria-label="持ち物"]')?.innerText ?? ''`)
-  check(`${P} 持ち物：持っている家具（2 / 21）と、置いているか`, items.includes('持っている家具：2 / 21') && items.includes('壁（左）に置いています') && items.includes('しまってあります'), items)
+  check(`${P} 持ち物：持っている家具（3 / 21）と、置いているか`, items.includes('持っている家具：3 / 21') && items.includes('壁（左）に置いています') && items.includes('しまってあります'), items)
   await click('戻る')
   await sleep(300)
 
@@ -325,7 +372,8 @@ for (const [W, H] of [
     return { inside: r.left >= c.left - 1 && r.right <= c.right + 1 && r.bottom <= c.bottom + 1, top: Math.abs(r.top - c.top) < 1, centered: Math.abs((r.left + r.width / 2) - (c.left + c.width / 2)) < 1, fills: Math.abs(r.width - c.width) < 1 || Math.abs(r.height - c.height) < 1 }
   })()`)
   check(`${P} 自宅の背景：部屋の絵は切り取らずに全体を見せる（上にそろえ、左右の中央）`, fit?.inside === true && fit?.top === true && fit?.centered === true && fit?.fills === true, JSON.stringify(fit))
-  check(`${P} 自宅の背景：置いた家具（壁かけ時計）が、壁（左）の位置に重なる`, near(await furnitureRect('.backdrop__room', 'furniture_001'), slotOf('wall_left')), JSON.stringify(await furnitureRect('.backdrop__room', 'furniture_001')))
+  check(`${P} 自宅の背景：置いた家具（壁かけ時計）が、部屋を飾る画面と同じ位置に重なる`, near(await furnitureRect('.backdrop__room', 'furniture_001'), expectedRect('furniture_001')), JSON.stringify(await furnitureRect('.backdrop__room', 'furniture_001')))
+  check(`${P} 自宅の背景：床の家具（クッション）に、床に触れる影`, await evaluate(`!!document.querySelector('.backdrop__room [data-furniture="furniture_013"] .room__shadow--contact')`))
   if (W === 375) await shot('375-12-home-with-furniture')
 
   // おはなしの自宅の場面にも重ねる（story_004）。引っ越したばかりの場面（story_003）には重ねない
@@ -340,6 +388,10 @@ for (const [W, H] of [
   await click(titles.find((s) => s.id === 'story_004').titleJa)
   await sleep(500)
   check(`${P} おはなし（story_004）の自宅の場面にも、置いた家具（ラグ）を重ねる`, await evaluate(`!!document.querySelector('.backdrop__room [data-furniture="furniture_016"]')`))
+  check(
+    `${P} ラグはベッドとローテーブルの下に入る（手前の物を、ラグの上に描き直す）`,
+    await evaluate(`(() => { const rug = document.querySelector('.backdrop__room [data-furniture="furniture_016"]'); const bed = document.querySelector('.backdrop__room [data-occluder="bed"]'); const table = document.querySelector('.backdrop__room [data-occluder="table"]'); return !!rug && !!bed && !!table && Number(getComputedStyle(bed).zIndex) > Number(getComputedStyle(rug).zIndex) })()`),
+  )
   await load(url)
   await b.continueToHome()
   await click('おはなしのアルバム')

@@ -2,7 +2,8 @@
 // CI で失敗すると公開されないため、壊れた教材が公開URLに出ることはない。
 
 import { describe, expect, it } from 'vitest'
-import { content } from './index'
+import { backgroundImage, content, furnitureImage } from './index'
+import { furnitureRect } from '../game/home/layout'
 import { contrastRatio, readableTextOn } from '../game/theme/color'
 import { formatIssue } from './validate'
 import { chapterTestKeys, chapterTurnIds, testSettings } from '../game/tests/chapterTest'
@@ -122,6 +123,27 @@ describe('家具と部屋（Phase 4 区切り3）', () => {
       ['furniture_020', 50],
       ['furniture_021', 100],
     ])
+  })
+
+  it('置いた家具の位置：壁の物は絵の中、窓のそばの背の高い物は壁（右）の物とぶつからない（docs/PHASE4_HOME_PLAN.md 2-1）', () => {
+    const room = content.balance.room
+    const bg = backgroundImage('home')
+    expect(bg).toBeDefined()
+    const aspect = bg === undefined ? 1 : bg.height / bg.width
+    const rectOf = (id: string) => {
+      const f = content.furniture.find((x) => x.id === id)
+      const slot = room.slots.find((s) => s.id === f?.slot)
+      const image = f === undefined ? undefined : furnitureImage(f.image)
+      if (f === undefined || slot === undefined) throw new Error(id)
+      return furnitureRect(slot, f, image === undefined ? 1 : image.height / image.width, room, aspect)
+    }
+    const ids = (slot: string) => content.furniture.filter((f) => f.slot === slot).map((f) => f.id)
+    for (const id of [...ids('wall_left'), ...ids('wall_right')]) {
+      const r = rectOf(id)
+      expect(r.x >= 0 && r.y >= 0 && r.x + r.w <= 100 && r.y + r.h <= 100, id).toBe(true)
+    }
+    const wallBottom = Math.max(...ids('wall_right').map((id) => rectOf(id).y + rectOf(id).h))
+    for (const id of ids('window')) expect(rectOf(id).y, id).toBeGreaterThan(wallBottom)
   })
 
   it('引っ越しは第1章のお隣さんへのあいさつ（event_001）を終えたら。そのあとの先生とのふり返り（event_006）は新しい部屋', () => {

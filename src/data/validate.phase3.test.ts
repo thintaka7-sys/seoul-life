@@ -118,9 +118,12 @@ const balance = {
   stampMilestones: [{ days: 3, coins: 30 }],
   room: {
     movedInAfter: 'event_001',
+    perspective: { a: 0.5, b: 10, wallFloorY: 57 },
+    light: { x: 45, y: 35 },
+    occluders: [{ id: 'bed', layer: 5, points: [[0, 50], [40, 50], [40, 80]] }],
     slots: [
-      { id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2 },
-      { id: 'rug', nameJa: 'ラグ', x: 30, y: 72, w: 44, h: 16, align: 'center', layer: 1 },
+      { id: 'wall_left', nameJa: '壁（左）', kind: 'wall', x: 9.8, y: 31, maxW: 8.4, maxH: 20, layer: 2 },
+      { id: 'rug', nameJa: 'ラグ', kind: 'rug', x: 60, y: 82, scale: 0.8, behind: ['bed'], layer: 1 },
     ],
   },
 }

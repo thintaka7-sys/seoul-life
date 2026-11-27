@@ -61,10 +61,17 @@ export interface PlacedFurniture {
   item: Furniture
 }
 
-/** 部屋に置いてある家具（奥から順）。持っていない・場所に合わない・知らない家具は出さない */
-export function placedFurniture(save: SaveData, room: Room, furniture: readonly Furniture[]): PlacedFurniture[] {
+/**
+ * 部屋に置いてある家具（奥から順）。持っていない・場所に合わない・知らない家具は出さない。
+ * trial があれば「試しに置いてみる」：その家具の場所には、持っていなくても trial を置いて見せる（セーブデータは変えない）
+ */
+export function placedFurniture(save: SaveData, room: Room, furniture: readonly Furniture[], trial: Furniture | null = null): PlacedFurniture[] {
   const placed: PlacedFurniture[] = []
   for (const slot of room.slots) {
+    if (trial !== null && trial.slot === slot.id) {
+      placed.push({ slot, item: trial })
+      continue
+    }
     const id = save.home.placement[slot.id]
     const item = furniture.find((f) => f.id === id)
     if (item === undefined || item.slot !== slot.id || save.home.owned[item.id] === undefined) continue

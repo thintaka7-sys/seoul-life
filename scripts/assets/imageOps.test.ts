@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseAssetConfig } from './config.ts'
-import { FURNITURE_KEY_OPTIONS, alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, removeMagentaSpill, splitFigures, type RGBAImage } from './imageOps.ts'
+import { FURNITURE_KEY_OPTIONS, alignFigures, bodyCenterX, contentBox, createImage, estimateKeyColor, findCellFrames, removeBackground, removeGreenSpill, removeMagentaSpill, softenTone, splitFigures, toneImage, type RGBAImage } from './imageOps.ts'
 
 const GREEN: [number, number, number, number] = [10, 250, 5, 255]
 const KEY = { r: 10, g: 250, b: 5 }
@@ -131,6 +131,46 @@ describe('人物全体の緑みを取る', () => {
   })
 })
 
+describe('家具の色を部屋の絵に寄せる', () => {
+  const tone = { lift: { r: [0.2, 1], g: [0.1, 1], b: [0.1, 1] }, saturate: 0.65, sepia: 0.14, contrast: 0.92 }
+  const identity = { lift: { r: [0, 1], g: [0, 1], b: [0, 1] }, saturate: 1, sepia: 0, contrast: 1 }
+
+  it('何もしない設定なら、色は変わらない', () => {
+    const img = createImage(2, 1)
+    img.data.set([200, 120, 60, 255], 0)
+    img.data.set([10, 20, 30, 128], 4)
+    expect(Array.from(toneImage(img, identity).data)).toEqual(Array.from(img.data))
+  })
+
+  it('いちばん暗い線を持ち上げ（黒にしない）、鮮やかさを下げる。透明な所と alpha は変えない', () => {
+    const img = createImage(3, 1)
+    img.data.set([0, 0, 0, 255], 0) // 黒い線
+    img.data.set([240, 140, 20, 200], 4) // 鮮やかなオレンジ
+    img.data.set([0, 0, 0, 0], 8)
+    const out = toneImage(img, tone)
+    const [r, g, b, a] = rgba(out, 0, 0)
+    expect(r).toBeGreaterThan(40) // 黒が茶色がかった灰色に
+    expect(r).toBeGreaterThan(b ?? 0)
+    expect(a).toBe(255)
+    const [r1, g1, b1, a1] = rgba(out, 1, 0)
+    const chroma = (x: number, y: number, z: number) => Math.max(x, y, z) - Math.min(x, y, z)
+    expect(chroma(r1 ?? 0, g1 ?? 0, b1 ?? 0)).toBeLessThan(chroma(240, 140, 20))
+    expect(a1).toBe(200)
+    expect(rgba(out, 2, 0)).toEqual([0, 0, 0, 0])
+    expect(g).toBeDefined()
+  })
+
+  it('色が持ち味の物は、鮮やかさを下げる量を半分にする（線とコントラストは同じ）', () => {
+    expect(softenTone(tone, 0.5)).toEqual({ ...tone, saturate: 0.825, sepia: 0.07 })
+    const navy = createImage(1, 1, [30, 50, 120, 255])
+    const chroma = (img: RGBAImage) => {
+      const [r, g, b] = rgba(img, 0, 0)
+      return Math.max(r ?? 0, g ?? 0, b ?? 0) - Math.min(r ?? 0, g ?? 0, b ?? 0)
+    }
+    expect(chroma(toneImage(navy, softenTone(tone, 0.5)))).toBeGreaterThan(chroma(toneImage(navy, tone)))
+  })
+})
+
 describe('家具のマゼンタのにじみ（全体）', () => {
   const MAGENTA = { r: 250, g: 10, b: 250 }
 
@@ -242,6 +282,7 @@ describe('設定（assets.config.json）', () => {
     figureWidth: 720,
     furnitureData: 'src/data/furniture',
     furnitureSize: 640,
+    furnitureTone: { lift: { r: [0.2, 1], g: [0.1, 1], b: [0.1, 1] }, saturate: 0.65, sepia: 0.14, contrast: 0.92, keepColor: ['check_rug'], keepColorAmount: 0.5 },
     cellSheets: [{ kind: 'menu', file: 'menu.png', rows: 1, cols: 2, inset: 4, keys: ['americano', 'cookie'] }],
     characters: [{ id: 'neighbor', sheet: 's.png', expressions: ['normal', 'smile'], keepGreen: [{ x: 1, y: 2, w: 3, h: 4 }] }],
     backgrounds: [{ id: 'home', file: 'bg.png' }],
@@ -252,6 +293,13 @@ describe('設定（assets.config.json）', () => {
     const config = parseAssetConfig(valid)
     expect(config.characters[0]?.keepGreen).toEqual([{ x0: 1, y0: 2, x1: 4, y1: 6 }])
     expect(parseAssetConfig({ ...valid, map: null }).map).toBeNull()
+    expect(config.furnitureTone.keepColor).toEqual(['check_rug'])
+  })
+
+  it('家具の色の整え方：0〜1 の外の値・足りない値は止める', () => {
+    expect(() => parseAssetConfig({ ...valid, furnitureTone: { ...valid.furnitureTone, saturate: 1.5 } })).toThrow(/saturate/)
+    expect(() => parseAssetConfig({ ...valid, furnitureTone: { ...valid.furnitureTone, lift: { r: [0.2, 1], g: [2, 1], b: [0, 1] } } })).toThrow(/lift\.g/)
+    expect(() => parseAssetConfig({ ...valid, furnitureTone: undefined })).toThrow(/furnitureTone/)
   })
 
   it('背景の代わりの絵（fallbackId）は、fallbackId のない背景を指す', () => {

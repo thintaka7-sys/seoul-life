@@ -3835,6 +3835,8 @@ body:has(.audio-debug) {
   position: relative;
   aspect-ratio: var(--room-aspect);
   overflow: hidden;
+  /* 影のぼかしなどを、部屋の幅に対する大きさ（cqw）で決める（スマホでも PC でも同じ見た目にする） */
+  container-type: inline-size;
 }
 
 .room .room__bg {
@@ -3845,20 +3847,68 @@ body:has(.audio-debug) {
   object-fit: cover;
 }
 
-.room .room__item {
+/* 置いた家具（大きさと位置は RoomScene が決める）。中に、影・家具の絵・色をのせる層を重ねる */
+.room .room__piece {
   position: absolute;
-  object-fit: contain;
-  object-position: 50% 50%;
   pointer-events: none;
 }
 
-/* 床に置くもの：枠の下の辺にそろえる。影は薄く付ける（家具の絵には影を描かない） */
-.room .room__item--bottom {
-  object-position: 50% 100%;
+.room .room__item {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.room .room__item--floor {
-  filter: drop-shadow(0 3px 3px rgb(40 24 10 / 0.28));
+/* 壁の物：壁に落ちる、ごく薄い影 */
+.room .room__piece--wall .room__item {
+  filter: drop-shadow(0.11cqw 0.32cqw 0.32cqw rgb(60 40 25 / 0.35));
+}
+
+/* ラグ：ふちに沿って、ごく薄い影 */
+.room .room__piece--rug .room__item {
+  filter: drop-shadow(0 0.16cqw 0.21cqw rgb(70 44 24 / 0.36));
+}
+
+/* その場所の光の色・窓からの光の向きを、家具の形のところだけにのせる */
+.room .room__tone {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.room .room__tone--tint {
+  mix-blend-mode: multiply;
+}
+
+.room .room__tone--light {
+  mix-blend-mode: soft-light;
+}
+
+/* 床の物の影（床に触れる影と、手前へ落ちる薄い影） */
+.room .room__shadow {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 50%;
+}
+
+.room .room__shadow--contact {
+  filter: blur(0.4cqw);
+}
+
+.room .room__shadow--cast {
+  filter: blur(0.67cqw);
+}
+
+/* 家具より手前にある物（ベッドなど）：部屋の絵の同じ所を、家具の上に描き直す */
+.room .room__occluder {
+  position: absolute;
+  inset: 0;
+  background-size: 100% 100%;
+  pointer-events: none;
 }
 
 /* 家具の絵が届くまでの仮の絵 */
@@ -3871,11 +3921,11 @@ body:has(.audio-debug) {
   background: rgb(255 250 240 / 0.72);
   font-size: clamp(16px, 4cqw, 36px);
   line-height: 1;
-  filter: none;
 }
 
 .room .room__slot {
   position: absolute;
+  z-index: 10;
   border: 1px dashed rgb(255 255 255 / 0.85);
   border-radius: 6px;
   box-shadow: 0 0 0 1px rgb(40 24 10 / 0.35);
@@ -3946,9 +3996,65 @@ body:has(.audio-debug) {
 }
 
 .room-view .room {
-  width: min(100%, calc(56dvh * var(--room-aspect)));
+  width: min(100%, calc(80dvh * var(--room-aspect)));
   border-radius: var(--radius);
   box-shadow: var(--shadow-panel);
+}
+
+/* スマホでは、部屋の絵を画面の幅いっぱいに出す（左右の余白まで広げる） */
+@media (max-width: 600px) {
+  .room-view {
+    margin-inline: calc(-1 * var(--gutter));
+  }
+
+  .room-view .room {
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* 試しに置いてみる：画面の下に出したまま、部屋の絵を見ながら買える・やめられる */
+.trial-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.trial-bar__text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0;
+}
+
+.trial-bar__label {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.trial-bar__state {
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.trial-bar__actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .room-status {
@@ -4013,6 +4119,13 @@ body:has(.audio-debug) {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.catalog-item .catalog-item__trial {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding-inline: 12px;
+  font-size: 0.85rem;
 }
 
 .catalog-item {

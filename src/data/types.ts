@@ -876,23 +876,50 @@ export interface StampMilestone {
  * 部屋の、家具を置く場所（GAME_SPEC 6-3。Phase 4。docs/PHASE4_HOME_PLAN.md 2章）。
  * 位置と大きさは、部屋の絵の幅・高さに対する割合（%）。ID はセーブデータ（home.placement）が参照するので、後から変えない
  */
+/**
+ * 家具を置く場所（docs/PHASE4_HOME_PLAN.md 2-1）。位置は部屋の絵の幅・高さに対する割合（%）。
+ * wall：正面の壁に掛ける物。(x, y) が絵の中心。大きさは奥の壁での本当の大きさで、maxW・maxH を超えないように縮める。
+ * floor：床に置く物。(x, y) が床に触れる所（絵の下の辺の中央）。奥ほど小さくする（Room の perspective）。
+ * rug：床に敷く物。(x, y) が絵の中心。奥ほど小さくする。
+ */
 export interface RoomSlot {
   id: string
   /** 場所の名前（例：壁（左）） */
   nameJa: string
+  kind: 'wall' | 'floor' | 'rug'
   x: number
   y: number
-  w: number
-  h: number
-  /** 家具の絵を枠のどこにそろえるか（bottom：床に置くもの。下の辺にそろえ、左右は中央。center：壁・ラグ。枠の中央） */
-  align: 'center' | 'bottom'
+  /** wall だけ：いちばん大きくしたときの幅・高さ（%） */
+  maxW?: number
+  maxH?: number
+  /** 本当の大きさに掛ける倍率（省略したら 1）。手前の床の物は、見下ろした部屋の絵の中で大きく見えすぎないように 0.8 など */
+  scale?: number
+  /** この場所の家具より手前にある物（Room の occluders の id）。その物を家具の上に描き直す */
+  behind?: string[]
   /** 重なりの順（小さいほど奥） */
+  layer: number
+}
+
+/** 部屋の絵の中で、家具より手前にある物（ベッド・ローテーブル・冷蔵庫など）。部屋の絵のその形の所を、家具の上に描き直す */
+export interface RoomOccluder {
+  id: string
+  /** 形（多角形の頂点。%） */
+  points: [number, number][]
+  /** 重なりの順。behind に書いた場所の layer より大きくする */
   layer: number
 }
 
 export interface Room {
   /** このイベントを終えるまでは「引っ越したばかり」：自宅の背景を home_moving（段ボールのある部屋）にし、部屋を飾れない */
   movedInAfter: string
+  /**
+   * 奥行き：床の高さ y（%）の所での 1m の長さ（絵の幅に対する %）は a ×（y ＋ b）。
+   * wallFloorY は奥の壁の足元の y（壁の物の大きさに使う）
+   */
+  perspective: { a: number; b: number; wallFloorY: number }
+  /** 光の来る所（窓）。家具の、窓側を明るく・反対側を暗くする */
+  light: { x: number; y: number }
+  occluders: RoomOccluder[]
   slots: RoomSlot[]
 }
 
@@ -911,6 +938,8 @@ export interface Furniture {
   milestone: number | null
   /** 絵のキー（元の画像は fur_キー。assets の furniture） */
   image: string
+  /** 本当の幅（m）。絵の横幅に当たる長さ。部屋に置くときの大きさに使う */
+  size: number
   /** 韓国語の名前（単語ID）。まだなければ null */
   vocab: string | null
   /** 名前・値段・レベルを確かめたか */

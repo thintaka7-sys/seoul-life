@@ -18,6 +18,7 @@ const item = (id: string, slot: string, price: number | null, level: number | nu
   level,
   milestone,
   image: id.replace('furniture', 'img'),
+  size: 0.5,
   vocab: null,
   reviewed: false,
 })
@@ -102,6 +103,16 @@ describe('置く・外す', () => {
     expect(placedFurniture(s, room, furniture).map((p) => p.slot.id)).toEqual(['rug', 'wall_left'])
     s = { ...s, home: { ...s.home, placement: { ...s.home.placement, wall_right: 'furniture_001', window: 'furniture_999', floor_left: 'furniture_002' } } }
     expect(placedFurniture(s, room, furniture).map((p) => `${p.slot.id}:${p.item.id}`)).toEqual(['rug:furniture_016', 'wall_left:furniture_001'])
+  })
+})
+
+describe('試しに置いてみる', () => {
+  it('その家具の場所に、持っていなくても置いて見せる（ほかの場所はそのまま。セーブデータは変えない）', () => {
+    const s = acquireFurniture(acquireFurniture(save(0), clock, T), rug, T)
+    const shown = placedFurniture(s, room, furniture, poster)
+    expect(shown.map((p) => `${p.slot.id}:${p.item.id}`)).toEqual(['rug:furniture_016', 'wall_left:furniture_002'])
+    expect(s.home.placement['wall_left']).toBe('furniture_001')
+    expect(placedFurniture(save(0), room, furniture, gift).map((p) => p.item.id)).toEqual(['furniture_018'])
   })
 })
 

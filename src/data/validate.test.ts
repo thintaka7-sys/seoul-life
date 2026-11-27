@@ -112,9 +112,12 @@ const validBalance = {
   stampMilestones: [{ days: 3, coins: 30 }],
   room: {
     movedInAfter: 'event_001',
+    perspective: { a: 0.5, b: 10, wallFloorY: 57 },
+    light: { x: 45, y: 35 },
+    occluders: [{ id: 'bed', layer: 5, points: [[0, 50], [40, 50], [40, 80]] }],
     slots: [
-      { id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2 },
-      { id: 'rug', nameJa: 'ラグ', x: 30, y: 72, w: 44, h: 16, align: 'center', layer: 1 },
+      { id: 'wall_left', nameJa: '壁（左）', kind: 'wall', x: 9.8, y: 31, maxW: 8.4, maxH: 20, layer: 2 },
+      { id: 'rug', nameJa: 'ラグ', kind: 'rug', x: 60, y: 82, scale: 0.8, behind: ['bed'], layer: 1 },
     ],
   },
 }
@@ -1161,23 +1164,38 @@ describe('実績（src/data/achievements/。Phase 4）', () => {
 })
 
 describe('部屋の場所（balance.json の room。Phase 4）', () => {
-  const slot = (patch: Record<string, unknown> = {}) => ({ id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2, ...patch })
+  const slot = (patch: Record<string, unknown> = {}) => ({ id: 'wall_left', nameJa: '壁（左）', kind: 'wall', x: 9.8, y: 31, maxW: 8.4, maxH: 20, layer: 2, ...patch })
+  const floor = (patch: Record<string, unknown> = {}) => ({ id: 'window', nameJa: '窓のそば', kind: 'floor', x: 78.5, y: 57.6, behind: ['bed'], layer: 3, ...patch })
+  const okRoom = validBalance.room
+  const room = (patch: Record<string, unknown>) => ({ ...okRoom, ...patch })
 
-  it('正しい値を読む', () => {
+  it('正しい値を読む（手前の物・奥行き・光の位置も）', () => {
     const result = loadContent({ ...base, balance: { 'balance.json': validBalance } })
     expect(result.issues).toEqual([])
     expect(result.balance.room.movedInAfter).toBe('event_001')
     expect(result.balance.room.slots.map((s) => s.id)).toEqual(['wall_left', 'rug'])
+    expect(result.balance.room.slots[1]).toMatchObject({ kind: 'rug', scale: 0.8, behind: ['bed'] })
+    expect(result.balance.room.occluders[0]?.points).toHaveLength(3)
   })
 
   it.each([
-    [{ movedInAfter: 'event_099', slots: [slot()] }, 'room.movedInAfter'],
-    [{ movedInAfter: 'event_001', slots: [] }, 'room.slots'],
-    [{ movedInAfter: 'event_001', slots: [slot(), slot()] }, 'room.slots[1].id'],
-    [{ movedInAfter: 'event_001', slots: [slot({ id: 'Wall Left' })] }, 'room.slots[0].id'],
-    [{ movedInAfter: 'event_001', slots: [slot({ x: 95, w: 10 })] }, 'room.slots[0].w'],
-    [{ movedInAfter: 'event_001', slots: [slot({ align: 'top' })] }, 'room.slots[0].align'],
-    [{ movedInAfter: 'event_001', slots: [slot({ nameJa: '벽' })] }, 'room.slots[0].nameJa'],
+    [room({ movedInAfter: 'event_099' }), 'room.movedInAfter'],
+    [room({ slots: [] }), 'room.slots'],
+    [room({ slots: [slot(), slot()] }), 'room.slots[1].id'],
+    [room({ slots: [slot({ id: 'Wall Left' })] }), 'room.slots[0].id'],
+    [room({ slots: [slot({ x: 101 })] }), 'room.slots[0].x'],
+    [room({ slots: [slot({ kind: 'ceiling' })] }), 'room.slots[0].kind'],
+    [room({ slots: [slot({ maxW: undefined })] }), 'room.slots[0].maxW'],
+    [room({ slots: [floor({ maxH: 10 })] }), 'room.slots[0].maxH'],
+    [room({ slots: [floor({ scale: 0 })] }), 'room.slots[0].scale'],
+    [room({ slots: [floor({ behind: ['sofa'] })] }), 'room.slots[0].behind'],
+    [room({ slots: [floor({ layer: 5 })] }), 'room.slots[0].behind'],
+    [room({ slots: [slot({ nameJa: '벽' })] }), 'room.slots[0].nameJa'],
+    [room({ perspective: { a: 0, b: 10, wallFloorY: 57 } }), 'room.perspective.a'],
+    [room({ perspective: { a: 0.5, b: -80, wallFloorY: 57 } }), 'room.perspective'],
+    [room({ light: { x: 45 } }), 'room.light.y'],
+    [room({ occluders: [{ id: 'bed', layer: 5, points: [[0, 0], [1, 1]] }] }), 'room.occluders[0].points'],
+    [room({ occluders: [{ id: 'bed', layer: 5, points: [[0, 0], [1, 1], [120, 1]] }] }), 'room.occluders[0].points[2]'],
   ])('誤りがあれば既定の値を使う %#', (room, path) => {
     const result = loadContent({ ...base, balance: { 'balance.json': { ...validBalance, room } } })
     expect(result.balance).toEqual(DEFAULT_BALANCE)
@@ -1194,6 +1212,7 @@ describe('家具・小物（src/data/furniture/。Phase 4）', () => {
     level: 1,
     milestone: null,
     image: 'wall_clock',
+    size: 0.3,
     vocab: null,
     reviewed: false,
     ...patch,
@@ -1216,6 +1235,9 @@ describe('家具・小物（src/data/furniture/。Phase 4）', () => {
     [f({ milestone: 7, price: null, level: null }), 'milestone'],
     [f({ milestone: 3 }), 'milestone'],
     [f({ image: 'fur_Wall' }), 'image'],
+    [f({ size: 0 }), 'size'],
+    [f({ size: '30cm' }), 'size'],
+    [f({ size: undefined }), 'size'],
     [f({ vocab: 'vocab_999' }), 'vocab'],
     [f({ vocab: undefined }), 'vocab'],
     [f({ reviewed: 'yes' }), 'reviewed'],

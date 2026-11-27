@@ -32,6 +32,7 @@ import {
   type Achievement,
   type Furniture,
   type Room,
+  type RoomOccluder,
   type RoomSlot,
   type Balance,
   type Chapter,
@@ -2101,7 +2102,7 @@ function loadChapters(files: FileMap, issues: ValidationIssue[]): Chapter[] {
 
 // ---------- 実績（GAME_SPEC 7-2・7-3。Phase 4） ----------
 
-const FURNITURE_KEYS = ['id', 'nameJa', 'slot', 'price', 'level', 'milestone', 'image', 'vocab', 'reviewed', 'notes'] as const
+const FURNITURE_KEYS = ['id', 'nameJa', 'slot', 'price', 'level', 'milestone', 'image', 'size', 'vocab', 'reviewed', 'notes'] as const
 const FURNITURE_ID = /^furniture_\d{3}$/
 const FURNITURE_IMAGE = /^[a-z][a-z0-9_]*$/
 
@@ -2114,7 +2115,7 @@ function nullableInteger(o: Obj, key: string, base: string, errs: FieldError[], 
 /**
  * 家具・小物（src/data/furniture/）。ID は furniture_001 の形で重ねない。ファイルの名前順・ファイル内の順。
  * 置く場所は balance の room の場所。節目専用（milestone に日数）なら price・level は null で、その日数の節目が balance にあること。
- * それ以外は price（1以上）と level（1以上）を書く。vocab は単語ID か null
+ * それ以外は price（1以上）と level（1以上）を書く。size は本当の幅（m。0より大きく5以下）。vocab は単語ID か null
  */
 function loadFurniture(files: FileMap, balance: Balance, vocabularyIds: ReadonlySet<string>, issues: ValidationIssue[]): Furniture[] {
   const furniture: Furniture[] = []
@@ -2149,6 +2150,7 @@ function loadFurniture(files: FileMap, balance: Balance, vocabularyIds: Readonly
       const image = text(entry, 'image', '', errs)
       if (image !== undefined && !FURNITURE_IMAGE.test(image)) errs.push({ path: 'image', message: '英小文字・数字・_ のキーにしてください（元の画像は fur_キー）' })
       if (image !== undefined && furniture.some((f) => f.image === image)) errs.push({ path: 'image', message: `絵のキー ${image} が、ほかの家具と重なっています` })
+      const size = decimal(entry, 'size', '', errs, 0, 5, true)
       let vocab: string | null | undefined = null
       if (entry['vocab'] === undefined) errs.push({ path: 'vocab', message: '必須項目がありません（韓国語の名前がまだなければ null）' })
       else if (entry['vocab'] !== null) vocab = reference(entry, 'vocab', '', errs, vocabularyIds, '単語ID')
@@ -2164,12 +2166,13 @@ function loadFurniture(files: FileMap, balance: Balance, vocabularyIds: Readonly
         level === undefined ||
         milestone === undefined ||
         image === undefined ||
+        size === undefined ||
         vocab === undefined ||
         reviewed === undefined
       ) {
         return
       }
-      furniture.push({ id, nameJa, slot, price, level, milestone, image, vocab, reviewed, ...(notes === undefined ? {} : { notes }) })
+      furniture.push({ id, nameJa, slot, price, level, milestone, image, size, vocab, reviewed, ...(notes === undefined ? {} : { notes }) })
     })
   }
   return furniture
@@ -2392,13 +2395,20 @@ export const DEFAULT_BALANCE: Balance = {
   ],
   room: {
     movedInAfter: 'event_001',
+    perspective: { a: 0.5426, b: 10.8, wallFloorY: 57 },
+    light: { x: 45, y: 35 },
+    occluders: [
+      { id: 'bed', layer: 5, points: [[0, 49], [6.5, 47.2], [39.5, 47.2], [40.6, 52], [47, 66], [47.4, 69], [47.4, 78.5], [44.1, 78.5], [44.1, 74.7], [1.9, 74.7], [1.9, 80.7], [0, 80.7]] },
+      { id: 'table', layer: 5, points: [[51.4, 62.2], [55.6, 58.6], [69.2, 58.6], [72.2, 63.8], [71.9, 69.8], [70.4, 69.8], [70.1, 66.2], [56.6, 66.2], [55.6, 70.4], [54.4, 70.4], [52.2, 64.4]] },
+      { id: 'fridge', layer: 5, points: [[83.9, 47.4], [89.8, 46.6], [89.8, 44.9], [97.2, 44.9], [100, 45.8], [100, 79.6], [91.6, 74], [84.3, 72.9]] },
+    ],
     slots: [
-      { id: 'wall_left', nameJa: '壁（左）', x: 2, y: 26, w: 11, h: 13, align: 'center', layer: 2 },
-      { id: 'wall_right', nameJa: '壁（右）', x: 76, y: 16, w: 15, h: 8, align: 'center', layer: 2 },
-      { id: 'window', nameJa: '窓のそば', x: 76, y: 31, w: 10, h: 25, align: 'bottom', layer: 3 },
-      { id: 'floor_left', nameJa: '床（左手前）', x: 0, y: 71, w: 30, h: 20, align: 'bottom', layer: 4 },
-      { id: 'floor_right', nameJa: '床（右手前）', x: 76, y: 73, w: 22, h: 16, align: 'bottom', layer: 4 },
-      { id: 'rug', nameJa: 'ラグ', x: 30, y: 72, w: 44, h: 16, align: 'center', layer: 1 },
+      { id: 'wall_left', nameJa: '壁（左）', kind: 'wall', x: 9.8, y: 31, maxW: 8.4, maxH: 20, layer: 2 },
+      { id: 'wall_right', nameJa: '壁（右）', kind: 'wall', x: 83, y: 21.5, maxW: 10, maxH: 11, layer: 2 },
+      { id: 'window', nameJa: '窓のそば', kind: 'floor', x: 78.5, y: 57.6, behind: ['fridge'], layer: 3 },
+      { id: 'floor_left', nameJa: '床（左手前）', kind: 'floor', x: 16, y: 97, scale: 0.8, layer: 6 },
+      { id: 'floor_right', nameJa: '床（右手前）', kind: 'floor', x: 86, y: 94.5, scale: 0.8, layer: 6 },
+      { id: 'rug', nameJa: 'ラグ', kind: 'rug', x: 60, y: 82, scale: 0.8, behind: ['bed', 'table'], layer: 1 },
     ],
   },
 }
@@ -2424,8 +2434,9 @@ const BALANCE_KEYS = [
   'stampMilestones',
   'room',
 ] as const
-const ROOM_KEYS = ['movedInAfter', 'slots'] as const
-const ROOM_SLOT_KEYS = ['id', 'nameJa', 'x', 'y', 'w', 'h', 'align', 'layer'] as const
+const ROOM_KEYS = ['movedInAfter', 'perspective', 'light', 'occluders', 'slots'] as const
+const ROOM_SLOT_KEYS = ['id', 'nameJa', 'kind', 'x', 'y', 'maxW', 'maxH', 'scale', 'behind', 'layer'] as const
+const ROOM_OCCLUDER_KEYS = ['id', 'points', 'layer'] as const
 const ROOM_SLOT_ID = /^[a-z][a-z0-9_]*$/
 const LEVEL_KEYS = ['thresholds', 'stepAfter'] as const
 const COIN_KEYS = ['eventComplete', 'chapterClear', 'chapterTest'] as const
@@ -2523,6 +2534,30 @@ function parseStampMilestones(raw: unknown, errs: FieldError[]): Balance['stampM
 }
 
 /** 部屋（balance.json の room）。場所の ID は重ねない。位置と大きさは、絵の中に収まる割合（%） */
+/** min〜max の数（小数でもよい）。exclusiveMin なら min ちょうどは不可 */
+function decimal(o: Obj, key: string, base: string, errs: FieldError[], min: number, max: number, exclusiveMin = false): number | undefined {
+  const path = joinPath(base, key)
+  const v = o[key]
+  if (v === undefined) {
+    errs.push({ path, message: '必須項目がありません' })
+    return undefined
+  }
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < min || v > max || (exclusiveMin && v === min)) {
+    errs.push({ path, message: `${exclusiveMin ? `${min}より大きく` : `${min}以上`}${max}以下の数にしてください（引用符で囲まない）` })
+    return undefined
+  }
+  return v
+}
+
+/** 部屋の絵の中の点 [x, y]（%） */
+function roomPoint(v: unknown, path: string, errs: FieldError[]): [number, number] | undefined {
+  if (!Array.isArray(v) || v.length !== 2 || !v.every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 100)) {
+    errs.push({ path, message: '[x, y]（どちらも 0〜100 の数）にしてください' })
+    return undefined
+  }
+  return [v[0] as number, v[1] as number]
+}
+
 function parseRoom(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Room | undefined {
   const path = 'room'
   if (!isObj(raw)) {
@@ -2533,6 +2568,64 @@ function parseRoom(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Roo
   checkKnownKeys(raw, ROOM_KEYS, path, errs)
   // イベントが1つもない（教材の一部だけを確かめるテストなど）ときは、イベントがあるかは確かめない
   const movedInAfter = ctx.eventIds.size === 0 ? text(raw, 'movedInAfter', path, errs) : reference(raw, 'movedInAfter', path, errs, ctx.eventIds, 'イベントID')
+
+  let perspective: Room['perspective'] | undefined
+  const rawPerspective = raw['perspective']
+  if (!isObj(rawPerspective)) {
+    errs.push({ path: `${path}.perspective`, message: 'オブジェクト（{ "a": …, "b": …, "wallFloorY": … }）にしてください' })
+  } else {
+    const p = `${path}.perspective`
+    checkKnownKeys(rawPerspective, ['a', 'b', 'wallFloorY'], p, errs)
+    const a = decimal(rawPerspective, 'a', p, errs, 0, 10, true)
+    const b = decimal(rawPerspective, 'b', p, errs, -100, 100)
+    const wallFloorY = decimal(rawPerspective, 'wallFloorY', p, errs, 0, 100)
+    if (a !== undefined && b !== undefined && wallFloorY !== undefined) {
+      if (a * (wallFloorY + b) <= 0) errs.push({ path: p, message: '奥の壁の足元（wallFloorY）での 1m の長さ a ×（wallFloorY ＋ b）が 0 以下です' })
+      else perspective = { a, b, wallFloorY }
+    }
+  }
+
+  let light: Room['light'] | undefined
+  const rawLight = raw['light']
+  if (!isObj(rawLight)) {
+    errs.push({ path: `${path}.light`, message: 'オブジェクト（{ "x": …, "y": … }）にしてください' })
+  } else {
+    checkKnownKeys(rawLight, ['x', 'y'], `${path}.light`, errs)
+    const x = percent(rawLight, 'x', `${path}.light`, errs)
+    const y = percent(rawLight, 'y', `${path}.light`, errs)
+    if (x !== undefined && y !== undefined) light = { x, y }
+  }
+
+  const occluders: RoomOccluder[] = []
+  const rawOccluders = raw['occluders']
+  if (!Array.isArray(rawOccluders)) {
+    errs.push({ path: `${path}.occluders`, message: '配列（[ ]）にしてください（手前の物がなければ []）' })
+  } else {
+    rawOccluders.forEach((o: unknown, i) => {
+      const base = `${path}.occluders[${i}]`
+      if (!isObj(o)) {
+        errs.push({ path: base, message: 'オブジェクト（{ }）にしてください' })
+        return
+      }
+      checkKnownKeys(o, ROOM_OCCLUDER_KEYS, base, errs)
+      const id = text(o, 'id', base, errs)
+      if (id !== undefined && !ROOM_SLOT_ID.test(id)) errs.push({ path: `${base}.id`, message: '英小文字・数字・_ のキーにしてください（例：bed）' })
+      if (id !== undefined && occluders.some((x) => x.id === id)) errs.push({ path: `${base}.id`, message: `${id} が2回あります` })
+      const layer = integer(o, 'layer', base, errs, 0)
+      const rawPoints = o['points']
+      const points: [number, number][] = []
+      if (!Array.isArray(rawPoints) || rawPoints.length < 3) errs.push({ path: `${base}.points`, message: '3個以上の点（[x, y]）の配列にしてください' })
+      else {
+        rawPoints.forEach((pt: unknown, k) => {
+          const point = roomPoint(pt, `${base}.points[${k}]`, errs)
+          if (point !== undefined) points.push(point)
+        })
+      }
+      if (id === undefined || layer === undefined || points.length < 3) return
+      occluders.push({ id, points, layer })
+    })
+  }
+
   const rawSlots = raw['slots']
   const slots: RoomSlot[] = []
   if (!Array.isArray(rawSlots) || rawSlots.length === 0) {
@@ -2549,20 +2642,55 @@ function parseRoom(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Roo
       if (id !== undefined && !ROOM_SLOT_ID.test(id)) errs.push({ path: `${base}.id`, message: '英小文字・数字・_ のキーにしてください（例：wall_left）' })
       if (id !== undefined && slots.some((o) => o.id === id)) errs.push({ path: `${base}.id`, message: `${id} が2回あります` })
       const nameJa = japaneseText(s, 'nameJa', base, errs)
-      const x = integer(s, 'x', base, errs, 0, 100)
-      const y = integer(s, 'y', base, errs, 0, 100)
-      const w = integer(s, 'w', base, errs, 1, 100)
-      const h = integer(s, 'h', base, errs, 1, 100)
-      if (x !== undefined && w !== undefined && x + w > 100) errs.push({ path: `${base}.w`, message: 'x + w が 100 を超えています（絵の外に出ます）' })
-      if (y !== undefined && h !== undefined && y + h > 100) errs.push({ path: `${base}.h`, message: 'y + h が 100 を超えています（絵の外に出ます）' })
-      const align = oneOf(s, 'align', base, errs, ['center', 'bottom'] as const)
+      const kind = oneOf(s, 'kind', base, errs, ['wall', 'floor', 'rug'] as const)
+      const x = percent(s, 'x', base, errs)
+      const y = percent(s, 'y', base, errs)
+      let maxW: number | undefined
+      let maxH: number | undefined
+      if (kind === 'wall') {
+        maxW = decimal(s, 'maxW', base, errs, 0, 100, true)
+        maxH = decimal(s, 'maxH', base, errs, 0, 100, true)
+      } else if (kind !== undefined) {
+        for (const key of ['maxW', 'maxH']) {
+          if (s[key] !== undefined) errs.push({ path: `${base}.${key}`, message: `${key} は壁（kind が wall）の場所だけに書きます` })
+        }
+      }
+      const scale = s['scale'] === undefined ? undefined : decimal(s, 'scale', base, errs, 0, 3, true)
+      let behind: string[] | undefined
+      if (s['behind'] !== undefined) {
+        const rawBehind = s['behind']
+        if (!Array.isArray(rawBehind) || rawBehind.length === 0 || !rawBehind.every((b) => typeof b === 'string')) {
+          errs.push({ path: `${base}.behind`, message: '手前の物（occluders の id）の、1個以上の配列にしてください' })
+        } else {
+          behind = rawBehind as string[]
+        }
+      }
       const layer = integer(s, 'layer', base, errs, 0)
-      if (id === undefined || nameJa === undefined || x === undefined || y === undefined || w === undefined || h === undefined || align === undefined || layer === undefined) return
-      slots.push({ id, nameJa, x, y, w, h, align, layer })
+      if (behind !== undefined && layer !== undefined) {
+        for (const b of behind) {
+          const o = occluders.find((x) => x.id === b)
+          if (o === undefined) errs.push({ path: `${base}.behind`, message: `手前の物 ${b} が occluders にありません` })
+          else if (o.layer <= layer) errs.push({ path: `${base}.behind`, message: `手前の物 ${b} の layer（${o.layer}）を、この場所の layer（${layer}）より大きくしてください` })
+        }
+      }
+      if (id === undefined || nameJa === undefined || kind === undefined || x === undefined || y === undefined || layer === undefined) return
+      if (kind === 'wall' && (maxW === undefined || maxH === undefined)) return
+      slots.push({
+        id,
+        nameJa,
+        kind,
+        x,
+        y,
+        ...(maxW === undefined ? {} : { maxW }),
+        ...(maxH === undefined ? {} : { maxH }),
+        ...(scale === undefined ? {} : { scale }),
+        ...(behind === undefined ? {} : { behind }),
+        layer,
+      })
     })
   }
-  if (errs.length > before || movedInAfter === undefined) return undefined
-  return { movedInAfter, slots }
+  if (errs.length > before || movedInAfter === undefined || perspective === undefined || light === undefined) return undefined
+  return { movedInAfter, perspective, light, occluders, slots }
 }
 
 function parseBalance(raw: unknown, ctx: ReferenceContext, errs: FieldError[]): Balance | undefined {

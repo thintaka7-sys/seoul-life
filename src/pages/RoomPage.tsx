@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useGame, nowIso } from '../app/GameContext'
 import { glossSpansOf } from '../app/glossary'
 import { useFuriganaDisplay } from '../app/hooks'
@@ -65,6 +65,18 @@ interface PanelProps {
   onGloss: (span: GlossSpan) => void
 }
 
+/** 買って、その場所に置く（試しに置いてみた家具を買うときは、置いてある物と入れかえる） */
+function useBuy(setMessage: (m: string) => void) {
+  const { dispatch } = useGame()
+  return (save: SaveData, item: Furniture, replace: boolean) => {
+    const placeNow = replace || save.home.placement[item.slot] === undefined
+    const now = nowIso()
+    dispatch({ type: 'buyFurniture', furnitureId: item.id, now })
+    if (replace) dispatch({ type: 'placeFurniture', slot: item.slot, furnitureId: item.id, now })
+    setMessage(placeNow ? `「${item.nameJa}」を買って、${slotName(item.slot)}に置きました。` : `「${item.nameJa}」を買いました。「飾る」で、${slotName(item.slot)}の家具と入れかえられます。`)
+  }
+}
+
 /** 飾る：場所を選んで、持っている家具を置く・外す */
 function DecoratePanel({ save, slot, onSlot, onCatalog }: PanelProps & { slot: RoomSlot; onSlot: (id: string) => void; onCatalog: () => void }) {
   const { dispatch } = useGame()
@@ -120,19 +132,15 @@ function DecoratePanel({ save, slot, onSlot, onCatalog }: PanelProps & { slot: R
   )
 }
 
-/** カタログ：コインで家具を買う。節目専用の家具も、もらえる節目を見せる */
-function CatalogPanel({ save, chapter, onGloss }: PanelProps) {
-  const { dispatch } = useGame()
-  const [message, setMessage] = useState<string | null>(null)
+/**
+ * カタログ：コインで家具を買う。節目専用の家具も、もらえる節目を見せる。
+ * まだ持っていない家具は「試しに置いてみる」で、買う前に部屋に置いた見た目を見られる（買えない家具も）
+ */
+function CatalogPanel({ save, chapter, onGloss, message, setMessage, onTrial }: PanelProps & { message: string | null; setMessage: (m: string) => void; onTrial: (item: Furniture) => void }) {
   const levels = content.balance.levels
   const sold = content.furniture.filter((f) => f.milestone === null).sort((a, b) => (a.level ?? 0) - (b.level ?? 0))
   const gifts = content.furniture.filter((f) => f.milestone !== null).sort((a, b) => (a.milestone ?? 0) - (b.milestone ?? 0))
-
-  function buy(item: Furniture) {
-    const placeNow = save.home.placement[item.slot] === undefined
-    dispatch({ type: 'buyFurniture', furnitureId: item.id, now: nowIso() })
-    setMessage(placeNow ? `「${item.nameJa}」を買って、${slotName(item.slot)}に置きました。` : `「${item.nameJa}」を買いました。「飾る」で、${slotName(item.slot)}の家具と入れかえられます。`)
-  }
+  const buy = useBuy(setMessage)
 
   const row = (f: Furniture) => {
     const state = purchaseState(f, save, levels)
@@ -145,10 +153,15 @@ function CatalogPanel({ save, chapter, onGloss }: PanelProps) {
             {slotName(f.slot)}
             {f.price !== null && `・${f.price} コイン`}
           </p>
+          {state.kind !== 'owned' && (
+            <Button className="catalog-item__trial" onClick={() => onTrial(f)}>
+              試しに置いてみる
+            </Button>
+          )}
         </div>
         <div className="catalog-item__action">
           {state.kind === 'available' ? (
-            <Button variant="primary" onClick={() => buy(f)}>
+            <Button variant="primary" onClick={() => buy(save, f, false)}>
               買う
             </Button>
           ) : (
@@ -213,21 +226,56 @@ function ItemsPanel({ save, chapter, onGloss }: PanelProps) {
   )
 }
 
+/** 試しに置いている家具：名前と、買えるか（買えなければ理由）。「買う」「やめる」 */
+function TrialBar({ save, item, onBuy, onEnd }: { save: SaveData; item: Furniture; onBuy: () => void; onEnd: () => void }) {
+  const state = purchaseState(item, save, content.balance.levels)
+  return (
+    <section className="trial-bar" aria-label="試しに置いてみる" data-trial={item.id}>
+      <p className="trial-bar__text">
+        <span className="trial-bar__label">試しに置いています</span>
+        <strong>{item.nameJa}</strong>（{slotName(item.slot)}）
+        {state.kind !== 'available' && <span className="trial-bar__state">{stateText(state)}</span>}
+      </p>
+      <div className="trial-bar__actions">
+        {state.kind === 'available' && (
+          <Button variant="primary" onClick={onBuy}>
+            買う（{state.price} コイン）
+          </Button>
+        )}
+        <Button onClick={onEnd}>やめる</Button>
+      </div>
+    </section>
+  )
+}
+
 /** 部屋を飾る（GAME_SPEC 6-3。Phase 4）：部屋の絵と、飾る・カタログ・持ち物 */
 export function RoomPage() {
   const { state, dispatch } = useGame()
   const room = content.balance.room
   const [tab, setTab] = useState<Tab>('decorate')
   const [slotId, setSlotId] = useState(room.slots[0]?.id ?? '')
+  const [trialId, setTrialId] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const viewRef = useRef<HTMLDivElement>(null)
   const save = state.save
   const chapter = save === null ? 1 : (nextEvent(content.events, save.progress)?.chapter ?? content.chapters.at(-1)?.chapter ?? 1)
   const gloss = useGlossPopup(chapter)
+  const buy = useBuy(setMessage)
   if (save === null) return null
   const image = backgroundImage('home')
-  const placed = placedFurniture(save, room, content.furniture)
+  // 試しに置けるのは、まだ持っていない家具だけ（買ったら試しは終わり）
+  const trial = content.furniture.find((f) => f.id === trialId && save.home.owned[f.id] === undefined) ?? null
+  const placed = placedFurniture(save, room, content.furniture, trial)
   const slot = room.slots.find((s) => s.id === slotId) ?? room.slots[0]
   const level = levelOf(save.stats.xp, content.balance.levels)
   const props: PanelProps = { save, chapter, onGloss: gloss.onGloss }
+  const showSlots = tab === 'decorate' && trial === null
+
+  function startTrial(item: Furniture) {
+    setTrialId(item.id)
+    setMessage(null)
+    viewRef.current?.scrollIntoView({ block: 'start' })
+  }
 
   return (
     <ScreenLayout eyebrow="自宅" title="部屋を飾る" footer={<Button onClick={() => dispatch({ type: 'closeStudyScene' })}>戻る</Button>}>
@@ -237,22 +285,42 @@ export function RoomPage() {
           コイン <strong className="room-status__coins">{save.stats.coins}</strong>
         </span>
       </p>
-      <div className="room-view">
+      <div className="room-view" ref={viewRef}>
         {image === undefined ? (
           <p className="muted">部屋の絵がまだありません。</p>
         ) : (
-          <RoomScene image={image} placed={placed} slots={tab === 'decorate' ? room.slots : undefined} selected={tab === 'decorate' ? (slot?.id ?? null) : null} />
+          <RoomScene image={image} placed={placed} slots={showSlots ? room.slots : undefined} selected={showSlots ? (slot?.id ?? null) : null} />
         )}
       </div>
+      {trial !== null && (
+        <TrialBar
+          save={save}
+          item={trial}
+          onBuy={() => {
+            buy(save, trial, true)
+            setTrialId(null)
+          }}
+          onEnd={() => setTrialId(null)}
+        />
+      )}
       <div className="mode-tabs mode-tabs--3" role="group" aria-label="表示">
         {TABS.map((t) => (
-          <button key={t.id} type="button" className="mode-tab" aria-pressed={tab === t.id} onClick={() => setTab(t.id)}>
+          <button
+            key={t.id}
+            type="button"
+            className="mode-tab"
+            aria-pressed={tab === t.id}
+            onClick={() => {
+              setTab(t.id)
+              setTrialId(null)
+            }}
+          >
             {t.label}
           </button>
         ))}
       </div>
       {tab === 'decorate' && slot !== undefined && <DecoratePanel {...props} slot={slot} onSlot={setSlotId} onCatalog={() => setTab('catalog')} />}
-      {tab === 'catalog' && <CatalogPanel {...props} />}
+      {tab === 'catalog' && <CatalogPanel {...props} message={message} setMessage={setMessage} onTrial={startTrial} />}
       {tab === 'items' && <ItemsPanel {...props} />}
       {gloss.popup}
     </ScreenLayout>
